@@ -13,9 +13,13 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
     "prisma:migrate:dev": "prisma migrate dev",
+    "seed": "tsx prisma/seed.ts",
+    "tareas": "tsx src/tareas.ts",
+    "tareas:prod": "node dist/tareas.js"
+  },
+  "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
-  "prisma": { "seed": "tsx prisma/seed.ts" },
   "dependencies": {
     "@prisma/client": "^6.2.1",
     "bcryptjs": "^2.4.3",

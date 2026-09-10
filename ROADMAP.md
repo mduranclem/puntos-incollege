@@ -75,8 +75,8 @@ queda acreditado.
 **Listo cuando:** se dispara solo, sin intervención manual.
 
 ## Etapa 8 — Vencimiento automático
-- [ ] Tarea programada que vence los saldos al cerrar la temporada
-- [ ] Aviso anticipado configurable
+- [x] Tarea programada que vence los saldos al cerrar la temporada
+- [x] Aviso anticipado configurable
 
 ---
 
