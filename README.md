@@ -45,19 +45,26 @@ cp api/.env.example api/.env      # editar DATABASE_URL y los secretos
 docker compose up -d db
 ```
 
-Sin Docker (Postgres embebido, sirve para probar en cualquier máquina):
-
-```bash
-npm run pg:local --workspace=api   # deja esta terminal abierta
-```
-
-Después, en otra terminal:
+Con Docker, después:
 
 ```bash
 npm run prisma:migrate --workspace=api
 npm run seed --workspace=api       # locales, temporada, configuración y usuarios
 npm run dev                        # API en :3001, web en :5173
 ```
+
+Sin Docker (Postgres embebido, D-018). Acepta **una conexión por vez**, así que cada paso
+va con la terminal anterior cerrada y el servidor recién levantado:
+
+```bash
+npm run pg:local --workspace=api        # terminal 1, dejala abierta
+npm run preparar:local --workspace=api  # terminal 2: migración + seed en una conexión
+# reiniciá la terminal 1 y después:
+npm run dev                             # la API queda como único cliente de la base
+```
+
+En `api/.env`, `DATABASE_URL` para el Postgres embebido:
+`postgresql://postgres:postgres@127.0.0.1:5432/postgres?connection_limit=1&sslmode=disable&pgbouncer=true`
 
 El seed crea `admin` (PIN 1234) y `mostrador-<local>` (PIN 1111).
 **Cambiar los PIN antes de usarlo en producción.**
