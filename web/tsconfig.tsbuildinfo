@@ -1,1 +1,1 @@
-{"root":["./src/api.ts","./src/main.tsx","./src/componentes/estructura.tsx","./src/paginas/cobro.tsx","./src/paginas/ingreso.tsx"],"version":"5.9.3"}
+{"root":["./src/api.ts","./src/main.tsx","./src/componentes/estructura.tsx","./src/paginas/cobro.tsx","./src/paginas/ingreso.tsx","./src/paginas/saldo.tsx"],"version":"5.9.3"}

@@ -46,9 +46,9 @@ con sus tests. Sin interfaz.
 queda acreditado.
 
 ## Etapa 4 — Pantalla de saldo del cliente
-- [ ] Vista pública por token firmado (sin login)
-- [ ] Saldo en puntos, equivalente en pesos, últimos movimientos, vencimiento
-- [ ] Mobile primero, se abre desde un link de WhatsApp
+- [x] Vista pública por token firmado (sin login)
+- [x] Saldo en puntos, equivalente en pesos, últimos movimientos, vencimiento
+- [x] Mobile primero, se abre desde un link de WhatsApp
 
 **Listo cuando:** se ve bien en un celular y no expone datos de otros clientes.
 

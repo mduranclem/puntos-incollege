@@ -4,6 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import './estilos.css';
 import { Ingreso } from './paginas/Ingreso';
 import { Cobro } from './paginas/Cobro';
+import { Saldo } from './paginas/Saldo';
 import { Estructura } from './componentes/Estructura';
 import { leerSesion } from './api';
 
@@ -16,6 +17,7 @@ createRoot(document.getElementById('raiz')!).render(
     <BrowserRouter>
       <Routes>
         <Route path="/ingresar" element={<Ingreso />} />
+        <Route path="/s/:token" element={<Saldo />} />
         <Route
           path="/"
           element={
