@@ -320,9 +320,10 @@ canje concurrente) que **se saltean solos** si no hay `DATABASE_URL_TEST`.
 garantías que sólo puede dar el motor de base de datos se prueban aparte, contra
 PostgreSQL de verdad, en el entorno donde haya uno.
 
-**Estado.** En la máquina donde se desarrolló esto no hay PostgreSQL ni Docker
-instalados, así que los tests de integración quedaron escritos pero sin ejecutar. Los
-unitarios pasan.
+**Estado.** Los 45 tests unitarios pasan. Los de integración (`tests/integracionPostgres.test.ts`)
+quedaron escritos y sin correr: prueban concurrencia real, y para eso hace falta un
+PostgreSQL con varias conexiones (ver D-018). Correlos con `DATABASE_URL_TEST` apuntando
+al Postgres de desarrollo o de *staging*.
 
 ---
 
@@ -352,3 +353,33 @@ cobro termina; el aviso sale cuando salga.
 **Consecuencia.** Cada aviso tiene una clave única (`acreditacion:<pagoId>`,
 `porvencer:<temporada>:<cuenta>`), así que reintentar la tarea no manda el mensaje dos
 veces. El panel muestra el estado de la cola.
+
+---
+
+## D-018 · Postgres embebido para poder probar sin instalar nada
+
+**Contexto.** El sistema se desarrolló en una máquina sin PostgreSQL ni Docker. Sin base
+no se puede verificar nada de lo que realmente importa: que las migraciones apliquen, que
+las consultas sean válidas y que el flujo del mostrador funcione punta a punta.
+
+**Decisión.** `npm run pg:local --workspace=api` levanta PGlite (PostgreSQL compilado a
+WASM) hablando el protocolo de Postgres en el puerto 5432. Prisma y la API se conectan
+sin cambiar una línea de código.
+
+**Qué se verificó así:** migración inicial aplicada sobre PostgreSQL 18, alta de cliente,
+acreditación con remanente, idempotencia del cobro repetido, cobro con tarjeta que no
+acredita, canje con tope y con beneficio declarado, anulación con movimiento inverso,
+saldo público por token (y 404 con token adulterado), totales del panel, control de
+caché contra el libro mayor, y vencimiento de temporada con apertura de la siguiente.
+
+**Dos defectos aparecieron sólo al correrlo de verdad**, y por eso valió la pena:
+
+1. El bloqueo de fila comparaba `id = $1::uuid` contra una columna de texto: PostgreSQL
+   tiraba `operator does not exist: text = uuid` y **ninguna acreditación funcionaba**.
+2. Al cerrar la temporada, si el nombre de la nueva coincidía con una existente, el
+   `upsert` devolvía la vieja y **el sistema quedaba sin temporada abierta**.
+
+**Límites.** PGlite acepta una conexión por vez, así que no sirve para probar
+concurrencia: los tests de canje simultáneo necesitan un Postgres de verdad (D-015).
+Para desarrollo con Docker está `docker-compose.yml`, y en producción va el Postgres de
+EasyPanel.

@@ -108,16 +108,21 @@ export async function vencerTemporadasCerradas(
     const abierta = await prisma.temporada.findFirst({ where: { cerrada: false } });
     if (!abierta) {
       const inicio = new Date(temporada.cierreEn.getTime() + 1000);
-      const anio = inicio.getUTCFullYear();
-      const nombre = `Temporada ${anio}`;
-      const nueva = await prisma.temporada.upsert({
-        where: { nombre },
-        update: {},
-        create: {
-          nombre,
-          inicioEn: inicio,
-          cierreEn: new Date(Date.UTC(anio, 11, 31, 23, 59, 59)),
-        },
+      let anio = inicio.getUTCFullYear();
+      let cierre = new Date(Date.UTC(anio, 11, 31, 23, 59, 59));
+      // Si la temporada se cerró antes de tiempo, el 31/12 de este año todavía sirve;
+      // si ya pasó, la nueva temporada cierra el año que viene.
+      if (cierre <= inicio) {
+        anio += 1;
+        cierre = new Date(Date.UTC(anio, 11, 31, 23, 59, 59));
+      }
+      // El nombre es único: si ya existe una temporada de ese año, se numera.
+      let nombre = `Temporada ${anio}`;
+      for (let n = 2; await prisma.temporada.findUnique({ where: { nombre } }); n++) {
+        nombre = `Temporada ${anio} (${n})`;
+      }
+      const nueva = await prisma.temporada.create({
+        data: { nombre, inicioEn: inicio, cierreEn: cierre },
       });
       // La configuración vigente pasa a apuntar a la temporada nueva.
       const config = await prisma.configuracion.findFirst({

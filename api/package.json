@@ -15,7 +15,9 @@
     "prisma:migrate:dev": "prisma migrate dev",
     "seed": "tsx prisma/seed.ts",
     "tareas": "tsx src/tareas.ts",
-    "tareas:prod": "node dist/tareas.js"
+    "tareas:prod": "node dist/tareas.js",
+    "pg:local": "tsx src/scripts/pgliteServidor.ts",
+    "probar:local": "tsx src/scripts/probarCicloLocal.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -29,6 +31,8 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.3.8",
+    "@electric-sql/pglite-socket": "^0.0.13",
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",

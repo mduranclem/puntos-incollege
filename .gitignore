@@ -6,3 +6,6 @@ dist/
 .DS_Store
 web/dist/
 api/dist/
+
+# Base de datos embebida para desarrollo local
+.pglite/

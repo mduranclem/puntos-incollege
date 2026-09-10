@@ -130,9 +130,10 @@ export class RepositorioPrisma implements RepositorioPuntos {
     return this.prisma.$transaction(
       async (tx) => {
         // Bloqueo de fila: serializa las operaciones sobre esta cuenta (D-007).
+        // `id` es una columna de texto (uuid generado por Prisma): va sin cast a uuid.
         const filas = await tx.$queryRaw<
           { id: string }[]
-        >`SELECT id FROM "CuentaPuntos" WHERE id = ${cuentaId}::uuid FOR UPDATE`;
+        >`SELECT id FROM "CuentaPuntos" WHERE id = ${cuentaId} FOR UPDATE`;
         if (filas.length === 0) {
           throw new Error(`La cuenta ${cuentaId} no existe`);
         }
