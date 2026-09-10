@@ -39,13 +39,13 @@ npm install
 cp api/.env.example api/.env      # editar DATABASE_URL y los secretos
 ```
 
-**Base de datos.** Con Docker:
+**Base de datos con Docker:**
 
 ```bash
 docker compose up -d db
 ```
 
-Con Docker, después:
+Y después:
 
 ```bash
 npm run prisma:migrate --workspace=api
