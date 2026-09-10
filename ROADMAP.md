@@ -53,10 +53,10 @@ queda acreditado.
 **Listo cuando:** se ve bien en un celular y no expone datos de otros clientes.
 
 ## Etapa 5 — Canje en el mostrador
-- [ ] Búsqueda por teléfono y saldo a la vista
-- [ ] Canje sobre el total de la venta respetando el tope configurable
-- [ ] Bloqueo de acumulación con otros beneficios (validado por el sistema)
-- [ ] Concurrencia: transacción con bloqueo de fila y verificación de saldo adentro
+- [x] Búsqueda por teléfono y saldo a la vista
+- [x] Canje sobre el total de la venta respetando el tope configurable
+- [x] Bloqueo de acumulación con otros beneficios (validado por el sistema)
+- [x] Concurrencia: transacción con bloqueo de fila y verificación de saldo adentro
 
 **Listo cuando:** dos sesiones simultáneas no pueden gastar el mismo saldo.
 

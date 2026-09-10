@@ -5,6 +5,7 @@ import './estilos.css';
 import { Ingreso } from './paginas/Ingreso';
 import { Cobro } from './paginas/Cobro';
 import { Saldo } from './paginas/Saldo';
+import { Canje } from './paginas/Canje';
 import { Estructura } from './componentes/Estructura';
 import { leerSesion } from './api';
 
@@ -27,6 +28,7 @@ createRoot(document.getElementById('raiz')!).render(
           }
         >
           <Route index element={<Cobro />} />
+          <Route path="canje" element={<Canje />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
