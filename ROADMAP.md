@@ -61,9 +61,9 @@ queda acreditado.
 **Listo cuando:** dos sesiones simultáneas no pueden gastar el mismo saldo.
 
 ## Etapa 6 — Panel de administración
-- [ ] Configuración de tasas por línea, valor del punto, tope y fecha de vencimiento
-- [ ] Listado de movimientos con filtros por local, fecha y cliente
-- [ ] Totales de puntos emitidos, canjeados y vigentes (pasivo del programa)
+- [x] Configuración de tasas por línea, valor del punto, tope y fecha de vencimiento
+- [x] Listado de movimientos con filtros por local, fecha y cliente
+- [x] Totales de puntos emitidos, canjeados y vigentes (pasivo del programa)
 
 **Listo cuando:** se puede cambiar la tasa sin tocar código ni redeployar.
 

@@ -6,6 +6,7 @@ import { Ingreso } from './paginas/Ingreso';
 import { Cobro } from './paginas/Cobro';
 import { Saldo } from './paginas/Saldo';
 import { Canje } from './paginas/Canje';
+import { Admin } from './paginas/Admin';
 import { Estructura } from './componentes/Estructura';
 import { leerSesion } from './api';
 
@@ -29,6 +30,7 @@ createRoot(document.getElementById('raiz')!).render(
         >
           <Route index element={<Cobro />} />
           <Route path="canje" element={<Canje />} />
+          <Route path="admin" element={<Admin />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
