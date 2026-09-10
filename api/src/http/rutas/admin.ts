@@ -12,6 +12,7 @@ import { formatearPesos, parsearImporte } from '../../dominio/dinero.js';
 import { formatearTelefono, normalizarTelefono } from '../../dominio/telefono.js';
 import { configuracionVigente } from '../../servicios/configuracion.js';
 import { LINEAS_DE_NEGOCIO, TIPOS_DE_MOVIMIENTO } from '../../dominio/tipos.js';
+import { despacharPendientes } from '../../servicios/despachador.js';
 
 const NuevaConfiguracion = z.object({
   valorPunto: z.string().min(1),
@@ -221,6 +222,40 @@ export function rutasDeAdmin() {
         clientes,
         cuentasConSaldo,
       });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+  /** Cola de avisos hacia n8n: qué se mandó, qué está pendiente y qué falló (D-014). */
+  router.get('/avisos', async (_req, res, next) => {
+    try {
+      const [porEstado, ultimos] = await Promise.all([
+        prisma.eventoSaliente.groupBy({ by: ['estado'], _count: { _all: true } }),
+        prisma.eventoSaliente.findMany({ orderBy: { creadoEn: 'desc' }, take: 25 }),
+      ]);
+      return res.json({
+        configurado: Boolean(process.env.N8N_WEBHOOK_URL?.trim()),
+        porEstado: Object.fromEntries(porEstado.map((e) => [e.estado, e._count._all])),
+        ultimos: ultimos.map((e) => ({
+          id: e.id,
+          tipo: e.tipo,
+          estado: e.estado,
+          intentos: e.intentos,
+          creadoEn: e.creadoEn,
+          enviadoEn: e.enviadoEn,
+          ultimoError: e.ultimoError,
+        })),
+      });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+  /** Empujón manual de la cola, por si hace falta destrabar algo. */
+  router.post('/avisos/despachar', async (_req, res, next) => {
+    try {
+      return res.json(await despacharPendientes(prisma));
     } catch (error) {
       return next(error);
     }

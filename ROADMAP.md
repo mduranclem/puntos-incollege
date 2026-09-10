@@ -68,9 +68,9 @@ queda acreditado.
 **Listo cuando:** se puede cambiar la tasa sin tocar código ni redeployar.
 
 ## Etapa 7 — Avisos por WhatsApp
-- [ ] Integración con n8n + Evolution API (webhook saliente)
-- [ ] Aviso al acreditar puntos, con link a la pantalla de saldo
-- [ ] Aviso previo al vencimiento
+- [x] Integración con n8n + Evolution API (webhook saliente)
+- [x] Aviso al acreditar puntos, con link a la pantalla de saldo
+- [x] Aviso previo al vencimiento
 
 **Listo cuando:** se dispara solo, sin intervención manual.
 

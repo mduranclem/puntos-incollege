@@ -75,7 +75,12 @@ export function Admin() {
         ))}
       </div>
 
-      {pestania === 'totales' && <PanelTotales />}
+      {pestania === 'totales' && (
+        <>
+          <PanelTotales />
+          <PanelAvisos />
+        </>
+      )}
       {pestania === 'movimientos' && <PanelMovimientos />}
       {pestania === 'config' && <PanelConfiguracion />}
     </div>
@@ -121,6 +126,45 @@ function PanelTotales() {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+/** Estado de la cola de avisos a n8n (D-014, D-017). */
+function PanelAvisos() {
+  const [datos, setDatos] = useState<{
+    configurado: boolean;
+    porEstado: Record<string, number>;
+    ultimos: Array<{ id: string; tipo: string; estado: string; intentos: number; ultimoError: string | null }>;
+  } | null>(null);
+
+  useEffect(() => {
+    api<never>('/admin/avisos').then(setDatos).catch(() => setDatos(null));
+  }, []);
+
+  if (!datos) return null;
+
+  return (
+    <div className="tarjeta">
+      <div className="flex items-center gap-3">
+        <h2 className="font-semibold">Avisos de WhatsApp</h2>
+        <span
+          className={`chip ${
+            datos.configurado ? 'bg-green-50 text-[var(--color-ok)]' : 'bg-slate-100 text-slate-600'
+          }`}
+        >
+          {datos.configurado ? 'n8n conectado' : 'n8n sin configurar'}
+        </span>
+      </div>
+      <p className="mt-2 text-sm text-slate-600">
+        Pendientes: {datos.porEstado.PENDIENTE ?? 0} · Enviados: {datos.porEstado.ENVIADO ?? 0} ·
+        Fallidos: {datos.porEstado.FALLIDO ?? 0}
+      </p>
+      {(datos.porEstado.FALLIDO ?? 0) > 0 && (
+        <p className="mt-2 text-sm text-[var(--color-error)]">
+          Hay avisos que no se pudieron entregar. Revisá el webhook de n8n.
+        </p>
+      )}
     </div>
   );
 }

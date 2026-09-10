@@ -45,7 +45,7 @@ argentina un `Int` de 32 bits (máximo ≈ $21.474.836) se queda corto para impo
 planes de egresados. `BigInt` no tiene ese techo.
 
 **Consecuencia.** La serialización JSON convierte `bigint` a string en el borde HTTP
-(`api/src/http/json.ts`); el frontend formatea desde string. El parseo de importes que
+(en `api/src/http/app.ts`); el frontend formatea desde string. El parseo de importes que
 tipea el vendedor vive en un solo lugar (`dominio/dinero.ts`).
 
 ---
@@ -323,3 +323,32 @@ PostgreSQL de verdad, en el entorno donde haya uno.
 **Estado.** En la máquina donde se desarrolló esto no hay PostgreSQL ni Docker
 instalados, así que los tests de integración quedaron escritos pero sin ejecutar. Los
 unitarios pasan.
+
+---
+
+## D-016 · Al cerrar una temporada se abre la siguiente sola
+
+**Contexto.** El vencimiento cierra la temporada. Si no hubiera otra abierta, al
+día siguiente el mostrador no podría acreditar nada (la cuenta de puntos vive en una
+temporada).
+
+**Decisión.** La tarea de vencimiento, después de vencer y cerrar, abre la temporada
+siguiente si no hay ninguna abierta y copia la configuración vigente a la nueva
+temporada. Las fechas quedan editables desde el panel.
+
+**Consecuencia.** El programa no se corta solo un 1° de enero. La fecha de cierre real
+la define administración desde el panel cuando decide el calendario de la temporada.
+
+---
+
+## D-017 · Los avisos se despachan desde una cola, nunca en el pedido del cobro
+
+**Decisión.** `EventoSaliente` guarda los avisos y una tarea los postea a n8n con
+reintentos y *backoff* exponencial (1, 2, 4, 8, 16, 32 minutos, hasta 6 intentos).
+
+**Por qué.** Si n8n o WhatsApp están lentos, la caja no puede quedar esperando. El
+cobro termina; el aviso sale cuando salga.
+
+**Consecuencia.** Cada aviso tiene una clave única (`acreditacion:<pagoId>`,
+`porvencer:<temporada>:<cuenta>`), así que reintentar la tarea no manda el mensaje dos
+veces. El panel muestra el estado de la cola.
