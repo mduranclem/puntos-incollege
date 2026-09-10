@@ -36,10 +36,10 @@ con sus tests. Sin interfaz.
 **Listo cuando:** cargar el mismo número en cinco formatos distintos da una sola cuenta. ✅ Hecho.
 
 ## Etapa 3 — Pantalla de cobro en mostrador
-- [ ] Búsqueda de cliente por teléfono + alta en la misma pantalla
-- [ ] Importe cobrado y medio de pago
-- [ ] Acreditación inmediata si es efectivo y saldo actualizado en pantalla
-- [ ] Optimizada para velocidad: foco automático, teclado numérico, sin recargas,
+- [x] Búsqueda de cliente por teléfono + alta en la misma pantalla
+- [x] Importe cobrado y medio de pago
+- [x] Acreditación inmediata si es efectivo y saldo actualizado en pantalla
+- [x] Optimizada para velocidad: foco automático, teclado numérico, sin recargas,
       operable entera con teclado
 
 **Listo cuando:** se registra un cobro completo en menos de quince segundos y el punto

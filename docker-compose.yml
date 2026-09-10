@@ -1,0 +1,12 @@
+# Postgres para desarrollo local. En producción se usa el Postgres de EasyPanel.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: puntos
+      POSTGRES_PASSWORD: puntos
+      POSTGRES_DB: puntos_incollege
+    ports: ['5432:5432']
+    volumes: ['datos:/var/lib/postgresql/data']
+volumes:
+  datos:

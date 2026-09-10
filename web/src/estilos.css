@@ -1,0 +1,88 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-tinta: #0b1b2e;
+  --color-marino: #0f2d52;
+  --color-marino-claro: #1b4a86;
+  --color-punto: #e0a325;
+  --color-punto-suave: #fdf3dd;
+  --color-papel: #f6f7f9;
+  --color-borde: #dfe3ea;
+  --color-ok: #1a7f4b;
+  --color-error: #b4232a;
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --radius-suave: 0.75rem;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background: var(--color-papel);
+    color: var(--color-tinta);
+    font-family: var(--font-sans);
+    margin: 0;
+    /* En el mostrador se usa con el pulgar y en pantallas chicas. */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Números grandes y parejos: el vendedor lee el saldo de lejos. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-marino-claro);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .campo {
+    @apply w-full rounded-xl border border-[var(--color-borde)] bg-white px-4 py-3 text-lg
+           text-[var(--color-tinta)] shadow-sm transition
+           placeholder:text-slate-400 focus:border-[var(--color-marino-claro)];
+  }
+
+  .campo-grande {
+    @apply w-full rounded-xl border border-[var(--color-borde)] bg-white px-4 py-4 text-3xl
+           font-semibold tracking-tight text-[var(--color-tinta)] shadow-sm transition
+           placeholder:text-slate-400 focus:border-[var(--color-marino-claro)];
+    font-variant-numeric: tabular-nums;
+  }
+
+  .boton {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-base
+           font-semibold transition active:scale-[0.99] disabled:cursor-not-allowed
+           disabled:opacity-50;
+  }
+
+  .boton-principal {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-base
+           font-semibold transition active:scale-[0.99] disabled:cursor-not-allowed
+           disabled:opacity-50 bg-[var(--color-marino)] text-white
+           hover:bg-[var(--color-marino-claro)];
+  }
+
+  .boton-secundario {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-base
+           font-semibold transition active:scale-[0.99] disabled:cursor-not-allowed
+           disabled:opacity-50 border border-[var(--color-borde)] bg-white
+           text-[var(--color-tinta)] hover:border-[var(--color-marino-claro)];
+  }
+
+  .tarjeta {
+    @apply rounded-2xl border border-[var(--color-borde)] bg-white p-5 shadow-sm;
+  }
+
+  .etiqueta {
+    @apply mb-1.5 block text-sm font-medium text-slate-600;
+  }
+
+  .chip {
+    @apply rounded-lg px-3 py-2 text-sm font-semibold transition;
+  }
+}
