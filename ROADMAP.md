@@ -28,12 +28,12 @@ con sus tests. Sin interfaz.
 **Listo cuando:** los tests pasan y se puede simular el ciclo completo por consola. ✅ Hecho.
 
 ## Etapa 2 — Clientes y normalización de teléfonos
-- [ ] Normalización a E.164 (`+549341...`) tolerante a formatos de carga manual
-- [ ] Alta de cliente por teléfono
-- [ ] Detección de duplicados
-- [ ] Fusión de cuentas repetidas (conserva el libro mayor de ambas)
+- [x] Normalización a E.164 (`+549341...`) tolerante a formatos de carga manual
+- [x] Alta de cliente por teléfono
+- [x] Detección de duplicados
+- [x] Fusión de cuentas repetidas (conserva el libro mayor de ambas)
 
-**Listo cuando:** cargar el mismo número en cinco formatos distintos da una sola cuenta.
+**Listo cuando:** cargar el mismo número en cinco formatos distintos da una sola cuenta. ✅ Hecho.
 
 ## Etapa 3 — Pantalla de cobro en mostrador
 - [ ] Búsqueda de cliente por teléfono + alta en la misma pantalla
