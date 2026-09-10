@@ -6,10 +6,8 @@
  * cambiar después desde el panel sin tocar nada.
  */
 import bcrypt from 'bcryptjs';
-import { PrismaClient } from '@prisma/client';
-import { parsearImporte } from '../src/dominio/dinero.js';
-
-const prisma = new PrismaClient();
+import { prisma } from '../infra/prisma/cliente.js';
+import { parsearImporte } from '../dominio/dinero.js';
 
 const LOCALES = [
   { codigo: 'ROS-SUR', nombre: 'Rosario Sur', codigoAreaPorDefecto: '341' },
@@ -20,7 +18,7 @@ const LOCALES = [
   { codigo: 'SNI-CEN', nombre: 'San Nicolás', codigoAreaPorDefecto: '336' },
 ];
 
-async function main() {
+export async function sembrar() {
   for (const local of LOCALES) {
     await prisma.local.upsert({
       where: { codigo: local.codigo },
@@ -103,10 +101,13 @@ async function main() {
   );
 }
 
-main()
-  .then(() => prisma.$disconnect())
-  .catch(async (error) => {
-    console.error(error);
-    await prisma.$disconnect();
-    process.exit(1);
-  });
+// Ejecución directa: `npm run seed`.
+if (process.argv[1]?.includes('sembrar')) {
+  sembrar()
+    .then(() => prisma.$disconnect())
+    .catch(async (error) => {
+      console.error(error);
+      await prisma.$disconnect();
+      process.exit(1);
+    });
+}

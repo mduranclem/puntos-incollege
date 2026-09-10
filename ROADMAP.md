@@ -43,7 +43,8 @@ con sus tests. Sin interfaz.
       operable entera con teclado
 
 **Listo cuando:** se registra un cobro completo en menos de quince segundos y el punto
-queda acreditado.
+queda acreditado. ✅ Probado en el navegador contra Postgres: teléfono → Enter → nombre →
+Enter → importe → Enter, sin tocar el mouse, y el saldo queda a la vista.
 
 ## Etapa 4 — Pantalla de saldo del cliente
 - [x] Vista pública por token firmado (sin login)

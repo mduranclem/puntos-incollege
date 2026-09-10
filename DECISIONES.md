@@ -383,3 +383,21 @@ caché contra el libro mayor, y vencimiento de temporada con apertura de la sigu
 concurrencia: los tests de canje simultáneo necesitan un Postgres de verdad (D-015).
 Para desarrollo con Docker está `docker-compose.yml`, y en producción va el Postgres de
 EasyPanel.
+---
+
+## D-019 · El foco de la pantalla de cobro se maneja con efectos, no en el handler
+
+**Contexto.** La pantalla de cobro tiene que completarse entera con el teclado. El salto
+de foco (teléfono → nombre → importe) estaba escrito adentro de la función que busca al
+cliente, justo después de `setEsNuevo(true)`.
+
+**Problema encontrado probándola en el navegador:** el campo de nombre todavía no existía
+en el DOM cuando se lo intentaba enfocar, así que el foco se quedaba en el teléfono y
+**todo lo que tipeaba el vendedor terminaba dentro del campo del teléfono**. La pantalla
+quedaba inusable justo en lo único que no puede fallar.
+
+**Decisión.** El foco se mueve en `useEffect` disparado por el estado (`esNuevo`,
+`cliente`), que corre después de que React dibujó el campo.
+
+**Regla general.** Enfocar un campo que aparece de forma condicional va siempre en un
+efecto, nunca en el mismo tick que decide mostrarlo.

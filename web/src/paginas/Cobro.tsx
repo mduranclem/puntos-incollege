@@ -68,6 +68,16 @@ export function Cobro() {
 
   useEffect(() => campoTelefono.current?.focus(), []);
 
+  // El foco tiene que saltar al campo siguiente DESPUÉS de que React lo dibuje:
+  // el campo de nombre recién existe cuando el cliente es nuevo.
+  useEffect(() => {
+    if (esNuevo) campoNombre.current?.focus();
+  }, [esNuevo]);
+
+  useEffect(() => {
+    if (cliente) campoImporte.current?.focus();
+  }, [cliente]);
+
   // Atajos: Alt+número para el medio de pago, Alt+U / Alt+R para la línea.
   useEffect(() => {
     function alTeclear(evento: KeyboardEvent) {
@@ -100,11 +110,9 @@ export function Cobro() {
         setCliente(datos as ResumenDeCuenta);
         setEsNuevo(false);
         setNombre('');
-        campoImporte.current?.focus();
       } else {
         setCliente(null);
         setEsNuevo(true);
-        campoNombre.current?.focus();
       }
     } catch (e) {
       setCliente(null);

@@ -13,14 +13,15 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
     "prisma:migrate:dev": "prisma migrate dev",
-    "seed": "tsx prisma/seed.ts",
+    "seed": "tsx src/scripts/sembrar.ts",
     "tareas": "tsx src/tareas.ts",
     "tareas:prod": "node dist/tareas.js",
     "pg:local": "tsx src/scripts/pgliteServidor.ts",
-    "probar:local": "tsx src/scripts/probarCicloLocal.ts"
+    "probar:local": "tsx src/scripts/probarCicloLocal.ts",
+    "preparar:local": "tsx src/scripts/prepararLocal.ts"
   },
   "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx src/scripts/sembrar.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.2.1",
