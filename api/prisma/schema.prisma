@@ -1,0 +1,283 @@
+// Puntos InCollege — modelo de datos.
+// Reglas que sostiene el esquema (ver DECISIONES.md):
+//  - Dinero en centavos, BigInt. Nunca float (D-002).
+//  - Movimiento es append-only: el saldo se suma desde acá (D-004).
+//  - Unicidad de (tipo, referenciaExterna) => idempotencia (D-006).
+//  - Configuración versionada, nada hardcodeado (D-009).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum LineaDeNegocio {
+  UNIFORMES
+  ROPA_LISA
+  EGRESADOS
+}
+
+enum MedioDePago {
+  EFECTIVO
+  TRANSFERENCIA
+  TARJETA_DEBITO
+  TARJETA_CREDITO
+  QR
+  BILLETERA_VIRTUAL
+  OTRO
+}
+
+enum TipoDeMovimiento {
+  ACREDITACION
+  CANJE
+  VENCIMIENTO
+  REVERSA
+  AJUSTE
+}
+
+enum Rol {
+  VENDEDOR
+  ADMINISTRADOR
+}
+
+enum OrigenDePago {
+  MANUAL
+  SIRO
+}
+
+enum EstadoDePago {
+  PENDIENTE
+  ACREDITADO
+  NO_ACREDITABLE
+  ANULADO
+}
+
+enum EstadoDeEvento {
+  PENDIENTE
+  ENVIADO
+  FALLIDO
+}
+
+model Local {
+  id                   String   @id @default(uuid())
+  codigo               String   @unique
+  nombre               String
+  /// Código de área que se asume cuando el cliente tipea sólo el abonado (D-010).
+  codigoAreaPorDefecto String
+  activo               Boolean  @default(true)
+  creadoEn             DateTime @default(now())
+
+  usuarios     Usuario[]
+  clientes     Cliente[]
+  pagos        Pago[]
+  movimientos  Movimiento[]
+}
+
+model Usuario {
+  id       String   @id @default(uuid())
+  usuario  String   @unique
+  nombre   String
+  pinHash  String
+  rol      Rol      @default(VENDEDOR)
+  activo   Boolean  @default(true)
+  creadoEn DateTime @default(now())
+
+  localId String
+  local   Local  @relation(fields: [localId], references: [id])
+
+  pagos          Pago[]
+  movimientos    Movimiento[]
+  configuraciones Configuracion[]
+}
+
+model Cliente {
+  /// Teléfono normalizado a E.164. Es la identidad de la cuenta (D-010).
+  telefonoE164  String   @unique
+  /// Lo que tipeó el vendedor, tal cual, para auditoría.
+  telefonoCrudo String
+  id            String   @id @default(uuid())
+  nombre        String
+  documento     String?
+  creadoEn      DateTime @default(now())
+  /// Se sube para invalidar los links de saldo ya emitidos (D-011).
+  tokenVersion  Int      @default(1)
+
+  localOrigenId String?
+  localOrigen   Local?  @relation(fields: [localOrigenId], references: [id])
+
+  /// Si esta cuenta se fusionó con otra, acá queda la sobreviviente. Nunca se borra (D-010).
+  fusionadoEnId String?
+  fusionadoEn   Cliente?  @relation("Fusion", fields: [fusionadoEnId], references: [id])
+  absorbidos    Cliente[] @relation("Fusion")
+
+  cuentas CuentaPuntos[]
+  pagos   Pago[]
+
+  @@index([fusionadoEnId])
+  @@index([nombre])
+}
+
+model Temporada {
+  id       String   @id @default(uuid())
+  nombre   String   @unique
+  inicioEn DateTime
+  /// Fecha de cierre: los puntos vencen acá. Configurable (D-009).
+  cierreEn DateTime
+  cerrada  Boolean  @default(false)
+  creadoEn DateTime @default(now())
+
+  cuentas         CuentaPuntos[]
+  configuraciones Configuracion[]
+}
+
+model CuentaPuntos {
+  id          String   @id @default(uuid())
+  clienteId   String
+  cliente     Cliente  @relation(fields: [clienteId], references: [id])
+  temporadaId String
+  temporada   Temporada @relation(fields: [temporadaId], references: [id])
+  creadoEn    DateTime @default(now())
+
+  /// CACHÉ. La verdad son los movimientos. Se recalcula, nunca se incrementa (D-004).
+  saldoCacheado       Int      @default(0)
+  /// CACHÉ del remanente en centavos que no completó un punto (D-005).
+  remanenteCentavos   BigInt   @default(0)
+  cacheActualizadoEn  DateTime @default(now())
+
+  movimientos Movimiento[]
+
+  @@unique([clienteId, temporadaId])
+}
+
+/// Libro mayor. Inmutable: no se actualiza ni se borra (D-004).
+model Movimiento {
+  id       String           @id @default(uuid())
+  /// Orden total del libro mayor. Define cuál es el último movimiento sin ambigüedad.
+  secuencia BigInt          @unique @default(autoincrement())
+  cuentaId String
+  cuenta   CuentaPuntos     @relation(fields: [cuentaId], references: [id])
+  tipo     TipoDeMovimiento
+  /// Puntos con signo: positivo acredita, negativo descuenta.
+  puntos   Int
+
+  montoOrigenCentavos          BigInt?
+  /// Remanente de la cuenta después de este movimiento (D-005).
+  remanenteResultanteCentavos  BigInt  @default(0)
+
+  /// Idempotencia: referencia del pago o de la operación de origen (D-006).
+  referenciaExterna String?
+
+  /// Snapshot de la configuración aplicada. Cambiar la tasa no reescribe el pasado (D-009).
+  centavosPorPuntoAplicado   BigInt?
+  valorPuntoAplicadoCentavos BigInt?
+
+  movimientoRevertidoId String?     @unique
+  movimientoRevertido   Movimiento? @relation("Reversa", fields: [movimientoRevertidoId], references: [id])
+  reversa               Movimiento? @relation("Reversa")
+
+  motivo   String?
+  metadata Json?
+
+  localId   String?
+  local     Local?   @relation(fields: [localId], references: [id])
+  usuarioId String?
+  usuario   Usuario? @relation(fields: [usuarioId], references: [id])
+  creadoEn  DateTime @default(now())
+
+  pago Pago? @relation("PagoAcreditado")
+
+  @@unique([tipo, referenciaExterna])
+  @@index([cuentaId, creadoEn])
+  @@index([creadoEn])
+  @@index([localId, creadoEn])
+}
+
+model Pago {
+  id                String       @id @default(uuid())
+  /// Clave de idempotencia global: `manual:<uuid>`, `siro:<correlativo>` (D-003, D-006).
+  referenciaExterna String       @unique
+  origen            OrigenDePago @default(MANUAL)
+  estado            EstadoDePago @default(PENDIENTE)
+
+  importeCentavos BigInt
+  medioDePago     MedioDePago
+  lineaDeNegocio  LineaDeNegocio
+
+  ocurridoEn  DateTime
+  creadoEn    DateTime  @default(now())
+  procesadoEn DateTime?
+
+  clienteId String
+  cliente   Cliente @relation(fields: [clienteId], references: [id])
+  localId   String
+  local     Local   @relation(fields: [localId], references: [id])
+  usuarioId String?
+  usuario   Usuario? @relation(fields: [usuarioId], references: [id])
+
+  /// Movimiento de acreditación generado por este pago, si acreditó.
+  movimientoId String?     @unique
+  movimiento   Movimiento? @relation("PagoAcreditado", fields: [movimientoId], references: [id])
+
+  anuladoEn     DateTime?
+  motivoAnulado String?
+  /// Crudo de la fuente de origen, para auditoría.
+  metadata      Json?
+
+  @@index([estado, origen])
+  @@index([ocurridoEn])
+  @@index([clienteId, ocurridoEn])
+}
+
+/// Configuración versionada. Editar crea una versión nueva; no se pisa (D-009).
+model Configuracion {
+  id           String   @id @default(uuid())
+  vigenteDesde DateTime @default(now())
+  creadoEn     DateTime @default(now())
+
+  /// Cuánto vale un punto al canjear, en centavos.
+  valorPuntoCentavos BigInt
+  /// Tope del canje sobre el total de la venta, en puntos básicos (1000 = 10%).
+  topeCanjeBps       Int
+  /// Días de anticipación del aviso de vencimiento por WhatsApp.
+  diasAvisoVencimiento Int @default(30)
+
+  temporadaId String?
+  temporada   Temporada? @relation(fields: [temporadaId], references: [id])
+  creadoPorId String?
+  creadoPor   Usuario?   @relation(fields: [creadoPorId], references: [id])
+
+  tasas TasaAcumulacion[]
+
+  @@index([vigenteDesde])
+}
+
+model TasaAcumulacion {
+  id              String         @id @default(uuid())
+  configuracionId String
+  configuracion   Configuracion  @relation(fields: [configuracionId], references: [id], onDelete: Cascade)
+  lineaDeNegocio  LineaDeNegocio
+  /// Centavos que hay que pagar en efectivo para sumar un punto.
+  centavosPorPunto BigInt
+
+  @@unique([configuracionId, lineaDeNegocio])
+}
+
+/// Cola de avisos hacia n8n. Si n8n está caído, el cobro no falla (D-014).
+model EventoSaliente {
+  id              String         @id @default(uuid())
+  tipo            String
+  payload         Json
+  estado          EstadoDeEvento @default(PENDIENTE)
+  intentos        Int            @default(0)
+  proximoIntentoEn DateTime      @default(now())
+  ultimoError     String?
+  creadoEn        DateTime       @default(now())
+  enviadoEn       DateTime?
+  /// Evita mandar dos veces el mismo aviso.
+  claveUnica      String?        @unique
+
+  @@index([estado, proximoIntentoEn])
+}
