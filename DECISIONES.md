@@ -482,3 +482,50 @@ lo mismo exista o no el teléfono, así nadie puede averiguar quién es cliente.
 **Consecuencia.** Mientras n8n no esté conectado, el código no se puede entregar: el
 acceso propio del cliente depende de esa integración. El link que manda la vendedora
 sigue funcionando sin n8n.
+
+---
+
+## D-023 · En el mostrador se busca por los últimos dígitos o por el nombre
+
+**Contexto.** La identidad del cliente es el teléfono (D-010), pero hacérselo dictar
+entero son diez dígitos con ruido de fondo y gente esperando: es lento y se carga mal.
+
+**Decisión.** La pantalla de cobro decide sola cómo buscar según lo que se tipea:
+
+| Lo que tipea el vendedor | Qué hace |
+|---|---|
+| 8 dígitos o más | Resolución exacta, instantánea, sin lista. El camino de siempre. |
+| 3 a 7 dígitos | Busca ese fragmento en el teléfono y muestra una lista corta. Los que **terminan** así van primero: "los últimos cuatro" es la instrucción fácil de dar. |
+| Letras | Busca por nombre. |
+
+La lista trae nombre, teléfono y saldo, se navega con las flechas y se elige con Enter:
+la pantalla sigue siendo operable sin mouse, que es la regla de esta pantalla.
+
+**Por qué no un código corto propio.** Se evaluó darle a cada cliente un código de 6
+caracteres. Se descartó: le agrega algo nuevo que recordar o buscar, y no gana nada
+contra lo que ya sabe de memoria, que es su propio número.
+
+**Consecuencia.** El tope de resultados es 8: si hay más, el vendedor tipea un dígito
+más. Nunca hay una lista larga para leer en el mostrador.
+
+---
+
+## D-024 · El escáner de QR va en el celular del vendedor, no en la caja
+
+**Contexto.** Las computadoras de los locales no tienen cámara, y comprar seis cámaras
+para probar una idea no se justifica. Pero los vendedores tienen celular.
+
+**Decisión.** La misma pantalla de cobro, abierta en el celular del vendedor, ofrece
+escanear el QR que muestra el cliente en su app. El botón aparece **sólo si el dispositivo
+tiene cámara**: en la PC de la caja no se ve y no molesta.
+
+**Y el cobro se completa en el celular.** No se construye un puente "escaneo en el
+teléfono y aparece en la computadora": eso obliga a emparejar dispositivos y mantenerlos
+sincronizados, mucha maquinaria para ahorrar unos segundos. El celular es, simplemente,
+otra caja — y una que tiene cámara.
+
+**Qué lleva el QR: el teléfono, nada más.** No una credencial de la cuenta. Si el QR
+llevara acceso, alguien que le saca una foto a la pantalla del cliente en la cola entraría
+a su cuenta; llevando el teléfono, lo peor que consigue es un número. Así el QR es sólo
+*una forma rápida de tipear lo que el vendedor iba a tipear igual*: sin permisos nuevos,
+sin superficie nueva que proteger, y anda aunque el cliente esté sin señal en el local.

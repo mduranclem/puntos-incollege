@@ -4,6 +4,7 @@ import { prisma } from '../../infra/prisma/cliente.js';
 import { exigeRol, exigeSesion } from '../sesion.js';
 import {
   buscarClientePorTelefono,
+  buscarCoincidencias,
   buscarDuplicados,
   fusionarClientes,
   resolverCliente,
@@ -34,6 +35,19 @@ export function rutasDeClientes() {
       }
       const resumen = await resumenDeCuenta(prisma, cliente.id, 5);
       return res.json({ encontrado: true, telefonoE164, ...resumen });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+  /**
+   * Búsqueda rápida: últimos dígitos del teléfono o nombre (D-023). Devuelve una
+   * lista corta para elegir, sin el resumen completo de cada cuenta.
+   */
+  router.get('/sugerencias', async (req, res, next) => {
+    try {
+      const coincidencias = await buscarCoincidencias(prisma, String(req.query.q ?? ''));
+      return res.json({ coincidencias });
     } catch (error) {
       return next(error);
     }

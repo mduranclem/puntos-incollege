@@ -6,7 +6,7 @@
  * absorbida queda apuntando a la sobreviviente y nunca se borra (D-004).
  */
 import type { PrismaClient, Prisma } from '@prisma/client';
-import { normalizarTelefono } from '../dominio/telefono.js';
+import { formatearTelefono, normalizarTelefono } from '../dominio/telefono.js';
 import { ErrorDeNegocio } from '../dominio/tipos.js';
 import { temporadaVigente } from './configuracion.js';
 
@@ -223,4 +223,76 @@ export async function fusionarClientes(
 
     return { sobrevivienteId, absorbidoId: actualizado.id, usuarioId };
   });
+}
+
+/**
+ * Búsqueda rápida para el mostrador (D-023).
+ *
+ * Dictar diez dígitos con gente esperando es lento y se carga mal. Acá el
+ * vendedor tipea lo que tenga a mano y el sistema decide cómo buscar:
+ *  - 3 a 7 dígitos → los últimos dígitos del teléfono ("los últimos cuatro"),
+ *  - letras → el nombre,
+ *  - 8 o más dígitos → lo resuelve la búsqueda exacta de siempre.
+ *
+ * Nunca devuelve una lista larga: si hay muchas coincidencias, el vendedor
+ * tipea un dígito más y listo.
+ */
+export type Coincidencia = {
+  id: string;
+  nombre: string;
+  telefono: string;
+  telefonoE164: string;
+  saldoPuntos: number;
+};
+
+export const MINIMO_PARA_BUSCAR = 3;
+export const MAXIMO_COINCIDENCIAS = 8;
+
+export async function buscarCoincidencias(
+  prisma: PrismaClient,
+  consulta: string,
+): Promise<Coincidencia[]> {
+  const texto = consulta.trim();
+  if (texto.length < 2) return [];
+
+  const digitos = texto.replace(/\D/g, '');
+  const tieneLetras = /[a-záéíóúñü]/i.test(texto);
+
+  const donde = tieneLetras
+    ? { nombre: { contains: texto, mode: 'insensitive' as const } }
+    : digitos.length >= MINIMO_PARA_BUSCAR
+      ? { telefonoE164: { contains: digitos } }
+      : null;
+  if (!donde) return [];
+
+  const temporada = await temporadaVigente(prisma);
+  const clientes = await prisma.cliente.findMany({
+    where: { fusionadoEnId: null, ...donde },
+    orderBy: { nombre: 'asc' },
+    take: MAXIMO_COINCIDENCIAS,
+    select: {
+      id: true,
+      nombre: true,
+      telefonoE164: true,
+      cuentas: {
+        where: { temporadaId: temporada.id },
+        select: { saldoCacheado: true },
+      },
+    },
+  });
+
+  return clientes
+    .map((c) => ({
+      id: c.id,
+      nombre: c.nombre,
+      telefonoE164: c.telefonoE164,
+      telefono: formatearTelefono(c.telefonoE164),
+      saldoPuntos: c.cuentas[0]?.saldoCacheado ?? 0,
+    }))
+    // Si el vendedor tipeó los últimos dígitos, esos van primero.
+    .sort((a, b) => {
+      const aTermina = a.telefonoE164.endsWith(digitos) ? 0 : 1;
+      const bTermina = b.telefonoE164.endsWith(digitos) ? 0 : 1;
+      return aTermina - bTermina || a.nombre.localeCompare(b.nombre, 'es');
+    });
 }

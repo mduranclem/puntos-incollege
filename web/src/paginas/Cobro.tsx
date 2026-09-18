@@ -17,6 +17,14 @@ type Medio =
   | 'QR'
   | 'BILLETERA_VIRTUAL';
 
+type Coincidencia = {
+  id: string;
+  nombre: string;
+  telefono: string;
+  telefonoE164: string;
+  saldoPuntos: number;
+};
+
 type Resultado = ResumenDeCuenta & {
   pagoId: string;
   acredito: boolean;
@@ -58,6 +66,8 @@ export function Cobro() {
   const [cliente, setCliente] = useState<ResumenDeCuenta | null>(null);
   const [esNuevo, setEsNuevo] = useState(false);
   const [buscando, setBuscando] = useState(false);
+  const [coincidencias, setCoincidencias] = useState<Coincidencia[]>([]);
+  const [marcada, setMarcada] = useState(0);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resultado, setResultado] = useState<Resultado | null>(null);
@@ -77,6 +87,36 @@ export function Cobro() {
   useEffect(() => {
     if (cliente) campoImporte.current?.focus();
   }, [cliente]);
+
+  /**
+   * Mientras el vendedor tipea, busca coincidencias por últimos dígitos o por
+   * nombre (D-023). No se activa con el teléfono completo: ese camino sigue
+   * siendo instantáneo y sin lista.
+   */
+  useEffect(() => {
+    const texto = telefono.trim();
+    const digitos = texto.replace(/\D/g, '');
+    const tieneLetras = /[a-záéíóúñü]/i.test(texto);
+    const buscable = tieneLetras ? texto.length >= 2 : digitos.length >= 3 && digitos.length <= 9;
+
+    if (cliente || esNuevo || !buscable) {
+      setCoincidencias([]);
+      return;
+    }
+
+    const reloj = setTimeout(async () => {
+      try {
+        const datos = await api<{ coincidencias: Coincidencia[] }>(
+          `/clientes/sugerencias?q=${encodeURIComponent(texto)}`,
+        );
+        setCoincidencias(datos.coincidencias);
+        setMarcada(0);
+      } catch {
+        setCoincidencias([]);
+      }
+    }, 200);
+    return () => clearTimeout(reloj);
+  }, [telefono, cliente, esNuevo]);
 
   // Atajos: Alt+número para el medio de pago, Alt+U / Alt+R para la línea.
   useEffect(() => {
@@ -98,26 +138,47 @@ export function Cobro() {
     return () => window.removeEventListener('keydown', alTeclear);
   }, []);
 
-  async function buscar() {
-    if (!telefono.trim()) return;
+  /** Trae al cliente por teléfono completo. Es el camino de siempre, sin cambios. */
+  async function buscar(texto = telefono) {
+    if (!texto.trim()) return;
     setBuscando(true);
     setError(null);
     try {
       const datos = await api<{ encontrado: boolean } & Partial<ResumenDeCuenta>>(
-        `/clientes/buscar?telefono=${encodeURIComponent(telefono)}`,
+        `/clientes/buscar?telefono=${encodeURIComponent(texto)}`,
       );
       if (datos.encontrado) {
-        setCliente(datos as ResumenDeCuenta);
-        setEsNuevo(false);
-        setNombre('');
+        elegir(datos as ResumenDeCuenta);
       } else {
         setCliente(null);
+        setCoincidencias([]);
         setEsNuevo(true);
       }
     } catch (e) {
       setCliente(null);
       setEsNuevo(false);
       setError(e instanceof ErrorApi ? e.message : 'No se pudo buscar el teléfono');
+    } finally {
+      setBuscando(false);
+    }
+  }
+
+  function elegir(datos: ResumenDeCuenta) {
+    setCliente(datos);
+    setCoincidencias([]);
+    setEsNuevo(false);
+    setNombre('');
+    setTelefono(datos.cliente.telefonoE164);
+  }
+
+  /** Abre la cuenta de una coincidencia elegida de la lista. */
+  async function abrirCoincidencia(c: Coincidencia) {
+    setBuscando(true);
+    try {
+      const datos = await api<ResumenDeCuenta>(`/clientes/${c.id}`);
+      elegir(datos);
+    } catch {
+      setError('No se pudo abrir esa cuenta');
     } finally {
       setBuscando(false);
     }
@@ -153,6 +214,7 @@ export function Cobro() {
     setMedio('EFECTIVO');
     setCliente(null);
     setEsNuevo(false);
+    setCoincidencias([]);
     setResultado(null);
     setError(null);
     setReferencia(nuevaReferencia());
@@ -196,18 +258,69 @@ export function Cobro() {
               setEsNuevo(false);
             }}
             onKeyDown={(e) => {
+              if (coincidencias.length > 0) {
+                if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  setMarcada((m) => (m + 1) % coincidencias.length);
+                  return;
+                }
+                if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  setMarcada((m) => (m - 1 + coincidencias.length) % coincidencias.length);
+                  return;
+                }
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  const elegida = coincidencias[marcada];
+                  if (elegida) void abrirCoincidencia(elegida);
+                  return;
+                }
+                if (e.key === 'Escape') {
+                  setCoincidencias([]);
+                  return;
+                }
+              }
               if (e.key === 'Enter') {
                 e.preventDefault();
                 void buscar();
               }
             }}
             onBlur={() => {
-              if (telefono.trim() && !cliente && !esNuevo) void buscar();
+              // Con la lista abierta, el vendedor elige; no forzamos la búsqueda exacta.
+              if (coincidencias.length === 0 && telefono.trim() && !cliente && !esNuevo) {
+                void buscar();
+              }
             }}
           />
           <p className="mt-1.5 text-xs text-slate-500">
-            Enter para buscar. Da igual cómo lo escribas: con 0, con 15, con guiones.
+            Los últimos 4 dígitos o el nombre alcanzan. Enter para buscar.
           </p>
+
+          {coincidencias.length > 0 && (
+            <ul className="sugerencias" role="listbox" aria-label="Clientes encontrados">
+              {coincidencias.map((c, i) => (
+                <li key={c.id}>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={i === marcada}
+                    className={`sugerencia${i === marcada ? ' marcada' : ''}`}
+                    onMouseEnter={() => setMarcada(i)}
+                    onClick={() => void abrirCoincidencia(c)}
+                  >
+                    <span className="sugerencia-quien">
+                      {c.nombre}
+                      <small>{c.telefono}</small>
+                    </span>
+                    <span className="sugerencia-pts">
+                      {c.saldoPuntos}
+                      <small>pts</small>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         {buscando && <p className="text-sm text-slate-500">Buscando…</p>}

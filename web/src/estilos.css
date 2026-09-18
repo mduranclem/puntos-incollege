@@ -247,3 +247,24 @@
   }
   .nov-pie { @apply px-2 text-center text-xs text-white/50; }
 }
+
+@layer components {
+  /* Lista de clientes encontrados en el mostrador (D-023). */
+  .sugerencias {
+    @apply mt-2 overflow-hidden rounded-xl border border-[var(--color-borde)] bg-white shadow-sm;
+  }
+  .sugerencia {
+    @apply flex w-full items-center justify-between gap-3 border-t border-[var(--color-borde)]
+           px-4 py-3 text-left transition;
+  }
+  .sugerencias li:first-child .sugerencia { @apply border-t-0; }
+  .sugerencia.marcada { background: var(--color-punto-suave); }
+  .sugerencia-quien { @apply min-w-0 text-base font-semibold; }
+  .sugerencia-quien small { @apply mt-0.5 block text-sm font-normal text-slate-500; }
+  .sugerencia-pts {
+    @apply shrink-0 text-right text-xl font-bold leading-none;
+    color: var(--color-marino);
+    font-variant-numeric: tabular-nums;
+  }
+  .sugerencia-pts small { @apply block text-[10px] font-medium text-slate-500; }
+}
