@@ -86,13 +86,13 @@ le mande un link. Web instalable en la pantalla de inicio, no app de las tiendas
 Criterio de diseño del dueño: **que se entienda, que sea fácil de usar y que no sea
 invasiva**. La cuenta es el centro; lo demás va en segundo plano.
 
-- [ ] Acceso con teléfono + código de un solo uso por WhatsApp (D-022)
-- [ ] Pantalla de cuenta: saldo, equivalente, cuánto falta para el próximo, vencimiento
-- [ ] Historial completo de movimientos
-- [ ] Su número en grande para mostrar en el mostrador
-- [ ] Los 6 locales con dirección y horarios
+- [x] Acceso con teléfono + código de un solo uso por WhatsApp (D-022)
+- [x] Pantalla de cuenta: saldo, equivalente, cuánto falta para el próximo, vencimiento
+- [x] Historial completo de movimientos
+- [x] Su número en grande para mostrar en el mostrador
+- [x] Los 6 locales con dirección y horarios
 - [ ] Novedades y precios, editables desde el panel
-- [ ] Instalable: ícono propio, pantalla completa, sesión que no se cae
+- [x] Instalable: ícono propio, pantalla completa, sesión que no se cae
 
 **Listo cuando:** el cliente la agrega a la pantalla de inicio, la abre días después y ve
 su cuenta sin volver a identificarse.

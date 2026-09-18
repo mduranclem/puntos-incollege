@@ -1,0 +1,18 @@
+{
+  "name": "Puntos InCollege",
+  "short_name": "Puntos",
+  "description": "Tu cuenta de puntos de InCollege: saldo, movimientos y locales.",
+  "lang": "es-AR",
+  "dir": "ltr",
+  "start_url": "/app",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f2d52",
+  "theme_color": "#0f2d52",
+  "icons": [
+    { "src": "/icono-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icono-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icono-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

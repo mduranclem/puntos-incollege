@@ -86,3 +86,164 @@
     @apply rounded-lg px-3 py-2 text-sm font-semibold transition;
   }
 }
+
+/* =========================================================================
+   App del cliente
+   Marino de fondo, la cuenta en blanco arriba de todo, pestañas abajo.
+   Criterio: que se entienda de una y que no distraiga del saldo.
+   ========================================================================= */
+
+@layer components {
+  /* ---- Ingreso ---- */
+  .ingreso-cliente {
+    @apply flex min-h-dvh flex-col items-center justify-center gap-5 px-5 py-10;
+    background: var(--color-marino);
+  }
+  .ingreso-caja {
+    @apply w-full max-w-sm rounded-3xl bg-white p-6 text-center shadow-xl;
+  }
+  .ingreso-estrella {
+    @apply mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl text-3xl;
+    background: var(--color-marino);
+    color: var(--color-punto);
+  }
+  .ingreso-titulo { @apply text-xl font-bold tracking-tight; }
+  .ingreso-titulo span { color: var(--color-punto); }
+  .ingreso-texto { @apply mt-2 mb-5 text-sm text-slate-600; }
+  .ingreso-etiqueta { @apply mb-1.5 block text-left text-sm font-medium text-slate-600; }
+  .ingreso-campo {
+    @apply w-full rounded-xl border border-[var(--color-borde)] bg-white px-4 py-3.5 text-center
+           text-2xl font-semibold text-[var(--color-tinta)] shadow-sm
+           placeholder:font-normal placeholder:text-slate-300
+           focus:border-[var(--color-marino-claro)];
+    font-variant-numeric: tabular-nums;
+  }
+  .ingreso-campo-codigo { @apply text-3xl; letter-spacing: 0.35em; }
+  .ingreso-ayuda { @apply mt-2 text-xs text-slate-500; }
+  .ingreso-error {
+    @apply mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-[var(--color-error)];
+  }
+  .ingreso-boton {
+    @apply mt-5 w-full rounded-xl px-5 py-4 text-base font-semibold text-white transition
+           active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50;
+    background: var(--color-marino);
+  }
+  .ingreso-volver { @apply mt-3 w-full text-sm font-medium text-slate-500 underline; }
+  .ingreso-pie { @apply max-w-sm text-center text-xs leading-relaxed text-white/70; }
+
+  /* ---- Armazón ---- */
+  .app-cliente { @apply flex min-h-dvh flex-col; background: var(--color-marino); }
+  .app-contenido {
+    @apply mx-auto w-full max-w-md flex-1 px-4 pt-5;
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
+  }
+  .app-pestanias {
+    @apply fixed inset-x-0 bottom-0 z-10 mx-auto flex max-w-md justify-around border-t
+           border-white/10 bg-[var(--color-marino)] px-2 pt-2;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  }
+  .app-pestania {
+    @apply flex flex-1 flex-col items-center gap-1 rounded-xl py-1.5 text-[11px] font-medium
+           text-white/55 transition;
+  }
+  .app-pestania svg { @apply h-6 w-6; fill: currentColor; }
+  .app-pestania.activa { color: var(--color-punto); }
+
+  /* ---- Cuenta ---- */
+  .cta { @apply flex flex-col gap-4 pb-4; }
+  .cta-centro { @apply flex min-h-[60vh] items-center justify-center px-6 text-center text-white/80; }
+  .cta-cargando { @apply text-sm; }
+  .cta-encabezado { @apply flex items-baseline justify-between gap-3; }
+  .cta-hola { @apply text-base font-medium text-white; }
+  .cta-salir { @apply text-xs font-medium text-white/60 underline; }
+
+  .cta-tarjeta { @apply rounded-3xl bg-white p-6 text-center shadow-xl; }
+  .cta-numero {
+    @apply text-7xl font-bold leading-none;
+    color: var(--color-marino);
+    font-variant-numeric: tabular-nums;
+  }
+  .cta-unidad { @apply mt-2 text-lg font-semibold; }
+  .cta-equivale { @apply mt-1 text-sm text-slate-600; }
+  .cta-falta {
+    @apply mt-4 rounded-xl px-4 py-3 text-sm leading-snug;
+    background: var(--color-punto-suave);
+  }
+  .cta-vence { @apply mt-4 text-xs text-slate-500; }
+
+  .cta-numero-boton {
+    @apply flex w-full items-center justify-between rounded-2xl border border-white/15
+           bg-white/10 px-5 py-4 text-left text-sm font-semibold text-white transition
+           active:scale-[0.99];
+  }
+  .cta-numero-boton svg { @apply h-5 w-5 transition-transform; fill: currentColor; }
+  .cta-numero-boton svg.girado { @apply rotate-180; }
+  .cta-numero-caja { @apply rounded-2xl bg-white px-5 py-6 text-center; }
+  .cta-numero-ayuda { @apply text-xs text-slate-500; }
+  .cta-numero-grande {
+    @apply my-2 text-3xl font-bold;
+    color: var(--color-marino);
+    font-variant-numeric: tabular-nums;
+  }
+  .cta-numero-pie { @apply text-xs text-slate-500; }
+
+  .cta-ultimos { @apply rounded-2xl bg-white px-5 py-4; }
+  .cta-ultimos-titulo { @apply mb-1 flex items-baseline justify-between gap-3; }
+  .cta-ultimos-titulo h2 { @apply text-sm font-semibold; }
+  .cta-ultimos-titulo a { @apply text-xs font-medium text-[var(--color-marino-claro)]; }
+
+  .cta-lista { @apply flex flex-col; }
+  .cta-lista li {
+    @apply flex items-baseline justify-between gap-3 border-t border-[var(--color-borde)] py-3;
+  }
+  .cta-lista li:first-child { @apply border-t-0; }
+  .cta-lista-que { @apply min-w-0 text-sm font-medium; }
+  .cta-lista-que small { @apply mt-0.5 block text-xs font-normal text-slate-500; }
+  .cta-lista-pts {
+    @apply text-lg font-bold;
+    font-variant-numeric: tabular-nums;
+  }
+  .cta-lista-pts.suma { color: var(--color-ok); }
+  .cta-lista-pts.resta { @apply text-slate-500; }
+
+  .cta-como { @apply rounded-2xl border border-white/15 px-5 py-4 text-sm text-white/85; }
+  .cta-como h2 { @apply mb-2 text-sm font-semibold text-white; }
+  .cta-como ul { @apply flex flex-col gap-1.5; }
+
+  /* ---- Pantallas secundarias ---- */
+  .pantalla-titulo { @apply text-xl font-bold text-white; }
+  .pantalla-bajada { @apply -mt-2 text-sm text-white/70; }
+
+  .vacio { @apply rounded-2xl bg-white px-6 py-10 text-center text-sm text-slate-600; }
+  .vacio-titulo { @apply mb-2 text-base font-semibold text-[var(--color-tinta)]; }
+
+  .mov-mes { @apply rounded-2xl bg-white px-5 py-4; }
+  .mov-mes-titulo { @apply mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500; }
+
+  .locales { @apply flex flex-col gap-3; }
+  .local { @apply rounded-2xl bg-white px-5 py-4; }
+  .local h2 { @apply text-base font-bold; }
+  .local-dir { @apply mt-0.5 text-sm text-slate-600; }
+  .local-hor { @apply mt-0.5 text-xs text-slate-500; }
+  .local-acciones { @apply mt-3 flex gap-2; }
+  .local-boton {
+    @apply rounded-lg border border-[var(--color-borde)] px-3 py-1.5 text-xs font-semibold
+           text-[var(--color-marino)] no-underline;
+  }
+
+  .nov-grupo { @apply rounded-2xl bg-white px-5 py-4; }
+  .nov-grupo-titulo { @apply mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500; }
+  .novedades { @apply flex flex-col; }
+  .novedad {
+    @apply flex items-baseline justify-between gap-4 border-t border-[var(--color-borde)] py-3;
+  }
+  .novedad:first-child { @apply border-t-0; }
+  .novedad-texto h3 { @apply text-sm font-semibold; }
+  .novedad-texto p { @apply mt-0.5 text-xs text-slate-500; }
+  .novedad-precio {
+    @apply whitespace-nowrap text-base font-bold;
+    color: var(--color-marino);
+    font-variant-numeric: tabular-nums;
+  }
+  .nov-pie { @apply px-2 text-center text-xs text-white/50; }
+}
