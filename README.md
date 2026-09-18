@@ -126,19 +126,51 @@ se saltean solos si no hay `DATABASE_URL_TEST`.
 
 ## Deploy en EasyPanel
 
-Tres servicios sobre el mismo repositorio:
+**Un solo servicio** sirve todo: el mostrador, el panel, la app del cliente y la API
+(D-032). Un dominio, sin CORS ni proxy.
 
-1. **API** — build `npm ci && npm run build --workspace=api`, arranque
-   `npm run prisma:migrate --workspace=api && npm run start --workspace=api`.
-   Variables: `DATABASE_URL`, `JWT_SECRET`, `TOKEN_CLIENTE_SECRET`, `URL_PUBLICA_WEB`,
-   `CORS_ORIGEN`, `N8N_WEBHOOK_URL`, `N8N_WEBHOOK_TOKEN`.
-2. **Web** — build `npm ci && npm run build --workspace=web`, sirve `web/dist` como
-   estáticos con *fallback* a `index.html` (la app tiene rutas del lado del cliente) y
-   `/api` ruteado a la API.
-3. **Tareas** — `npm run tareas:prod --workspace=api`, con las mismas variables que la
-   API. Alternativa: correrlas dentro de la API con `CRON_HABILITADO=true`.
+**1. Base de datos.** En EasyPanel, crear un servicio **Postgres**. Anotar su cadena de
+conexión interna.
 
-Postgres se toma del servicio de base de datos de EasyPanel.
+**2. La aplicación.** Crear un servicio **App**:
+
+- Origen: este repositorio de GitHub, rama `main`
+- Build: **Dockerfile** (está en la raíz)
+- Puerto: `3001`
+- Dominio: el que se vaya a usar, con HTTPS (la cámara del escáner lo exige)
+
+**3. Variables de entorno:**
+
+| Variable | Valor |
+|---|---|
+| `DATABASE_URL` | La cadena del Postgres de EasyPanel |
+| `JWT_SECRET` | Una cadena larga y aleatoria |
+| `TOKEN_CLIENTE_SECRET` | Otra distinta, larga y aleatoria |
+| `URL_PUBLICA_WEB` | `https://<tu-dominio>` — arma el link que va por WhatsApp |
+| `CORS_ORIGEN` | `https://<tu-dominio>` |
+| `N8N_WEBHOOK_URL` | La *Production URL* del nodo Webhook del workflow de avisos |
+| `N8N_WEBHOOK_TOKEN` | El mismo token que figura en el nodo "Armar el mensaje" |
+| `CRON_HABILITADO` | `true` — avisos y vencimiento automático |
+| `SEED_PIN_ADMIN` | PIN del primer gerente, 4 a 8 números (D-029) |
+| `SEED_PIN_VENDEDOR` | PIN inicial de los usuarios de mostrador |
+
+**4. Primer arranque.** Las migraciones corren solas al levantar el contenedor; si fallan,
+el contenedor no arranca, que es lo que corresponde. Después, una sola vez, cargar los
+datos iniciales desde la consola del servicio:
+
+```bash
+cd /app/api && node --experimental-strip-types src/scripts/sembrar.ts
+```
+
+Eso crea los seis locales, la temporada, la configuración y los usuarios. Sin
+`SEED_PIN_ADMIN` y `SEED_PIN_VENDEDOR` se niega a correr.
+
+**5. Después del despliegue.** Cambiar los PIN desde el panel, cargar la dirección de
+Rosario Fábrica, y correr los tests de concurrencia contra ese Postgres:
+
+```bash
+DATABASE_URL_TEST="<la cadena del Postgres>" npm test --workspace=api
+```
 
 ## Avisos por WhatsApp
 

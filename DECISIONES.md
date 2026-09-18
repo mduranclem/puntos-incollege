@@ -688,3 +688,25 @@ la entrega final se mira en n8n.
 
 **Por qué importa.** Un tablero que dice "enviado" cuando el cliente no recibió nada es
 peor que no tener tablero: hace confiar en algo que no pasó.
+
+---
+
+## D-032 · Un solo servicio sirve la web y la API
+
+**Contexto.** El plan original eran dos servicios en EasyPanel: uno con los estáticos del
+frontend y otro con la API, más la configuración de proxy y CORS entre ellos.
+
+**Decisión.** En producción **la API sirve la web**. Un servicio, un dominio, un puerto.
+
+**Por qué.** Desaparecen tres cosas que sólo dan problemas: el CORS entre dominios, el
+ruteo de `/api` hacia el otro servicio, y el *fallback* a `index.html` configurado a mano
+en un servidor de estáticos. Además el link que se manda por WhatsApp, la app instalable y
+el panel viven todos en la misma dirección, que es lo que el cliente espera.
+
+**Cómo queda.** Todo lo que empieza con `/api` lo resuelve la API y un camino inexistente
+ahí devuelve 404 de verdad; cualquier otra ruta la resuelve la web. Los assets con hash
+llevan caché de un año, `index.html` y el service worker no se cachean nunca — así un
+despliegue nuevo llega enseguida a todos.
+
+**Consecuencia.** El despliegue es un `Dockerfile` en la raíz y un servicio de Postgres al
+lado. Las migraciones corren al arrancar: si fallan, el contenedor no levanta.

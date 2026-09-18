@@ -1,5 +1,7 @@
 import express, { type NextFunction, type Request, type Response } from 'express';
 import cors from 'cors';
+import { existsSync } from 'node:fs';
+import path from 'node:path';
 import { ErrorDeNegocio } from '../dominio/tipos.js';
 import { rutasDeAuth } from './rutas/auth.js';
 import { rutasDeClientes } from './rutas/clientes.js';
@@ -37,7 +39,38 @@ export function crearApp() {
   app.use('/api/articulos', rutasDeArticulos());
   app.use('/api/publico', rutasPublicas());
 
-  app.use((_req, res) => res.status(404).json({ error: 'NO_ENCONTRADO' }));
+  /**
+   * En producción este mismo servicio sirve la web (D-032). Un solo dominio para
+   * el mostrador, el panel y la app del cliente: sin CORS, sin proxy, y el link
+   * que se manda por WhatsApp vive en la misma dirección que todo lo demás.
+   */
+  const web = path.resolve(process.cwd(), process.env.WEB_DIST ?? '../web/dist');
+  const hayWeb = existsSync(path.join(web, 'index.html'));
+
+  if (hayWeb) {
+    app.use(
+      express.static(web, {
+        // El armazón se revalida siempre; los assets llevan hash en el nombre.
+        setHeaders: (res, archivo) => {
+          if (archivo.endsWith('index.html') || archivo.endsWith('sw.js')) {
+            res.setHeader('Cache-Control', 'no-cache');
+          } else if (archivo.includes(`${path.sep}assets${path.sep}`)) {
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+          }
+        },
+      }),
+    );
+  }
+
+  // Lo que no existe bajo /api es 404 de verdad; el resto lo resuelve la web.
+  app.use('/api', (_req, res) => res.status(404).json({ error: 'NO_ENCONTRADO' }));
+
+  app.use((req, res, next) => {
+    if (!hayWeb || req.method !== 'GET') {
+      return res.status(404).json({ error: 'NO_ENCONTRADO' });
+    }
+    return res.sendFile(path.join(web, 'index.html'), (error) => (error ? next(error) : undefined));
+  });
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
