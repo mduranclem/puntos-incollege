@@ -17,7 +17,8 @@ const DIRECCIONES = {
   'Rosario Norte': { direccion: 'Alberdi 608', horarios: 'De 10 a 16 hs' },
   'Santa Fe Capital': { direccion: 'Bv. Pellegrini 2920', horarios: 'De 14 a 18 hs' },
   'San Nicolás': { direccion: 'Nación 406', horarios: 'De 10 a 16 hs' },
-  // Rosario Fábrica queda sin dirección: todavía no la tenemos.
+  // La fábrica funciona en el mismo lugar que el local de Zona Sur.
+  'Rosario Fábrica': { direccion: 'Deán Funes 1258', horarios: 'De 10 a 16 hs' },
 };
 
 const ingreso = await fetch(`${API}/auth/ingresar`, {

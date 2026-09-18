@@ -14,8 +14,7 @@ import { fechaArgentina, finDelDiaArgentina } from '../dominio/fechas.js';
  * Los seis locales con sus direcciones reales. Se pueden editar desde el panel:
  * esto es sólo el punto de partida de una instalación nueva.
  *
- * Rosario Fábrica queda sin dirección a propósito: todavía no la tenemos. La app
- * del cliente muestra el local igual, sólo que sin la ficha completa.
+ * Rosario Fábrica funciona en la misma dirección que el local de Zona Sur.
  */
 const LOCALES = [
   {
@@ -40,11 +39,12 @@ const LOCALES = [
     horarios: 'De 10 a 16 hs',
   },
   {
+    // Funciona en el mismo lugar que el local de Zona Sur.
     codigo: 'ROS-FAB',
     nombre: 'Rosario Fábrica',
     codigoAreaPorDefecto: '341',
-    direccion: null,
-    horarios: null,
+    direccion: 'Deán Funes 1258',
+    horarios: 'De 10 a 16 hs',
   },
   {
     codigo: 'SFE-CAP',
