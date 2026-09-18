@@ -10,20 +10,68 @@ import { prisma } from '../infra/prisma/cliente.js';
 import { parsearImporte } from '../dominio/dinero.js';
 import { fechaArgentina, finDelDiaArgentina } from '../dominio/fechas.js';
 
+/**
+ * Los seis locales con sus direcciones reales. Se pueden editar desde el panel:
+ * esto es sólo el punto de partida de una instalación nueva.
+ *
+ * Rosario Fábrica queda sin dirección a propósito: todavía no la tenemos. La app
+ * del cliente muestra el local igual, sólo que sin la ficha completa.
+ */
 const LOCALES = [
-  { codigo: 'ROS-SUR', nombre: 'Rosario Sur', codigoAreaPorDefecto: '341' },
-  { codigo: 'ROS-FIS', nombre: 'Rosario Fisherton', codigoAreaPorDefecto: '341' },
-  { codigo: 'ROS-NOR', nombre: 'Rosario Norte', codigoAreaPorDefecto: '341' },
-  { codigo: 'ROS-FAB', nombre: 'Rosario Fábrica', codigoAreaPorDefecto: '341' },
-  { codigo: 'SFE-CAP', nombre: 'Santa Fe Capital', codigoAreaPorDefecto: '342' },
-  { codigo: 'SNI-CEN', nombre: 'San Nicolás', codigoAreaPorDefecto: '336' },
+  {
+    codigo: 'ROS-SUR',
+    nombre: 'Rosario Sur',
+    codigoAreaPorDefecto: '341',
+    direccion: 'Deán Funes 1258',
+    horarios: 'De 10 a 16 hs',
+  },
+  {
+    codigo: 'ROS-FIS',
+    nombre: 'Rosario Fisherton',
+    codigoAreaPorDefecto: '341',
+    direccion: 'Eva Perón 7790',
+    horarios: 'De 10 a 16 hs',
+  },
+  {
+    codigo: 'ROS-NOR',
+    nombre: 'Rosario Norte',
+    codigoAreaPorDefecto: '341',
+    direccion: 'Alberdi 608',
+    horarios: 'De 10 a 16 hs',
+  },
+  {
+    codigo: 'ROS-FAB',
+    nombre: 'Rosario Fábrica',
+    codigoAreaPorDefecto: '341',
+    direccion: null,
+    horarios: null,
+  },
+  {
+    codigo: 'SFE-CAP',
+    nombre: 'Santa Fe Capital',
+    codigoAreaPorDefecto: '342',
+    direccion: 'Bv. Pellegrini 2920',
+    horarios: 'De 14 a 18 hs',
+  },
+  {
+    codigo: 'SNI-CEN',
+    nombre: 'San Nicolás',
+    codigoAreaPorDefecto: '336',
+    direccion: 'Nación 406',
+    horarios: 'De 10 a 16 hs',
+  },
 ];
 
 export async function sembrar() {
   for (const local of LOCALES) {
     await prisma.local.upsert({
       where: { codigo: local.codigo },
-      update: { nombre: local.nombre, codigoAreaPorDefecto: local.codigoAreaPorDefecto },
+      update: {
+        nombre: local.nombre,
+        codigoAreaPorDefecto: local.codigoAreaPorDefecto,
+        direccion: local.direccion,
+        horarios: local.horarios,
+      },
       create: local,
     });
   }
@@ -87,8 +135,20 @@ export async function sembrar() {
     console.log(`Artículos en el catálogo: ${PRECIOS.length}`);
   }
 
-  const pinAdmin = process.env.SEED_PIN_ADMIN ?? '1234';
-  const pinVendedor = process.env.SEED_PIN_VENDEDOR ?? '1111';
+  /**
+   * Los PIN no tienen valor por defecto fuera de desarrollo (D-029). Un sistema
+   * que maneja plata no puede quedar en producción con "1234" porque alguien se
+   * olvidó de cambiarlo: acá directamente no arranca.
+   */
+  const enDesarrollo = process.env.NODE_ENV !== 'production';
+  const pinAdmin = process.env.SEED_PIN_ADMIN ?? (enDesarrollo ? '1234' : '');
+  const pinVendedor = process.env.SEED_PIN_VENDEDOR ?? (enDesarrollo ? '1111' : '');
+  if (!/^\d{4,8}$/.test(pinAdmin) || !/^\d{4,8}$/.test(pinVendedor)) {
+    throw new Error(
+      'Faltan SEED_PIN_ADMIN y SEED_PIN_VENDEDOR (4 a 8 números). ' +
+        'En producción el seed no crea usuarios con PIN por defecto.',
+    );
+  }
   const primerLocal = await prisma.local.findUniqueOrThrow({ where: { codigo: 'ROS-SUR' } });
 
   await prisma.usuario.upsert({
@@ -121,8 +181,11 @@ export async function sembrar() {
   }
 
   console.log(
-    `Usuarios: admin (PIN ${pinAdmin}) y mostrador-<local> (PIN ${pinVendedor}).\n` +
-      'CAMBIAR LOS PIN ANTES DE USAR EN PRODUCCIÓN.',
+    enDesarrollo
+      ? `Usuarios: admin (PIN ${pinAdmin}) y mostrador-<local> (PIN ${pinVendedor}).
+` +
+          'Son PIN de desarrollo. Cambialos desde el panel antes de usarlo con clientes.'
+      : 'Usuarios creados con los PIN de SEED_PIN_ADMIN y SEED_PIN_VENDEDOR.',
   );
 }
 

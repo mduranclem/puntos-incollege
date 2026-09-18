@@ -395,3 +395,10 @@
   .interruptor { @apply flex cursor-pointer items-center gap-2 text-sm; }
   .interruptor input { @apply h-4 w-4 accent-[var(--color-marino)]; }
 }
+
+@layer components {
+  .aviso-falta {
+    @apply rounded-xl border border-[var(--color-punto-borde,#eccd88)] px-4 py-3 text-sm;
+    background: var(--color-punto-suave);
+  }
+}

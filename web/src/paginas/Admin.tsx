@@ -7,6 +7,7 @@ import { api, ErrorApi } from '../api';
 import { PanelPersonal } from './admin/Personal';
 import { PanelArticulos } from './admin/Articulos';
 import { PanelRegistroDiario } from './admin/RegistroDiario';
+import { PanelLocales } from './admin/Locales';
 
 type Configuracion = {
   valorPuntoTexto: string;
@@ -53,7 +54,7 @@ const soloNumero = (texto: string) => texto.replace(/[^\d,.]/g, '');
 
 export function Admin() {
   const [pestania, setPestania] = useState<
-    'hoy' | 'totales' | 'movimientos' | 'articulos' | 'personal' | 'config'
+    'hoy' | 'totales' | 'movimientos' | 'articulos' | 'personal' | 'locales' | 'config'
   >('hoy');
 
   return (
@@ -68,6 +69,7 @@ export function Admin() {
             ['movimientos', 'Movimientos'],
             ['articulos', 'Artículos'],
             ['personal', 'Personal'],
+            ['locales', 'Locales'],
             ['config', 'Configuración'],
           ] as const
         ).map(([valor, texto]) => (
@@ -95,6 +97,7 @@ export function Admin() {
       {pestania === 'movimientos' && <PanelMovimientos />}
       {pestania === 'articulos' && <PanelArticulos />}
       {pestania === 'personal' && <PanelPersonal />}
+      {pestania === 'locales' && <PanelLocales />}
       {pestania === 'config' && <PanelConfiguracion />}
     </div>
   );

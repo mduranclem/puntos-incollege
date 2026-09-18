@@ -35,6 +35,8 @@ export function PanelPersonal() {
   const [abriendo, setAbriendo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mensaje, setMensaje] = useState<string | null>(null);
+  const [cambiandoPin, setCambiandoPin] = useState<string | null>(null);
+  const [pinNuevo, setPinNuevo] = useState('');
 
   async function cargar() {
     const [p, l] = await Promise.all([
@@ -235,12 +237,56 @@ export function PanelPersonal() {
                   )}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <button
-                    className="text-sm font-medium text-[var(--color-marino-claro)] underline"
-                    onClick={() => void cambiar(p.id, { activo: !p.activo })}
-                  >
-                    {p.activo ? 'Dar de baja' : 'Reactivar'}
-                  </button>
+                  {cambiandoPin === p.id ? (
+                    <span className="flex items-center justify-end gap-2">
+                      <input
+                        className="campo tabular w-28 py-1.5 text-sm"
+                        inputMode="numeric"
+                        autoFocus
+                        placeholder="PIN nuevo"
+                        value={pinNuevo}
+                        onChange={(e) => setPinNuevo(e.target.value.replace(/\D/g, ''))}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Escape') setCambiandoPin(null);
+                          if (e.key === 'Enter' && pinNuevo.length >= 4) {
+                            void cambiar(p.id, { pin: pinNuevo }).then(() => {
+                              setCambiandoPin(null);
+                              setPinNuevo('');
+                              setMensaje(`Listo. ${p.nombre} entra con el PIN nuevo.`);
+                            });
+                          }
+                        }}
+                      />
+                      <button
+                        className="text-sm font-medium text-slate-500 underline"
+                        onClick={() => {
+                          setCambiandoPin(null);
+                          setPinNuevo('');
+                        }}
+                      >
+                        Cancelar
+                      </button>
+                    </span>
+                  ) : (
+                    <span className="flex justify-end gap-3">
+                      <button
+                        className="text-sm font-medium text-[var(--color-marino-claro)] underline"
+                        onClick={() => {
+                          setCambiandoPin(p.id);
+                          setPinNuevo('');
+                          setMensaje(null);
+                        }}
+                      >
+                        Cambiar PIN
+                      </button>
+                      <button
+                        className="text-sm font-medium text-[var(--color-marino-claro)] underline"
+                        onClick={() => void cambiar(p.id, { activo: !p.activo })}
+                      >
+                        {p.activo ? 'Dar de baja' : 'Reactivar'}
+                      </button>
+                    </span>
+                  )}
                 </td>
               </tr>
             ))}

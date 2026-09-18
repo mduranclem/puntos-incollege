@@ -108,6 +108,33 @@ export function rutasDeAdmin() {
     }
   });
 
+  /** Los datos que ve el cliente en la app: dirección, horarios y teléfono. */
+  router.patch('/locales/:id', async (req, res, next) => {
+    try {
+      const datos = z
+        .object({
+          direccion: z.string().trim().max(160).nullable().optional(),
+          horarios: z.string().trim().max(120).nullable().optional(),
+          telefono: z.string().trim().max(40).nullable().optional(),
+          activo: z.boolean().optional(),
+        })
+        .parse(req.body);
+
+      const local = await prisma.local.update({
+        where: { id: String(req.params.id) },
+        data: {
+          ...(datos.direccion !== undefined ? { direccion: datos.direccion || null } : {}),
+          ...(datos.horarios !== undefined ? { horarios: datos.horarios || null } : {}),
+          ...(datos.telefono !== undefined ? { telefono: datos.telefono || null } : {}),
+          ...(datos.activo !== undefined ? { activo: datos.activo } : {}),
+        },
+      });
+      return res.json({ local });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
   /** Listado de movimientos con filtros por local, fecha y cliente. */
   router.get('/movimientos', async (req, res, next) => {
     try {

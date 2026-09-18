@@ -630,3 +630,20 @@ Enter.
 **Consecuencia.** El cobro pasa de un paso a dos. Se gana que la vendedora vea el total
 antes de decirlo en voz alta, y que corregir sea volver atrás en vez de anular un
 movimiento del libro mayor.
+
+---
+
+## D-029 · Los PIN no tienen valor por defecto fuera de desarrollo
+
+**Contexto.** El seed creaba los usuarios con PIN `1234` y `1111`, y un cartel pidiendo
+cambiarlos. Los carteles se ignoran.
+
+**Decisión.** En producción el seed **no arranca** sin `SEED_PIN_ADMIN` y
+`SEED_PIN_VENDEDOR`. En desarrollo mantiene los de siempre, que es donde no importa.
+
+Además, la gerencia cambia el PIN de cualquiera desde el panel: no hace falta tocar la
+base ni pedírselo a nadie.
+
+**Por qué así.** Un sistema que maneja plata no puede quedar en producción con "1234"
+porque alguien se olvidó de leer un mensaje. Que falle el despliegue es molesto una vez;
+que el PIN sea público es un problema todos los días.
