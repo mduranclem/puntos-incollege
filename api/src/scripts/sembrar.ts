@@ -8,6 +8,7 @@
 import bcrypt from 'bcryptjs';
 import { prisma } from '../infra/prisma/cliente.js';
 import { parsearImporte } from '../dominio/dinero.js';
+import { fechaArgentina, finDelDiaArgentina } from '../dominio/fechas.js';
 
 const LOCALES = [
   { codigo: 'ROS-SUR', nombre: 'Rosario Sur', codigoAreaPorDefecto: '341' },
@@ -34,12 +35,12 @@ export async function sembrar() {
     update: {},
     create: {
       nombre: `Temporada ${anio}`,
-      inicioEn: new Date(Date.UTC(anio, 0, 1)),
-      // Fecha de cierre editable desde el panel.
-      cierreEn: new Date(Date.UTC(anio, 11, 31, 23, 59, 59)),
+      inicioEn: new Date(`${anio}-01-01T00:00:00-03:00`),
+      // Fecha de cierre editable desde el panel. Fin del día argentino (D-020).
+      cierreEn: finDelDiaArgentina(`${anio}-12-31`),
     },
   });
-  console.log(`Temporada: ${temporada.nombre} (cierra ${temporada.cierreEn.toISOString().slice(0, 10)})`);
+  console.log(`Temporada: ${temporada.nombre} (cierra ${fechaArgentina(temporada.cierreEn)})`);
 
   const yaHayConfig = await prisma.configuracion.findFirst();
   if (!yaHayConfig) {
@@ -60,6 +61,29 @@ export async function sembrar() {
       },
     });
     console.log('Configuración inicial: $10.000 = 1 punto · punto = $1.000 · tope 10%');
+  }
+
+  // Precios reales de lista. La administración los edita u oculta desde el panel.
+  // No se inventan promociones: las carga la empresa.
+  const PRECIOS = [
+    { titulo: 'Remera lisa', pesos: '9900', linea: 'ROPA_LISA' as const },
+    { titulo: 'Remera estampada', pesos: '12650', linea: 'ROPA_LISA' as const },
+    { titulo: 'Chomba bordada', pesos: '26950', linea: 'UNIFORMES' as const },
+    { titulo: 'Buzo cuello redondo con frisa, bordado', pesos: '29700', linea: 'UNIFORMES' as const },
+    { titulo: 'Campera canguro con frisa, bordada', pesos: '41800', linea: 'UNIFORMES' as const },
+  ];
+  if ((await prisma.destacado.count()) === 0) {
+    for (const [i, p] of PRECIOS.entries()) {
+      await prisma.destacado.create({
+        data: {
+          titulo: p.titulo,
+          precioCentavos: parsearImporte(p.pesos),
+          lineaDeNegocio: p.linea,
+          orden: i,
+        },
+      });
+    }
+    console.log(`Precios en la app del cliente: ${PRECIOS.length}`);
   }
 
   const pinAdmin = process.env.SEED_PIN_ADMIN ?? '1234';

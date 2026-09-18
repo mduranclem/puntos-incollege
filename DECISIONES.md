@@ -433,3 +433,52 @@ archivo es el único que hay que tocar.
 las 00:30 del día siguiente ya no. Hay tests que fijan el ida y vuelta, que guardar diez
 veces seguidas no mueve la fecha, y los dos casos de borde de medianoche
 (`api/tests/fechas.test.ts`).
+
+---
+
+## D-021 · La app del cliente es una web instalable, no una app de las tiendas
+
+**Contexto.** El pedido original decía "no hacer app descargable: es una web que se abre
+desde un link de WhatsApp". El dueño cambió el rumbo: quiere que el cliente entre cuando
+quiera y vea su cuenta, como en las apps de las estaciones de servicio.
+
+**Decisión.** Una **PWA**: web instalable en la pantalla de inicio, con ícono propio, que
+abre a pantalla completa y mantiene la sesión. No va a App Store ni Google Play.
+
+**Por qué.** Lo que hace que la app de YPF se sienta app son tres cosas —sesión que no se
+cae, ícono en el celular, pantalla completa sin barra del navegador— y las tres se
+consiguen sin tiendas. A cambio se evitan la cuenta de desarrollador de Apple (USD 99 al
+año), la revisión de Apple en cada cambio, y mantener dos builds. El negocio son seis
+locales y venta de mostrador: el costo de las tiendas no se justifica todavía.
+
+**Consecuencia.** El link de WhatsApp sigue funcionando igual (D-011): es la puerta de
+entrada rápida. La app es la puerta de entrada permanente. Si algún día se quiere estar en
+las tiendas, se envuelve esta misma app y se publica sin rehacerla.
+
+---
+
+## D-022 · El cliente entra con su teléfono y un código por WhatsApp
+
+**Contexto.** Hasta ahora el cliente sólo veía su saldo si alguien le mandaba el link
+(D-011). Para que pueda entrar cuando quiera hace falta que se identifique solo, y la
+cuenta no tiene usuario ni contraseña: es el teléfono (D-010).
+
+**Decisión.** Acceso por código de un solo uso:
+
+1. El cliente escribe su teléfono.
+2. Se genera un código de 6 dígitos, se guarda **hasheado** y se manda por WhatsApp
+   **a ese mismo número**, por la cola de n8n (D-014).
+3. Al ingresarlo correctamente recibe el token de cliente ya existente (D-011), que la app
+   guarda. A partir de ahí entra sin pedir nada más.
+
+**Por qué es seguro.** El teléfono *es* la cuenta, y el código viaja al teléfono. Quien no
+tiene el celular no entra. Es el mismo mecanismo que usan los bancos y las billeteras, sin
+inventar contraseñas que el cliente va a olvidar.
+
+**Defensas.** El código vence a los 10 minutos, admite 5 intentos y queda inutilizable al
+usarse. Se limita cuántos códigos se piden por teléfono por hora. `pedir` responde siempre
+lo mismo exista o no el teléfono, así nadie puede averiguar quién es cliente.
+
+**Consecuencia.** Mientras n8n no esté conectado, el código no se puede entregar: el
+acceso propio del cliente depende de esa integración. El link que manda la vendedora
+sigue funcionando sin n8n.

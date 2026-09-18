@@ -79,6 +79,24 @@ Enter → importe → Enter, sin tocar el mouse, y el saldo queda a la vista.
 - [x] Tarea programada que vence los saldos al cerrar la temporada
 - [x] Aviso anticipado configurable
 
+## Etapa 9 — App del cliente (web instalable)
+
+Que el cliente entre cuando quiera y vea todo lo de su cuenta, sin depender de que alguien
+le mande un link. Web instalable en la pantalla de inicio, no app de las tiendas (D-021).
+Criterio de diseño del dueño: **que se entienda, que sea fácil de usar y que no sea
+invasiva**. La cuenta es el centro; lo demás va en segundo plano.
+
+- [ ] Acceso con teléfono + código de un solo uso por WhatsApp (D-022)
+- [ ] Pantalla de cuenta: saldo, equivalente, cuánto falta para el próximo, vencimiento
+- [ ] Historial completo de movimientos
+- [ ] Su número en grande para mostrar en el mostrador
+- [ ] Los 6 locales con dirección y horarios
+- [ ] Novedades y precios, editables desde el panel
+- [ ] Instalable: ícono propio, pantalla completa, sesión que no se cae
+
+**Listo cuando:** el cliente la agrega a la pantalla de inicio, la abre días después y ve
+su cuenta sin volver a identificarse.
+
 ---
 
 ## Después de esta entrega (no incluido)

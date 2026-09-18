@@ -11,6 +11,7 @@ import { configuracionVigente } from './configuracion.js';
 import { encolarEvento } from './avisos.js';
 import { linkDeSaldo } from './tokenCliente.js';
 import { formatearPesos } from '../dominio/dinero.js';
+import { finDelDiaArgentina } from '../dominio/fechas.js';
 
 const DIA = 24 * 60 * 60 * 1000;
 
@@ -109,12 +110,12 @@ export async function vencerTemporadasCerradas(
     if (!abierta) {
       const inicio = new Date(temporada.cierreEn.getTime() + 1000);
       let anio = inicio.getUTCFullYear();
-      let cierre = new Date(Date.UTC(anio, 11, 31, 23, 59, 59));
+      let cierre = finDelDiaArgentina(`${anio}-12-31`);
       // Si la temporada se cerró antes de tiempo, el 31/12 de este año todavía sirve;
       // si ya pasó, la nueva temporada cierra el año que viene.
       if (cierre <= inicio) {
         anio += 1;
-        cierre = new Date(Date.UTC(anio, 11, 31, 23, 59, 59));
+        cierre = finDelDiaArgentina(`${anio}-12-31`);
       }
       // El nombre es único: si ya existe una temporada de ese año, se numera.
       let nombre = `Temporada ${anio}`;

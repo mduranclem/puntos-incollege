@@ -67,6 +67,10 @@ model Local {
   nombre               String
   /// Código de área que se asume cuando el cliente tipea sólo el abonado (D-010).
   codigoAreaPorDefecto String
+  /// Datos que ve el cliente en la app. Los carga la administración.
+  direccion            String?
+  horarios             String?
+  telefono             String?
   activo               Boolean  @default(true)
   creadoEn             DateTime @default(now())
 
@@ -280,4 +284,37 @@ model EventoSaliente {
   claveUnica      String?        @unique
 
   @@index([estado, proximoIntentoEn])
+}
+
+/// Código de un solo uso para que el cliente entre a su cuenta (D-022).
+/// Se guarda hasheado: ni siquiera desde la base se puede leer el código.
+model CodigoDeAcceso {
+  id           String    @id @default(uuid())
+  telefonoE164 String
+  codigoHash   String
+  creadoEn     DateTime  @default(now())
+  expiraEn     DateTime
+  intentos     Int       @default(0)
+  usadoEn      DateTime?
+
+  @@index([telefonoE164, creadoEn])
+  @@index([expiraEn])
+}
+
+/// Novedades y precios que ve el cliente en la app. Los edita la administración.
+model Destacado {
+  id             String          @id @default(uuid())
+  titulo         String
+  detalle        String?
+  /// Precio en centavos, opcional: hay novedades que no son un producto (D-002).
+  precioCentavos BigInt?
+  lineaDeNegocio LineaDeNegocio?
+  orden          Int             @default(0)
+  visible        Boolean         @default(true)
+  desde          DateTime?
+  hasta          DateTime?
+  creadoEn       DateTime        @default(now())
+  actualizadoEn  DateTime        @updatedAt
+
+  @@index([visible, orden])
 }
