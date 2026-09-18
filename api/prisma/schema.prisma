@@ -191,7 +191,8 @@ model Movimiento {
   usuario   Usuario? @relation(fields: [usuarioId], references: [id])
   creadoEn  DateTime @default(now())
 
-  pago Pago? @relation("PagoAcreditado")
+  pago  Pago?         @relation("PagoAcreditado")
+  items ItemDeVenta[]
 
   @@unique([tipo, referenciaExterna])
   @@index([cuentaId, creadoEn])
@@ -224,6 +225,8 @@ model Pago {
   /// Movimiento de acreditación generado por este pago, si acreditó.
   movimientoId String?     @unique
   movimiento   Movimiento? @relation("PagoAcreditado", fields: [movimientoId], references: [id])
+
+  items ItemDeVenta[]
 
   anuladoEn     DateTime?
   motivoAnulado String?
@@ -301,20 +304,52 @@ model CodigoDeAcceso {
   @@index([expiraEn])
 }
 
-/// Novedades y precios que ve el cliente en la app. Los edita la administración.
-model Destacado {
+/// Catálogo de artículos con su precio de lista (D-027).
+/// Una sola lista sirve para dos cosas: los botones del mostrador y las
+/// Novedades que ve el cliente en su app. La mantiene la gerencia.
+model Articulo {
   id             String          @id @default(uuid())
-  titulo         String
+  nombre         String
   detalle        String?
-  /// Precio en centavos, opcional: hay novedades que no son un producto (D-002).
-  precioCentavos BigInt?
+  /// Precio de lista en centavos (D-002).
+  precioCentavos BigInt
   lineaDeNegocio LineaDeNegocio?
   orden          Int             @default(0)
-  visible        Boolean         @default(true)
-  desde          DateTime?
-  hasta          DateTime?
+  /// Aparece como botón en el mostrador.
+  activo         Boolean         @default(true)
+  /// Aparece en la app del cliente.
+  visibleEnApp   Boolean         @default(true)
   creadoEn       DateTime        @default(now())
   actualizadoEn  DateTime        @updatedAt
 
-  @@index([visible, orden])
+  items ItemDeVenta[]
+
+  @@index([activo, orden])
+  @@index([visibleEnApp, orden])
+}
+
+/// Qué se vendió en cada operación (D-027).
+/// Cuelga del pago cuando se cobró plata, o del movimiento cuando se canjearon
+/// puntos. Guarda el nombre y el precio del momento: si mañana cambia el precio
+/// del catálogo, la venta de ayer no se reescribe (mismo criterio que D-009).
+model ItemDeVenta {
+  id                     String   @id @default(uuid())
+  descripcion            String
+  cantidad               Int      @default(1)
+  precioUnitarioCentavos BigInt
+  subtotalCentavos       BigInt
+  creadoEn               DateTime @default(now())
+
+  articuloId String?
+  articulo   Articulo? @relation(fields: [articuloId], references: [id])
+
+  pagoId String?
+  pago   Pago?   @relation(fields: [pagoId], references: [id])
+
+  movimientoId String?
+  movimiento   Movimiento? @relation(fields: [movimientoId], references: [id])
+
+  @@index([pagoId])
+  @@index([movimientoId])
+  @@index([creadoEn])
 }

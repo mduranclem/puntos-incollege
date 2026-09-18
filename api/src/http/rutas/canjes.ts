@@ -17,12 +17,22 @@ import { buscarClientePorTelefono, cuentaVigente } from '../../servicios/cliente
 import { configuracionVigente } from '../../servicios/configuracion.js';
 import { resumenDeCuenta } from '../../servicios/saldos.js';
 import { BENEFICIOS_COMERCIALES, ErrorDeNegocio } from '../../dominio/tipos.js';
+import { guardarItems, resolverItems, resumirItems } from '../../servicios/ventas.js';
 
 const motor = new MotorDePuntos(new RepositorioPrisma(prisma));
 
+const ItemCanje = z.object({
+  articuloId: z.string().uuid().optional(),
+  descripcion: z.string().trim().max(120).optional(),
+  cantidad: z.number().int().min(1).max(999).default(1),
+  precioUnitario: z.string().max(20).optional(),
+});
+
 const Canje = z.object({
   telefono: z.string().min(3),
-  totalVenta: z.string().min(1),
+  /** Igual que en el cobro: con ítems, el total sale del detalle (D-027). */
+  items: z.array(ItemCanje).max(40).default([]),
+  totalVenta: z.string().min(1).optional(),
   puntos: z.number().int().positive(),
   /** El vendedor tiene que declarar qué otros beneficios aplicó (D-008). */
   beneficiosAplicados: z.array(z.enum(BENEFICIOS_COMERCIALES)).default([]),
@@ -73,7 +83,9 @@ export function rutasDeCanjes() {
     try {
       const datos = Canje.parse(req.body);
       const sesion = req.sesion!;
-      const totalVentaCentavos = parsearImporte(datos.totalVenta);
+      const { items, totalCentavos } = await resolverItems(prisma, datos.items);
+      const totalVentaCentavos =
+        items.length > 0 ? totalCentavos : parsearImporte(datos.totalVenta ?? '');
 
       const cliente = await buscarClientePorTelefono(
         prisma,
@@ -99,6 +111,10 @@ export function rutasDeCanjes() {
         contexto: { usuarioId: sesion.usuarioId, localId: sesion.localId },
       });
 
+      if (items.length > 0 && resultado.movimiento && !resultado.yaAplicado) {
+        await guardarItems(prisma, items, { movimientoId: resultado.movimiento.id });
+      }
+
       const resumen = await resumenDeCuenta(prisma, cliente.id, 5);
       const aCobrar = totalVentaCentavos - resultado.descuentoCentavos;
 
@@ -107,6 +123,7 @@ export function rutasDeCanjes() {
         yaAplicado: resultado.yaAplicado,
         descuentoTexto: formatearPesos(resultado.descuentoCentavos),
         totalVentaTexto: formatearPesos(totalVentaCentavos),
+        vendido: resumirItems(items),
         aCobrarTexto: formatearPesos(aCobrar > 0n ? aCobrar : 0n),
         ...resumen,
       });

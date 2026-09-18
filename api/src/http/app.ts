@@ -7,6 +7,7 @@ import { rutasDeCobros } from './rutas/cobros.js';
 import { rutasDeCanjes } from './rutas/canjes.js';
 import { rutasDeAdmin } from './rutas/admin.js';
 import { rutasDePersonal } from './rutas/personal.js';
+import { rutasDeArticulos } from './rutas/articulos.js';
 import { rutasPublicas } from './rutas/publicas.js';
 
 export function crearApp() {
@@ -33,6 +34,7 @@ export function crearApp() {
   app.use('/api/canjes', rutasDeCanjes());
   app.use('/api/admin', rutasDeAdmin());
   app.use('/api/personal', rutasDePersonal());
+  app.use('/api/articulos', rutasDeArticulos());
   app.use('/api/publico', rutasPublicas());
 
   app.use((_req, res) => res.status(404).json({ error: 'NO_ENCONTRADO' }));

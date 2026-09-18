@@ -575,3 +575,39 @@ un vendedor que escriba la URL a mano recibe 403.
 **Dos reglas del alta.** Nadie se borra, se desactiva: los movimientos que hizo tienen que
 seguir apuntando a alguien (D-004). Y siempre tiene que quedar al menos un gerente activo:
 el sistema no deja que la empresa se cierre la puerta sola.
+
+---
+
+## D-027 · Qué se vendió: un catálogo, ítems en cada venta y registro diario
+
+**Contexto.** El dueño quiere saber qué se vendió, con su monto, tanto cuando se cobra
+plata como cuando se canjean puntos, y ver un registro diario en el panel de gerencia.
+
+**El riesgo.** La pantalla de cobro es la que no puede tardar más de quince segundos. Si
+para cada venta hay que tipear descripciones, el programa muere ahí.
+
+**Decisión.** Un **catálogo de artículos** con su precio, que se toca en botones. La
+vendedora elige "Chomba bordada" y el sistema suma $26.950: **no tipea ningún importe**,
+así que cargar el detalle es *más rápido* que lo que hacía antes, no más lento. Para lo
+que no está en la lista hay una opción "Otro" a mano.
+
+**El catálogo es uno solo.** La misma lista alimenta los botones del mostrador y las
+Novedades que ve el cliente en su app: dos usos, un lugar donde mantenerlo. Por eso
+`Destacado` pasó a llamarse `Articulo`, con dos interruptores separados (`activo` para el
+mostrador, `visibleEnApp` para el cliente).
+
+**El precio lo pone el servidor.** La pantalla manda qué artículo y cuántos; el precio
+sale del catálogo en el backend. Una pantalla no puede inventar precios.
+
+**Los ítems guardan el nombre y el precio del momento.** Si mañana cambia el precio de
+lista, la venta de ayer no se reescribe — mismo criterio que con la tasa de puntos (D-009).
+
+**Cuelgan de las dos cosas.** `ItemDeVenta` se ata al pago cuando se cobró plata, o al
+movimiento cuando se canjearon puntos, así el registro diario ve la operación completa.
+
+**El día es un día argentino** (D-020): las ventas del martes terminan a la medianoche de
+Rosario, no a las 21 por estar leyendo en UTC.
+
+**Consecuencia.** El total de la venta pasa a salir del detalle cuando hay ítems: no puede
+haber un importe que no coincida con lo que dice que se vendió. El campo de importe suelto
+sigue existiendo para las ventas sin detalle.

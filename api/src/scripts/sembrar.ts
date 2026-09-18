@@ -73,18 +73,18 @@ export async function sembrar() {
     { titulo: 'Buzo cuello redondo con frisa, bordado', pesos: '29700', linea: 'UNIFORMES' as const },
     { titulo: 'Campera canguro con frisa, bordada', pesos: '41800', linea: 'UNIFORMES' as const },
   ];
-  if ((await prisma.destacado.count()) === 0) {
+  if ((await prisma.articulo.count()) === 0) {
     for (const [i, p] of PRECIOS.entries()) {
-      await prisma.destacado.create({
+      await prisma.articulo.create({
         data: {
-          titulo: p.titulo,
+          nombre: p.titulo,
           precioCentavos: parsearImporte(p.pesos),
           lineaDeNegocio: p.linea,
           orden: i,
         },
       });
     }
-    console.log(`Precios en la app del cliente: ${PRECIOS.length}`);
+    console.log(`Artículos en el catálogo: ${PRECIOS.length}`);
   }
 
   const pinAdmin = process.env.SEED_PIN_ADMIN ?? '1234';

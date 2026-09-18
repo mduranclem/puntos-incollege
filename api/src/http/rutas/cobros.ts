@@ -18,14 +18,24 @@ import { resumenDeCuenta } from '../../servicios/saldos.js';
 import { linkDeSaldo } from '../../servicios/tokenCliente.js';
 import { encolarAvisoDeAcreditacion } from '../../servicios/avisos.js';
 import { MEDIOS_DE_PAGO, LINEAS_HABILITADAS, ErrorDeNegocio } from '../../dominio/tipos.js';
+import { guardarItems, resolverItems, resumirItems } from '../../servicios/ventas.js';
 
 const motor = new MotorDePuntos(new RepositorioPrisma(prisma));
 const ingestor = new IngestorDePagos(prisma, motor);
 
+const Item = z.object({
+  articuloId: z.string().uuid().optional(),
+  descripcion: z.string().trim().max(120).optional(),
+  cantidad: z.number().int().min(1).max(999).default(1),
+  precioUnitario: z.string().max(20).optional(),
+});
+
 const Cobro = z.object({
   telefono: z.string().min(3),
   nombre: z.string().trim().max(120).optional(),
-  importe: z.string().min(1),
+  /** Si vienen ítems, el total sale de ellos; si no, del importe tipeado (D-027). */
+  items: z.array(Item).max(40).default([]),
+  importe: z.string().min(1).optional(),
   medioDePago: z.enum(MEDIOS_DE_PAGO),
   lineaDeNegocio: z.enum(['UNIFORMES', 'ROPA_LISA']),
   /** Clave de idempotencia que genera la pantalla: el doble click no duplica (D-006). */
@@ -40,7 +50,11 @@ export function rutasDeCobros() {
     try {
       const datos = Cobro.parse(req.body);
       const sesion = req.sesion!;
-      const importeCentavos = parsearImporte(datos.importe);
+
+      const { items, totalCentavos } = await resolverItems(prisma, datos.items);
+      // Con ítems cargados, el total lo manda el detalle: no puede haber un
+      // importe que no coincida con lo que dice que se vendió.
+      const importeCentavos = items.length > 0 ? totalCentavos : parsearImporte(datos.importe ?? '');
       if (importeCentavos <= 0n) {
         throw new ErrorDeNegocio('IMPORTE_INVALIDO', 'El importe tiene que ser mayor a cero');
       }
@@ -57,8 +71,16 @@ export function rutasDeCobros() {
         localCodigo: sesion.localCodigo,
         cliente: { telefonoCrudo: datos.telefono, nombre: datos.nombre },
         usuarioId: sesion.usuarioId,
-        metadata: { cargadoPor: sesion.usuario, local: sesion.localNombre },
+        metadata: {
+          cargadoPor: sesion.usuario,
+          local: sesion.localNombre,
+          ...(items.length ? { vendido: resumirItems(items) } : {}),
+        },
       });
+
+      if (items.length > 0 && !resultado.yaAplicado) {
+        await guardarItems(prisma, items, { pagoId: resultado.pagoId });
+      }
 
       const resumen = await resumenDeCuenta(prisma, resultado.clienteId, 5);
 
@@ -78,6 +100,7 @@ export function rutasDeCobros() {
         puntosAcreditados: resultado.puntosAcreditados,
         clienteNuevo: resultado.clienteNuevo,
         importeTexto: formatearPesos(importeCentavos),
+        vendido: resumirItems(items),
         link: linkDeSaldo(
           resultado.clienteId,
           (await prisma.cliente.findUniqueOrThrow({ where: { id: resultado.clienteId } }))

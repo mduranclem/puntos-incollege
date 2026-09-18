@@ -138,25 +138,18 @@ export function rutasPublicas() {
 
   router.get('/novedades', async (_req, res, next) => {
     try {
-      const ahora = new Date();
-      const destacados = await prisma.destacado.findMany({
-        where: {
-          visible: true,
-          AND: [
-            { OR: [{ desde: null }, { desde: { lte: ahora } }] },
-            { OR: [{ hasta: null }, { hasta: { gte: ahora } }] },
-          ],
-        },
-        orderBy: [{ orden: 'asc' }, { creadoEn: 'desc' }],
-        take: 30,
+      const articulos = await prisma.articulo.findMany({
+        where: { visibleEnApp: true },
+        orderBy: [{ orden: 'asc' }, { nombre: 'asc' }],
+        take: 60,
       });
       return res.json({
-        novedades: destacados.map((d) => ({
-          id: d.id,
-          titulo: d.titulo,
-          detalle: d.detalle,
-          precioTexto: d.precioCentavos ? formatearPesos(d.precioCentavos) : null,
-          lineaDeNegocio: d.lineaDeNegocio,
+        novedades: articulos.map((a) => ({
+          id: a.id,
+          titulo: a.nombre,
+          detalle: a.detalle,
+          precioTexto: formatearPesos(a.precioCentavos),
+          lineaDeNegocio: a.lineaDeNegocio,
         })),
       });
     } catch (error) {

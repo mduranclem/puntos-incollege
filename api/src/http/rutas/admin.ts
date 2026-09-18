@@ -13,6 +13,7 @@ import { formatearTelefono, normalizarTelefono } from '../../dominio/telefono.js
 import { configuracionVigente } from '../../servicios/configuracion.js';
 import { LINEAS_DE_NEGOCIO, TIPOS_DE_MOVIMIENTO } from '../../dominio/tipos.js';
 import { despacharPendientes } from '../../servicios/despachador.js';
+import { registroDelDia } from '../../servicios/registroDiario.js';
 import { esFechaSimple, fechaArgentina, finDelDiaArgentina } from '../../dominio/fechas.js';
 
 const NuevaConfiguracion = z.object({
@@ -182,6 +183,20 @@ export function rutasDeAdmin() {
           motivo: m.motivo,
         })),
       });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+  /**
+   * Registro diario: qué se vendió hoy, por local, qué se vendió más y el
+   * detalle operación por operación (D-027). Sólo la gerencia (D-026).
+   */
+  router.get('/registro-diario', async (req, res, next) => {
+    try {
+      const fecha = req.query.fecha ? String(req.query.fecha) : undefined;
+      const localId = req.query.localId ? String(req.query.localId) : undefined;
+      return res.json(await registroDelDia(prisma, fecha, localId));
     } catch (error) {
       return next(error);
     }
