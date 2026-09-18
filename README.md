@@ -69,6 +69,42 @@ En `api/.env`, `DATABASE_URL` para el Postgres embebido:
 El seed crea `admin` (PIN 1234) y `mostrador-<local>` (PIN 1111).
 **Cambiar los PIN antes de usarlo en producción.**
 
+## Trabajar desde otra computadora
+
+El código, las decisiones y el historial de commits viajan en el repo. Lo que **no**
+viaja es el historial de chat de Claude Code (es local a cada máquina) ni `api/.env`
+(está ignorado, y así tiene que ser). Por eso el contexto vive en `CLAUDE.md`,
+`ROADMAP.md` y `DECISIONES.md`: Claude los lee solo al abrir el proyecto en cualquier
+máquina.
+
+**La primera vez, en la computadora nueva:**
+
+```bash
+git clone <url-del-repo>
+cd puntos-incollege
+npm ci                            # respeta package-lock.json, instala exactamente lo mismo
+cp api/.env.example api/.env      # los secretos NO viajan: hay que ponerlos de nuevo
+```
+
+Después levantás la base como dice más arriba (con Docker o con el Postgres embebido) y
+ya estás trabajando.
+
+**Cada vez que te sentás a trabajar, en cualquiera de las dos:**
+
+```bash
+git pull        # traer lo que hiciste en la otra máquina
+# ... trabajar ...
+git push        # dejarlo disponible para la otra
+```
+
+La regla es una sola: **`git pull` al empezar y `git push` al terminar.** Si te olvidás
+del push, la otra computadora queda atrás; si te olvidás del pull, vas a tener que
+resolver un conflicto. Ninguna de las dos cosas pierde trabajo, pero el pull/push
+ordenado evita la molestia.
+
+Si alguna vez trabajaste en las dos sin sincronizar, `git pull` te va a pedir que unas
+las dos historias. No borres nada: pedile a Claude que resuelva el conflicto.
+
 ## Comandos
 
 | Comando | Qué hace |
