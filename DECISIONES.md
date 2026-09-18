@@ -611,3 +611,22 @@ Rosario, no a las 21 por estar leyendo en UTC.
 **Consecuencia.** El total de la venta pasa a salir del detalle cuando hay ítems: no puede
 haber un importe que no coincida con lo que dice que se vendió. El campo de importe suelto
 sigue existiendo para las ventas sin detalle.
+
+---
+
+## D-028 · Se confirma antes de cobrar
+
+**Contexto.** La pantalla de cobro registraba en cuanto se apretaba el botón. Un error de
+tipeo o un artículo de más quedaba cobrado, y para arreglarlo había que anular.
+
+**Decisión.** Un paso de confirmación que muestra lo que está por registrarse —cliente,
+qué se vendió, medio de pago y total— y espera un sí.
+
+**Sin perder la velocidad.** Es la pantalla que no puede pasar de quince segundos, así que
+el botón de confirmar viene enfocado: **Enter confirma, Escape vuelve a corregir**. La
+secuencia completa sigue siendo sin mouse: teléfono → Enter → tocar artículos → Enter →
+Enter.
+
+**Consecuencia.** El cobro pasa de un paso a dos. Se gana que la vendedora vea el total
+antes de decirlo en voz alta, y que corregir sea volver atrás en vez de anular un
+movimiento del libro mayor.

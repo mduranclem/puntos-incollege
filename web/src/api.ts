@@ -98,3 +98,46 @@ export async function api<T>(
   }
   return datos as T;
 }
+
+/** "$25.000" — los importes llegan en centavos como string (BigInt en el backend). */
+export function formatearPesos(centavos: number | string): string {
+  const n = typeof centavos === 'string' ? Number(centavos) : centavos;
+  const negativo = n < 0;
+  const abs = Math.abs(Math.round(n));
+  const pesos = Math.floor(abs / 100);
+  const resto = abs % 100;
+  const conMiles = pesos.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return `${negativo ? '-' : ''}$${conMiles}${resto === 0 ? '' : `,${String(resto).padStart(2, '0')}`}`;
+}
+
+export type Articulo = {
+  id: string;
+  nombre: string;
+  detalle: string | null;
+  precioCentavos: string;
+  precioTexto: string;
+  lineaDeNegocio: 'UNIFORMES' | 'ROPA_LISA' | 'EGRESADOS' | null;
+  orden: number;
+  activo: boolean;
+  visibleEnApp: boolean;
+};
+
+/** Una línea de la venta, tal como la arma la pantalla. */
+export type ItemElegido = {
+  clave: string;
+  articuloId?: string;
+  descripcion: string;
+  cantidad: number;
+  precioUnitarioCentavos: number;
+};
+
+export const totalDeItems = (items: ItemElegido[]) =>
+  items.reduce((suma, i) => suma + i.precioUnitarioCentavos * i.cantidad, 0);
+
+/** Lo que espera la API: sin la clave interna ni el precio si sale del catálogo. */
+export const itemsParaLaApi = (items: ItemElegido[]) =>
+  items.map((i) => ({
+    ...(i.articuloId ? { articuloId: i.articuloId } : { descripcion: i.descripcion }),
+    cantidad: i.cantidad,
+    ...(i.articuloId ? {} : { precioUnitario: String(i.precioUnitarioCentavos / 100) }),
+  }));

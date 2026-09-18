@@ -4,7 +4,16 @@
  * otros beneficios las impone el backend; acá se muestran para que se entiendan.
  */
 import { useEffect, useRef, useState } from 'react';
-import { api, ErrorApi, type ResumenDeCuenta } from '../api';
+import {
+  api,
+  ErrorApi,
+  formatearPesos,
+  itemsParaLaApi,
+  totalDeItems,
+  type ItemElegido,
+  type ResumenDeCuenta,
+} from '../api';
+import { SelectorDeArticulos } from '../componentes/SelectorDeArticulos';
 
 type Simulacion = ResumenDeCuenta & {
   encontrado: boolean;
@@ -37,18 +46,23 @@ export function Canje() {
   const [resultado, setResultado] = useState<Resultado | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
+  const [items, setItems] = useState<ItemElegido[]>([]);
 
   const campoTelefono = useRef<HTMLInputElement>(null);
   const campoTotal = useRef<HTMLInputElement>(null);
 
   useEffect(() => campoTelefono.current?.focus(), []);
 
+  /** Con artículos elegidos, el total de la venta lo manda el detalle (D-027). */
+  const totalCentavos = items.length > 0 ? totalDeItems(items) : 0;
+  const totalParaSimular = items.length > 0 ? String(totalCentavos / 100) : totalVenta;
+
   async function simular() {
-    if (!telefono.trim() || !totalVenta.trim()) return;
+    if (!telefono.trim() || !totalParaSimular.trim()) return;
     setError(null);
     try {
       const datos = await api<Simulacion>(
-        `/canjes/simular?telefono=${encodeURIComponent(telefono)}&totalVenta=${encodeURIComponent(totalVenta)}`,
+        `/canjes/simular?telefono=${encodeURIComponent(telefono)}&totalVenta=${encodeURIComponent(totalParaSimular)}`,
       );
       if (!datos.encontrado) {
         setSimulacion(null);
@@ -71,7 +85,7 @@ export function Canje() {
       const datos = await api<Resultado>('/canjes', {
         cuerpo: {
           telefono,
-          totalVenta,
+          ...(items.length > 0 ? { items: itemsParaLaApi(items) } : { totalVenta }),
           puntos: Number(puntos),
           beneficiosAplicados: beneficio === 'NINGUNO' ? [] : [beneficio],
         },
@@ -88,6 +102,7 @@ export function Canje() {
   function limpiar() {
     setTelefono('');
     setTotalVenta('');
+    setItems([]);
     setPuntos('');
     setBeneficio(null);
     setSimulacion(null);
@@ -174,7 +189,8 @@ export function Canje() {
               className="campo-grande"
               inputMode="decimal"
               placeholder="0"
-              value={totalVenta}
+              readOnly={items.length > 0}
+              value={items.length > 0 ? formatearPesos(totalCentavos).replace('$', '') : totalVenta}
               onChange={(e) => {
                 setTotalVenta(e.target.value.replace(/[^\d.,]/g, ''));
                 setSimulacion(null);
@@ -183,6 +199,15 @@ export function Canje() {
             />
           </div>
         </div>
+
+        <SelectorDeArticulos
+          items={items}
+          alCambiar={(nuevos) => {
+            setItems(nuevos);
+            setSimulacion(null);
+          }}
+          titulo="Qué está comprando"
+        />
 
         {!simulacion && (
           <button className="boton-secundario w-full" type="submit">

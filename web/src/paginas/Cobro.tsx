@@ -6,8 +6,18 @@
  * en EFECTIVO, que es el caso que interesa al programa.
  */
 import { useEffect, useRef, useState } from 'react';
-import { api, ErrorApi, leerSesion, type ResumenDeCuenta } from '../api';
+import {
+  api,
+  ErrorApi,
+  formatearPesos,
+  itemsParaLaApi,
+  leerSesion,
+  totalDeItems,
+  type ItemElegido,
+  type ResumenDeCuenta,
+} from '../api';
 import { Escaner, useHayCamara } from '../componentes/Escaner';
+import { SelectorDeArticulos } from '../componentes/SelectorDeArticulos';
 
 type Linea = 'UNIFORMES' | 'ROPA_LISA';
 type Medio =
@@ -71,6 +81,8 @@ export function Cobro() {
   const [marcada, setMarcada] = useState(0);
   const [escaneando, setEscaneando] = useState(false);
   const hayCamara = useHayCamara();
+  const [items, setItems] = useState<ItemElegido[]>([]);
+  const [confirmando, setConfirmando] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resultado, setResultado] = useState<Resultado | null>(null);
@@ -195,8 +207,12 @@ export function Cobro() {
     }
   }
 
+  /** Con artículos elegidos, el total lo manda el detalle (D-027). */
+  const totalCentavos = items.length > 0 ? totalDeItems(items) : 0;
+  const hayMonto = items.length > 0 || importe.trim() !== '';
+
   async function registrar() {
-    if (!telefono.trim() || !importe.trim() || guardando) return;
+    if (!telefono.trim() || !hayMonto || guardando) return;
     setGuardando(true);
     setError(null);
     try {
@@ -204,13 +220,14 @@ export function Cobro() {
         cuerpo: {
           telefono,
           nombre: nombre.trim() || undefined,
-          importe,
+          ...(items.length > 0 ? { items: itemsParaLaApi(items) } : { importe }),
           medioDePago: medio,
           lineaDeNegocio: linea,
           referencia,
         },
       });
       setResultado(datos);
+      setConfirmando(false);
     } catch (e) {
       setError(e instanceof ErrorApi ? e.message : 'No se pudo registrar el cobro');
     } finally {
@@ -222,6 +239,8 @@ export function Cobro() {
     setTelefono('');
     setNombre('');
     setImporte('');
+    setItems([]);
+    setConfirmando(false);
     setMedio('EFECTIVO');
     setCliente(null);
     setEsNuevo(false);
@@ -234,6 +253,23 @@ export function Cobro() {
 
   if (resultado) {
     return <Comprobante resultado={resultado} alSeguir={nuevoCobro} />;
+  }
+
+  if (confirmando) {
+    return (
+      <Confirmacion
+        cliente={cliente?.cliente.nombre ?? nombre.trim() ?? null}
+        telefono={cliente?.cliente.telefono ?? telefono}
+        clienteNuevo={esNuevo}
+        items={items}
+        totalTexto={items.length > 0 ? formatearPesos(totalCentavos) : `$${importe}`}
+        medio={MEDIOS.find((m) => m.valor === medio)?.texto ?? medio}
+        acredita={medio === 'EFECTIVO'}
+        guardando={guardando}
+        alConfirmar={() => void registrar()}
+        alVolver={() => setConfirmando(false)}
+      />
+    );
   }
 
   return (
@@ -249,7 +285,8 @@ export function Cobro() {
         className="tarjeta space-y-4"
         onSubmit={(e) => {
           e.preventDefault();
-          void registrar();
+          // Nunca se cobra de un saque: primero se confirma (D-028).
+          if (telefono.trim() && hayMonto) setConfirmando(true);
         }}
       >
         <div>
@@ -392,9 +429,11 @@ export function Cobro() {
           </div>
         )}
 
+        <SelectorDeArticulos items={items} alCambiar={setItems} />
+
         <div>
           <label className="etiqueta" htmlFor="importe">
-            Importe cobrado
+            {items.length > 0 ? 'Total de la venta' : 'Importe cobrado'}
           </label>
           <div className="relative">
             <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-3xl font-semibold text-slate-400">
@@ -407,7 +446,8 @@ export function Cobro() {
               inputMode="decimal"
               autoComplete="off"
               placeholder="0"
-              value={importe}
+              readOnly={items.length > 0}
+              value={items.length > 0 ? formatearPesos(totalCentavos).replace('$', '') : importe}
               onChange={(e) => setImporte(e.target.value.replace(/[^\d.,]/g, ''))}
             />
           </div>
@@ -464,11 +504,11 @@ export function Cobro() {
           <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-[var(--color-error)]">{error}</p>
         )}
 
-        <button className="boton-principal w-full py-4 text-lg" disabled={guardando || !importe}>
-          {guardando ? 'Registrando…' : 'Registrar cobro'}
+        <button className="boton-principal w-full py-4 text-lg" disabled={guardando || !hayMonto}>
+          Registrar cobro
         </button>
         <p className="text-center text-xs text-slate-500">
-          Enter registra el cobro desde cualquier campo.
+          Enter sigue al paso de confirmación.
         </p>
       </form>
     </div>
@@ -544,6 +584,112 @@ function Comprobante({ resultado, alSeguir }: { resultado: Resultado; alSeguir: 
           {copiado ? 'Copiado' : 'Copiar mensaje de WhatsApp'}
         </button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Confirmación antes de cobrar (D-028). Muestra lo que está por registrarse y
+ * espera un sí. Enter confirma, Escape vuelve: no hace falta el mouse.
+ */
+function Confirmacion({
+  cliente,
+  telefono,
+  clienteNuevo,
+  items,
+  totalTexto,
+  medio,
+  acredita,
+  guardando,
+  alConfirmar,
+  alVolver,
+}: {
+  cliente: string | null;
+  telefono: string;
+  clienteNuevo: boolean;
+  items: ItemElegido[];
+  totalTexto: string;
+  medio: string;
+  acredita: boolean;
+  guardando: boolean;
+  alConfirmar: () => void;
+  alVolver: () => void;
+}) {
+  const boton = useRef<HTMLButtonElement>(null);
+  useEffect(() => boton.current?.focus(), []);
+
+  useEffect(() => {
+    function alTeclear(e: KeyboardEvent) {
+      if (e.key === 'Escape') alVolver();
+    }
+    window.addEventListener('keydown', alTeclear);
+    return () => window.removeEventListener('keydown', alTeclear);
+  }, [alVolver]);
+
+  return (
+    <div className="space-y-4">
+      <h1 className="text-xl font-bold tracking-tight">Confirmar el cobro</h1>
+
+      <div className="tarjeta space-y-4">
+        <div className="conf-fila">
+          <span>Cliente</span>
+          <strong>
+            {cliente || 'Sin nombre'}
+            {clienteNuevo && <em className="conf-nuevo">nuevo</em>}
+            <small>{telefono}</small>
+          </strong>
+        </div>
+
+        {items.length > 0 && (
+          <div>
+            <span className="etiqueta">Se vendió</span>
+            <ul className="conf-items">
+              {items.map((i) => (
+                <li key={i.clave}>
+                  <span>
+                    {i.cantidad > 1 && <b>{i.cantidad} × </b>}
+                    {i.descripcion}
+                  </span>
+                  <span>{formatearPesos(i.precioUnitarioCentavos * i.cantidad)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className="conf-fila">
+          <span>Medio de pago</span>
+          <strong>{medio}</strong>
+        </div>
+
+        <div className="conf-total">
+          <span>A cobrar</span>
+          <strong>{totalTexto}</strong>
+        </div>
+
+        <p className={acredita ? 'conf-nota' : 'conf-nota conf-nota-gris'}>
+          {acredita
+            ? 'Al confirmar se acreditan los puntos.'
+            : 'Este cobro se registra pero no suma puntos: no es efectivo.'}
+        </p>
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-2">
+        <button
+          ref={boton}
+          className="boton-principal py-4 text-lg"
+          onClick={alConfirmar}
+          disabled={guardando}
+        >
+          {guardando ? 'Registrando…' : 'Confirmar cobro'}
+        </button>
+        <button className="boton-secundario py-4" onClick={alVolver} disabled={guardando}>
+          Volver a corregir
+        </button>
+      </div>
+      <p className="text-center text-xs text-slate-500">
+        Enter confirma · Escape vuelve
+      </p>
     </div>
   );
 }

@@ -297,3 +297,101 @@
     @apply rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-[var(--color-error)];
   }
 }
+
+@layer components {
+  /* ---- Selector de artículos del mostrador (D-027) ---- */
+  .art-grupo { @apply mt-3 first:mt-1; }
+  .art-grupo-titulo {
+    @apply mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500;
+  }
+  .art-botones { @apply flex flex-wrap gap-2; }
+  .art-boton {
+    @apply flex flex-col items-start rounded-xl border border-[var(--color-borde)] bg-white
+           px-3 py-2 text-left transition active:scale-[0.98]
+           hover:border-[var(--color-marino-claro)];
+  }
+  .art-boton-nombre { @apply text-sm font-semibold leading-tight; }
+  .art-boton-precio {
+    @apply mt-0.5 text-xs font-medium text-slate-500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .art-otro {
+    @apply mt-3 rounded-lg border border-dashed border-[var(--color-borde-fuerte,#c6cedb)]
+           px-3 py-2 text-sm font-semibold text-slate-600;
+  }
+  .art-otro-caja { @apply mt-3 grid gap-2 sm:grid-cols-[1fr_9rem_auto_auto]; }
+  .art-cancelar { @apply text-sm font-medium text-slate-500 underline; }
+
+  .art-carrito {
+    @apply mt-4 overflow-hidden rounded-xl border border-[var(--color-borde)] bg-white;
+  }
+  .art-carrito li {
+    @apply flex items-center gap-3 border-t border-[var(--color-borde)] px-4 py-2.5;
+  }
+  .art-carrito li:first-child { @apply border-t-0; }
+  .art-carrito-que { @apply min-w-0 flex-1 text-sm font-medium; }
+  .art-carrito-que small { @apply mt-0.5 block text-xs font-normal text-slate-500; }
+  .art-cantidad { @apply flex items-center gap-1; }
+  .art-cantidad button {
+    @apply h-8 w-8 rounded-lg border border-[var(--color-borde)] text-lg font-bold
+           leading-none text-[var(--color-marino)];
+  }
+  .art-cantidad b {
+    @apply w-7 text-center text-base font-bold;
+    font-variant-numeric: tabular-nums;
+  }
+  .art-carrito-sub {
+    @apply w-24 text-right text-sm font-semibold;
+    font-variant-numeric: tabular-nums;
+  }
+  .art-carrito-total {
+    @apply text-base font-bold;
+    background: var(--color-punto-suave);
+  }
+  .art-carrito-total span:last-child {
+    @apply ml-auto;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---- Confirmación antes de cobrar (D-028) ---- */
+  .conf-fila { @apply flex items-baseline justify-between gap-4 text-sm; }
+  .conf-fila > span { @apply text-slate-600; }
+  .conf-fila > strong { @apply text-right text-base font-semibold; }
+  .conf-fila > strong > small { @apply block text-xs font-normal text-slate-500; }
+  .conf-nuevo {
+    @apply ml-2 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase not-italic;
+    background: var(--color-punto-suave);
+  }
+  .conf-items {
+    @apply mt-1 overflow-hidden rounded-xl border border-[var(--color-borde)];
+  }
+  .conf-items li {
+    @apply flex items-baseline justify-between gap-4 border-t border-[var(--color-borde)]
+           px-4 py-2 text-sm;
+    font-variant-numeric: tabular-nums;
+  }
+  .conf-items li:first-child { @apply border-t-0; }
+  .conf-total {
+    @apply flex items-baseline justify-between gap-4 border-t-2 border-[var(--color-tinta)] pt-3;
+  }
+  .conf-total > span { @apply text-sm text-slate-600; }
+  .conf-total > strong {
+    @apply text-3xl font-bold;
+    color: var(--color-marino);
+    font-variant-numeric: tabular-nums;
+  }
+  .conf-nota {
+    @apply rounded-lg px-3 py-2 text-sm;
+    background: var(--color-punto-suave);
+  }
+  .conf-nota-gris { @apply bg-slate-100 text-slate-600; }
+}
+
+@layer components {
+  .aviso-ok {
+    @apply rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-[var(--color-ok)];
+  }
+  .interruptor { @apply flex cursor-pointer items-center gap-2 text-sm; }
+  .interruptor input { @apply h-4 w-4 accent-[var(--color-marino)]; }
+}

@@ -4,6 +4,9 @@
  */
 import { useEffect, useState } from 'react';
 import { api, ErrorApi } from '../api';
+import { PanelPersonal } from './admin/Personal';
+import { PanelArticulos } from './admin/Articulos';
+import { PanelRegistroDiario } from './admin/RegistroDiario';
 
 type Configuracion = {
   valorPuntoTexto: string;
@@ -49,17 +52,22 @@ const LINEAS: Record<string, string> = {
 const soloNumero = (texto: string) => texto.replace(/[^\d,.]/g, '');
 
 export function Admin() {
-  const [pestania, setPestania] = useState<'config' | 'movimientos' | 'totales'>('totales');
+  const [pestania, setPestania] = useState<
+    'hoy' | 'totales' | 'movimientos' | 'articulos' | 'personal' | 'config'
+  >('hoy');
 
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-bold tracking-tight">Panel</h1>
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {(
           [
-            ['totales', 'Totales'],
+            ['hoy', 'Hoy'],
+            ['totales', 'Programa'],
             ['movimientos', 'Movimientos'],
+            ['articulos', 'Artículos'],
+            ['personal', 'Personal'],
             ['config', 'Configuración'],
           ] as const
         ).map(([valor, texto]) => (
@@ -77,6 +85,7 @@ export function Admin() {
         ))}
       </div>
 
+      {pestania === 'hoy' && <PanelRegistroDiario />}
       {pestania === 'totales' && (
         <>
           <PanelTotales />
@@ -84,6 +93,8 @@ export function Admin() {
         </>
       )}
       {pestania === 'movimientos' && <PanelMovimientos />}
+      {pestania === 'articulos' && <PanelArticulos />}
+      {pestania === 'personal' && <PanelPersonal />}
       {pestania === 'config' && <PanelConfiguracion />}
     </div>
   );
