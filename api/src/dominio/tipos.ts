@@ -43,7 +43,7 @@ export const BENEFICIOS_COMERCIALES = [
 ] as const;
 export type BeneficioComercial = (typeof BENEFICIOS_COMERCIALES)[number];
 
-export const ROLES = ['VENDEDOR', 'ADMINISTRADOR'] as const;
+export const ROLES = ['VENDEDOR', 'GERENTE'] as const;
 export type Rol = (typeof ROLES)[number];
 
 export const ORIGENES_DE_PAGO = ['MANUAL', 'SIRO'] as const;

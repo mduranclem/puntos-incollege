@@ -91,7 +91,7 @@ export function rutasDeCobros() {
   });
 
   /** Anulación: genera el movimiento inverso. Nunca borra (D-004). */
-  router.post('/:id/anular', exigeRol('ADMINISTRADOR', 'VENDEDOR'), async (req, res, next) => {
+  router.post('/:id/anular', exigeRol('GERENTE', 'VENDEDOR'), async (req, res, next) => {
     try {
       const motivo = z.object({ motivo: z.string().trim().min(3).max(200) }).parse(req.body).motivo;
       const pago = await prisma.pago.findUniqueOrThrow({ where: { id: String(req.params.id) } });

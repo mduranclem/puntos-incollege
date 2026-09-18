@@ -4,7 +4,7 @@ export type Sesion = {
   usuarioId: string;
   usuario: string;
   nombre: string;
-  rol: 'VENDEDOR' | 'ADMINISTRADOR';
+  rol: 'VENDEDOR' | 'GERENTE';
   localId: string;
   localCodigo: string;
   localNombre: string;

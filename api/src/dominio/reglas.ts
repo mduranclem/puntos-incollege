@@ -87,7 +87,7 @@ export type PedidoDeCanje = {
   puntosPedidos: number;
   saldoDisponible: number;
   valorPuntoCentavos: bigint;
-  /** Tope del canje sobre el total de la venta, en puntos básicos (1000 = 10%). */
+  /** Tope del canje sobre el total de la venta, en puntos básicos (10.000 = 100%, sin tope). */
   topeCanjeBps: number;
   beneficiosAplicados: BeneficioComercial[];
 };
@@ -98,6 +98,17 @@ export type ResultadoCanje = {
   topeCentavos: bigint;
 };
 
+/**
+ * Tope efectivo de una venta: el porcentaje configurado, **pero nunca más que el
+ * total** (D-025). El descuento no puede pasarse de lo que se está comprando:
+ * el programa no devuelve plata en efectivo. Este segundo límite no depende de
+ * la configuración; si alguien pone 200%, sigue siendo el total de la venta.
+ */
+export function topeDeLaVenta(totalVentaCentavos: bigint, topeCanjeBps: number): bigint {
+  const porConfiguracion = aplicarBps(totalVentaCentavos, topeCanjeBps);
+  return porConfiguracion > totalVentaCentavos ? totalVentaCentavos : porConfiguracion;
+}
+
 /** Máximo de puntos canjeables en una venta, sin tirar error. Sirve para la UI. */
 export function puntosMaximosCanjeables(
   totalVentaCentavos: bigint,
@@ -106,7 +117,7 @@ export function puntosMaximosCanjeables(
   topeCanjeBps: number,
 ): number {
   if (valorPuntoCentavos <= 0n || saldoDisponible <= 0) return 0;
-  const tope = aplicarBps(totalVentaCentavos, topeCanjeBps);
+  const tope = topeDeLaVenta(totalVentaCentavos, topeCanjeBps);
   const porTope = Number(tope / valorPuntoCentavos);
   return Math.max(0, Math.min(saldoDisponible, porTope));
 }
@@ -148,12 +159,14 @@ export function calcularCanje(pedido: PedidoDeCanje): ResultadoCanje {
   }
 
   const descuentoCentavos = BigInt(puntosPedidos) * valorPuntoCentavos;
-  const topeCentavos = aplicarBps(totalVentaCentavos, topeCanjeBps);
+  const topeCentavos = topeDeLaVenta(totalVentaCentavos, topeCanjeBps);
 
   if (descuentoCentavos > topeCentavos) {
     throw new ErrorDeNegocio(
       'CANJE_SUPERA_TOPE',
-      `El canje no puede superar el ${topeCanjeBps / 100}% de la compra`,
+      topeCanjeBps >= 10_000
+        ? 'El canje no puede superar el total de la compra'
+        : `El canje no puede superar el ${topeCanjeBps / 100}% de la compra`,
       {
         descuentoCentavos: descuentoCentavos.toString(),
         topeCentavos: topeCentavos.toString(),

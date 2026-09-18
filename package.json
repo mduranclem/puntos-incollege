@@ -14,5 +14,8 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "devDependencies": {
+    "@esbuild/win32-x64": "^0.28.2"
   }
 }

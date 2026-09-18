@@ -21,7 +21,7 @@ export function Estructura() {
 
           <nav className="ml-2 flex gap-1">
             {enlaces
-              .filter((e) => !e.soloAdmin || sesion?.rol === 'ADMINISTRADOR')
+              .filter((e) => !e.soloAdmin || sesion?.rol === 'GERENTE')
               .map((e) => (
                 <NavLink
                   key={e.a}

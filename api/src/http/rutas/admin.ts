@@ -36,7 +36,7 @@ const NuevaConfiguracion = z.object({
 
 export function rutasDeAdmin() {
   const router = Router();
-  router.use(exigeSesion, exigeRol('ADMINISTRADOR'));
+  router.use(exigeSesion, exigeRol('GERENTE'));
 
   router.get('/configuracion', async (_req, res, next) => {
     try {

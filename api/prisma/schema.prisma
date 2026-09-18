@@ -40,7 +40,7 @@ enum TipoDeMovimiento {
 
 enum Rol {
   VENDEDOR
-  ADMINISTRADOR
+  GERENTE
 }
 
 enum OrigenDePago {

@@ -47,7 +47,8 @@ export async function sembrar() {
     await prisma.configuracion.create({
       data: {
         valorPuntoCentavos: parsearImporte('1000'), // 1 punto = $1.000
-        topeCanjeBps: 1000, // 10% del total de la compra
+        // Sin tope: se puede pagar la prenda entera con puntos (D-025).
+        topeCanjeBps: 10_000,
         diasAvisoVencimiento: 30,
         temporadaId: temporada.id,
         tasas: {
@@ -60,7 +61,7 @@ export async function sembrar() {
         },
       },
     });
-    console.log('Configuración inicial: $10.000 = 1 punto · punto = $1.000 · tope 10%');
+    console.log('Configuración inicial: $10.000 = 1 punto · punto = $1.000 · sin tope de canje');
   }
 
   // Precios reales de lista. La administración los edita u oculta desde el panel.
@@ -95,9 +96,9 @@ export async function sembrar() {
     update: {},
     create: {
       usuario: 'admin',
-      nombre: 'Administración',
+      nombre: 'Gerencia',
       pinHash: await bcrypt.hash(pinAdmin, 10),
-      rol: 'ADMINISTRADOR',
+      rol: 'GERENTE',
       localId: primerLocal.id,
     },
   });

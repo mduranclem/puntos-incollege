@@ -93,7 +93,7 @@ export function rutasDeClientes() {
     }
   });
 
-  router.get('/duplicados/lista', exigeRol('ADMINISTRADOR'), async (_req, res, next) => {
+  router.get('/duplicados/lista', exigeRol('GERENTE'), async (_req, res, next) => {
     try {
       return res.json({ grupos: await buscarDuplicados(prisma) });
     } catch (error) {
@@ -101,7 +101,7 @@ export function rutasDeClientes() {
     }
   });
 
-  router.post('/fusionar', exigeRol('ADMINISTRADOR'), async (req, res, next) => {
+  router.post('/fusionar', exigeRol('GERENTE'), async (req, res, next) => {
     try {
       const datos = z
         .object({ sobrevivienteId: z.string().uuid(), absorbidoId: z.string().uuid() })

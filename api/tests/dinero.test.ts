@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { aplicarBps, formatearPesos, parsearImporte } from '../src/dominio/dinero.js';
+import { topeDeLaVenta } from '../src/dominio/reglas.js';
 
 describe('parseo de importes que tipea el vendedor', () => {
   it('acepta los formatos usuales del mostrador', () => {
@@ -39,5 +40,22 @@ describe('tope en puntos básicos', () => {
   it('redondea hacia abajo, nunca a favor del canje', () => {
     expect(aplicarBps(parsearImporte('9900'), 1000)).toBe(parsearImporte('990'));
     expect(aplicarBps(1n, 1000)).toBe(0n);
+  });
+});
+
+describe('tope del canje sobre la venta (D-025)', () => {
+  it('sin tope: los puntos pueden pagar la prenda entera', () => {
+    const campera = parsearImporte('41800');
+    expect(topeDeLaVenta(campera, 10_000)).toBe(campera);
+  });
+
+  it('nunca se pasa del total, aunque se configure de más', () => {
+    const chomba = parsearImporte('26950');
+    expect(topeDeLaVenta(chomba, 20_000)).toBe(chomba);
+    expect(topeDeLaVenta(chomba, 100_000)).toBe(chomba);
+  });
+
+  it('con un tope menor, manda el tope', () => {
+    expect(topeDeLaVenta(parsearImporte('41800'), 1000)).toBe(parsearImporte('4180'));
   });
 });

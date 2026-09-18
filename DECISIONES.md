@@ -529,3 +529,49 @@ llevara acceso, alguien que le saca una foto a la pantalla del cliente en la col
 a su cuenta; llevando el teléfono, lo peor que consigue es un número. Así el QR es sólo
 *una forma rápida de tipear lo que el vendedor iba a tipear igual*: sin permisos nuevos,
 sin superficie nueva que proteger, y anda aunque el cliente esté sin señal en el local.
+
+---
+
+## D-025 · El canje no tiene tope, salvo el total de la venta
+
+**Contexto.** El pedido original fijaba un tope del 10% de la compra. El dueño lo cambió:
+si al cliente le alcanzan los puntos para pagar una prenda entera, que la pague.
+
+**Decisión.** El tope configurable pasa a 100% por defecto, y se le suma un **segundo
+límite que no depende de la configuración**: el descuento nunca puede superar el total de
+la venta (`topeDeLaVenta`). Si alguien configura 200%, sigue siendo el total.
+
+**Por qué ese segundo límite.** El programa descuenta, no paga: no puede devolver plata en
+efectivo ni dejar un saldo a favor en la caja. Un cliente con 50 puntos que compra una
+chomba de $26.950 descuenta $26.950 y conserva el resto de los puntos.
+
+**Consecuencia.** El tope sigue siendo configurable —se puede volver al 10% desde el panel
+sin tocar código (D-009)— pero el límite duro está en el dominio y no se puede desactivar.
+
+---
+
+## D-026 · Gerente y vendedor, y el alta de personal desde el panel
+
+**Contexto.** Los roles existían como `ADMINISTRADOR` y `VENDEDOR`, pero no había forma de
+dar de alta a nadie sin entrar a la base, y la empresa habla de "gerente".
+
+**Decisión.** `ADMINISTRADOR` se renombra a **`GERENTE`**: el sistema usa la palabra de la
+empresa, no la del programador. Y la gerencia da de alta al personal desde el panel,
+eligiendo rol y local.
+
+**Qué ve cada uno:**
+
+| | Vendedor | Gerente |
+|---|---|---|
+| Cobrar y canjear | Sí | Sí |
+| Pasivo del programa, totales, plata movida | **No** | Sí |
+| Movimientos de todos los locales | **No** | Sí |
+| Configuración del programa | **No** | Sí |
+| Alta y baja de personal | **No** | Sí |
+
+La separación no es sólo visual: las rutas del panel exigen el rol en el servidor, así que
+un vendedor que escriba la URL a mano recibe 403.
+
+**Dos reglas del alta.** Nadie se borra, se desactiva: los movimientos que hizo tienen que
+seguir apuntando a alguien (D-004). Y siempre tiene que quedar al menos un gerente activo:
+el sistema no deja que la empresa se cierre la puerta sola.
