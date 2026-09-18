@@ -80,11 +80,17 @@ máquina.
 **La primera vez, en la computadora nueva:**
 
 ```bash
-git clone <url-del-repo>
+git clone https://mduranclem@github.com/mduranclem/puntos-incollege.git
 cd puntos-incollege
 npm ci                            # respeta package-lock.json, instala exactamente lo mismo
 cp api/.env.example api/.env      # los secretos NO viajan: hay que ponerlos de nuevo
 ```
+
+El `mduranclem@` adelante del dominio **no es opcional**: hay dos cuentas de GitHub en
+juego y sin eso Git autentica con la otra, contra la que este repo privado responde
+`Repository not found` — un 404 engañoso, porque a un repo privado no le dice "sin
+permiso", le dice "no existe". Si alguna vez ves ese error, revisá esto antes que el
+nombre del repo.
 
 Después levantás la base como dice más arriba (con Docker o con el Postgres embebido) y
 ya estás trabajando.
