@@ -10,6 +10,8 @@ type Configuracion = {
   topeCanjePorcentaje: number;
   diasAvisoVencimiento: number;
   temporada: { id: string; nombre: string; cierreEn: string };
+  /** Fecha de cierre como calendario argentino (AAAA-MM-DD). La manda la API (D-020). */
+  cierreFecha: string;
   tasas: Array<{ lineaDeNegocio: string; texto: string | null }>;
 };
 
@@ -333,7 +335,7 @@ function PanelConfiguracion() {
       valorPunto: soloNumero(datos.valorPuntoTexto),
       topeCanjePorcentaje: String(datos.topeCanjePorcentaje),
       diasAvisoVencimiento: String(datos.diasAvisoVencimiento),
-      cierreTemporada: datos.temporada.cierreEn.slice(0, 10),
+      cierreTemporada: datos.cierreFecha,
       tasas: Object.fromEntries(
         datos.tasas.map((t) => [t.lineaDeNegocio, soloNumero(t.texto ?? '')]),
       ),
@@ -356,7 +358,8 @@ function PanelConfiguracion() {
           valorPunto: formulario.valorPunto,
           topeCanjePorcentaje: Number(formulario.topeCanjePorcentaje.replace(',', '.')),
           diasAvisoVencimiento: Number(formulario.diasAvisoVencimiento),
-          cierreTemporada: new Date(`${formulario.cierreTemporada}T23:59:59`).toISOString(),
+          // Va como fecha de calendario; la API la convierte al final del día argentino (D-020).
+          cierreTemporada: formulario.cierreTemporada,
           tasas: Object.entries(formulario.tasas)
             .filter(([, valor]) => valor.trim() !== '')
             .map(([lineaDeNegocio, pesosPorPunto]) => ({ lineaDeNegocio, pesosPorPunto })),

@@ -401,3 +401,35 @@ quedaba inusable justo en lo único que no puede fallar.
 
 **Regla general.** Enfocar un campo que aparece de forma condicional va siempre en un
 efecto, nunca en el mismo tick que decide mostrarlo.
+
+---
+
+## D-020 · El cierre de temporada es una fecha de calendario argentina, no un instante
+
+**Contexto.** `Temporada.cierreEn` se guarda como `DateTime`. El panel lo mostraba
+haciendo `cierreEn.toISOString().slice(0, 10)` —es decir, leyendo la fecha en UTC— y lo
+guardaba como `new Date("AAAA-MM-DDT23:59:59").toISOString()`, en hora local.
+
+**Problema encontrado usando la pantalla.** Argentina es UTC−3, así que las 23:59:59 del
+31 de diciembre son las 02:59 del 1° de enero en UTC. El panel mostraba **01/01/2027**
+cuando la temporada cerraba el 31/12/2026, y al guardar esa fecha mal leída la corría un
+día **de verdad**. Guardar la configuración cinco veces movía el vencimiento cinco días.
+Sobre la fecha en que vencen los puntos de todos los clientes.
+
+**Decisión.** "Cierre de temporada" es una **fecha de calendario argentina**, no un
+instante cualquiera. La conversión vive en un solo lugar (`api/src/dominio/fechas.ts`):
+
+- `finDelDiaArgentina("2026-12-31")` → el instante `2027-01-01T02:59:59.999Z`, que es el
+  final de ese día en Rosario. Es lo que se guarda.
+- `fechaArgentina(instante)` → `"2026-12-31"`. Es lo que se muestra y se edita.
+
+La API expone `cierreFecha` (AAAA-MM-DD) además del instante, y el `PUT` acepta la fecha
+de calendario. El frontend no hace ninguna cuenta de zona horaria.
+
+**Por qué offset fijo.** Argentina usa UTC−3 sin horario de verano. Si eso cambiara, ese
+archivo es el único que hay que tocar.
+
+**Consecuencia.** Un pago a las 23:00 del último día todavía entra en la temporada; uno de
+las 00:30 del día siguiente ya no. Hay tests que fijan el ida y vuelta, que guardar diez
+veces seguidas no mueve la fecha, y los dos casos de borde de medianoche
+(`api/tests/fechas.test.ts`).

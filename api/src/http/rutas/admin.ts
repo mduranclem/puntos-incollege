@@ -13,6 +13,7 @@ import { formatearTelefono, normalizarTelefono } from '../../dominio/telefono.js
 import { configuracionVigente } from '../../servicios/configuracion.js';
 import { LINEAS_DE_NEGOCIO, TIPOS_DE_MOVIMIENTO } from '../../dominio/tipos.js';
 import { despacharPendientes } from '../../servicios/despachador.js';
+import { esFechaSimple, fechaArgentina, finDelDiaArgentina } from '../../dominio/fechas.js';
 
 const NuevaConfiguracion = z.object({
   valorPunto: z.string().min(1),
@@ -26,8 +27,11 @@ const NuevaConfiguracion = z.object({
       }),
     )
     .min(1),
-  /** Fecha de cierre de la temporada abierta. */
-  cierreTemporada: z.string().datetime().optional(),
+  /** Fecha de cierre de la temporada abierta, como fecha de calendario AAAA-MM-DD (D-020). */
+  cierreTemporada: z
+    .string()
+    .refine(esFechaSimple, 'La fecha de cierre debe tener el formato AAAA-MM-DD')
+    .optional(),
 });
 
 export function rutasDeAdmin() {
@@ -44,6 +48,8 @@ export function rutasDeAdmin() {
         topeCanjePorcentaje: config.topeCanjeBps / 100,
         diasAvisoVencimiento: config.diasAvisoVencimiento,
         temporada: config.temporada,
+        /// La fecha tal como se muestra y se edita: calendario argentino (D-020).
+        cierreFecha: fechaArgentina(config.temporada.cierreEn),
         tasas: LINEAS_DE_NEGOCIO.map((linea) => ({
           lineaDeNegocio: linea,
           centavosPorPunto: config.tasas[linea] ?? null,
@@ -82,7 +88,7 @@ export function rutasDeAdmin() {
       if (datos.cierreTemporada) {
         await prisma.temporada.update({
           where: { id: actual.temporada.id },
-          data: { cierreEn: new Date(datos.cierreTemporada) },
+          data: { cierreEn: finDelDiaArgentina(datos.cierreTemporada) },
         });
       }
 
