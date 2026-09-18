@@ -1,0 +1,79 @@
+# Instrucciones para Claude — Puntos InCollege
+
+Programa de fidelización por puntos de InCollege (indumentaria escolar, Rosario).
+Los clientes suman puntos **sólo pagando en efectivo en el local** y los canjean por
+descuento en pesos.
+
+## Antes de tocar nada
+
+Leé, en este orden:
+
+1. `ROADMAP.md` — qué etapa está hecha y qué falta.
+2. `DECISIONES.md` — el por qué de cada decisión (D-000 a D-019). **Es la fuente de
+   verdad del proyecto.** Si vas a contradecir una decisión, leela entera primero y
+   decilo explícitamente.
+3. `README.md` — cómo levantarlo y cómo se despliega.
+
+Cuando tomes una decisión nueva que no sea obvia, agregala al final de `DECISIONES.md`
+con el mismo formato (contexto / decisión / consecuencia) y numeración corrida. No
+reescribas las decisiones viejas: se agrega al final.
+
+## Reglas que no se negocian
+
+El motor de puntos maneja plata. Estas reglas están en `DECISIONES.md` con el detalle;
+acá va el resumen para que no se rompan por descuido:
+
+- **Libro mayor append-only** (D-004). El saldo es `SUM(puntos)` sobre `Movimiento`.
+  Nunca un `UPDATE` sobre un campo de saldo para cambiarlo. `saldoCacheado` y
+  `remanenteCentavos` son **caché** que se recalcula desde los movimientos.
+- **El remanente también se deriva del libro mayor** (D-005): cada movimiento guarda
+  `remanenteResultanteCentavos`.
+- **Nada se borra** (D-004). Anular un pago genera un movimiento `REVERSA`. Nunca
+  `DELETE`, nunca editar un movimiento.
+- **Idempotencia** por `(tipo, referenciaExterna)` única (D-006). Reintentar cualquier
+  operación tiene que ser inofensivo.
+- **Concurrencia del canje** (D-007): transacción con `SELECT ... FOR UPDATE` sobre la
+  cuenta y verificación del saldo **adentro** de la transacción.
+- **Plata en centavos, `BigInt`** (D-002). Nunca `float`, nunca `Number` para importes.
+- **Nada de valores de negocio en el código** (D-009). Tasa por línea, valor del punto,
+  tope de canje y fecha de cierre salen de la tabla `Configuracion`.
+- **Los pagos entran por el puerto `FuenteDePagos`** (D-003). El motor no sabe de dónde
+  viene un pago. Así entra egresados después sin refactor.
+
+Si tocás el motor (`api/src/motor/`, `api/src/dominio/`), corré `npm test` y que pasen
+los 45 tests antes de dar nada por hecho.
+
+## Convenciones
+
+- **Todo el texto de la interfaz en español rioplatense** ("tenés", "cargá", "el
+  vendedor"). El código y los nombres de dominio también van en español.
+- Un commit por unidad de trabajo, con mensaje descriptivo que explique **por qué**, no
+  sólo qué. Mirá `git log` para el tono.
+- Al terminar una etapa, marcá en `ROADMAP.md` qué quedó hecho.
+- No inventes datos de prueba que parezcan clientes reales. Si necesitás precios, usá
+  los reales: remera lisa $9.900, remera estampada $12.650, chomba bordada $26.950, buzo
+  cuello redondo con frisa bordado $29.700, campera canguro con frisa bordada $41.800.
+
+## Fuera de alcance (no construir sin que lo pidan)
+
+Egresados (entra después como `FuenteDePagos`, ver D-003), módulo de representantes,
+módulo de colegios, tienda online, CRM, catálogo de premios, app descargable.
+
+## Levantarlo
+
+Ver `README.md`. Dos caminos según la máquina:
+
+- **Con Docker:** `docker compose up -d db`, después `npm run prisma:migrate --workspace=api`
+  y `npm run seed --workspace=api`.
+- **Sin Docker** (Postgres embebido, D-018): `npm run pg:local --workspace=api` en una
+  terminal y `npm run preparar:local --workspace=api` en otra. Acepta **una conexión por
+  vez**: la API tiene que quedar como único cliente de la base.
+
+`npm test` y `npm run simular` no necesitan base de datos.
+
+## Qué falta verificar
+
+Los tests de concurrencia del canje (`api/tests/integracionPostgres.test.ts`) están
+escritos pero **nunca corrieron**: necesitan un PostgreSQL real con varias conexiones.
+Se saltean solos si no hay `DATABASE_URL_TEST`. Si estás en una máquina con Docker o con
+Postgres instalado, correlos: es la única regla del pedido sin evidencia.
