@@ -19,6 +19,7 @@ const diaDe = (iso: string) =>
 
 export function Movimientos() {
   const [cuenta, setCuenta] = useState<DatosCuenta | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const navegar = useNavigate();
 
   useEffect(() => {
@@ -28,9 +29,19 @@ export function Movimientos() {
         if (e?.codigo === 'LINK_INVALIDO') {
           cerrarAcceso();
           navegar('/app/entrar', { replace: true });
+          return;
         }
+        setError('No pudimos cargar tus movimientos. Probá de nuevo en un momento.');
       });
   }, [navegar]);
+
+  if (error) {
+    return (
+      <div className="cta-centro">
+        <p>{error}</p>
+      </div>
+    );
+  }
 
   if (!cuenta) {
     return (

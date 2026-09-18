@@ -16,12 +16,21 @@ const NOMBRE_LINEA: Record<string, string> = {
 
 export function Novedades() {
   const [novedades, setNovedades] = useState<Novedad[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     apiCliente<{ novedades: Novedad[] }>('/novedades')
       .then((d) => setNovedades(d.novedades))
-      .catch(() => setNovedades([]));
+      .catch(() => setError('No pudimos cargar las novedades. Probá de nuevo en un momento.'));
   }, []);
+
+  if (error) {
+    return (
+      <div className="cta-centro">
+        <p>{error}</p>
+      </div>
+    );
+  }
 
   if (!novedades) {
     return (

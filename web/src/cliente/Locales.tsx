@@ -14,12 +14,21 @@ const comoLlegar = (local: Local) =>
 
 export function Locales() {
   const [locales, setLocales] = useState<Local[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     apiCliente<{ locales: Local[] }>('/locales')
       .then((d) => setLocales(d.locales))
-      .catch(() => setLocales([]));
+      .catch(() => setError('No pudimos cargar los locales. Probá de nuevo en un momento.'));
   }, []);
+
+  if (error) {
+    return (
+      <div className="cta-centro">
+        <p>{error}</p>
+      </div>
+    );
+  }
 
   if (!locales) {
     return (

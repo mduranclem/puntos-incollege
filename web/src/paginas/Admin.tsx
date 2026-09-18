@@ -91,10 +91,17 @@ export function Admin() {
 
 function PanelTotales() {
   const [datos, setDatos] = useState<Totales | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
-    api<Totales>('/admin/totales').then(setDatos).catch(() => setDatos(null));
+    api<Totales>('/admin/totales')
+      .then(setDatos)
+      .catch((e) =>
+        setError(e instanceof ErrorApi ? e.message : 'No se pudieron cargar los totales.'),
+      );
   }, []);
 
+  if (error) return <p className="aviso-error">{error}</p>;
   if (!datos) return <p className="text-slate-500">Cargando…</p>;
 
   const tarjetas = [
@@ -177,6 +184,7 @@ function PanelMovimientos() {
   const [filtros, setFiltros] = useState({ localId: '', desde: '', hasta: '', telefono: '' });
   const [pagina, setPagina] = useState(1);
   const [paginas, setPaginas] = useState(1);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     api<{ locales: Array<{ id: string; nombre: string }> }>('/admin/locales')
@@ -195,12 +203,17 @@ function PanelMovimientos() {
       .then((d) => {
         setMovimientos(d.movimientos);
         setPaginas(d.paginas);
+        setError(null);
       })
-      .catch(() => setMovimientos([]));
+      .catch((e) =>
+        setError(e instanceof ErrorApi ? e.message : 'No se pudieron cargar los movimientos.'),
+      );
   }, [filtros, pagina]);
 
   return (
     <div className="space-y-3">
+      {error && <p className="aviso-error">{error}</p>}
+
       <div className="tarjeta grid gap-3 sm:grid-cols-4">
         <select
           className="campo"
@@ -343,7 +356,9 @@ function PanelConfiguracion() {
   }
 
   useEffect(() => {
-    cargar().catch(() => setError('No se pudo cargar la configuración'));
+    cargar().catch((e) =>
+      setError(e instanceof ErrorApi ? e.message : 'No se pudo cargar la configuración.'),
+    );
   }, []);
 
   async function guardar(evento: React.FormEvent) {
@@ -374,6 +389,7 @@ function PanelConfiguracion() {
     }
   }
 
+  if (error && !config) return <p className="aviso-error">{error}</p>;
   if (!config) return <p className="text-slate-500">Cargando…</p>;
 
   return (
