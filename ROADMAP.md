@@ -73,7 +73,9 @@ Enter → importe → Enter, sin tocar el mouse, y el saldo queda a la vista.
 - [x] Aviso al acreditar puntos, con link a la pantalla de saldo
 - [x] Aviso previo al vencimiento
 
-**Listo cuando:** se dispara solo, sin intervención manual.
+**Listo cuando:** se dispara solo, sin intervención manual. ✅ Conectado al n8n de la
+empresa: workflow "Puntos InCollege - Avisos de WhatsApp", instancia `practican8nWhatsApp`.
+Probado de punta a punta con un número real.
 
 ## Etapa 8 — Vencimiento automático
 - [x] Tarea programada que vence los saldos al cerrar la temporada

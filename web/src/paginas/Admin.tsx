@@ -180,8 +180,12 @@ function PanelAvisos() {
         </span>
       </div>
       <p className="mt-2 text-sm text-slate-600">
-        Pendientes: {datos.porEstado.PENDIENTE ?? 0} · Enviados: {datos.porEstado.ENVIADO ?? 0} ·
-        Fallidos: {datos.porEstado.FALLIDO ?? 0}
+        Pendientes: {datos.porEstado.PENDIENTE ?? 0} · Entregados a n8n:{' '}
+        {datos.porEstado.ENVIADO ?? 0} · Fallidos: {datos.porEstado.FALLIDO ?? 0}
+      </p>
+      <p className="mt-1 text-xs text-slate-500">
+        "Entregados a n8n" no quiere decir que el cliente lo haya recibido: de eso se
+        encarga n8n, y ahí se mira si el WhatsApp llegó (D-031).
       </p>
       {(datos.porEstado.FALLIDO ?? 0) > 0 && (
         <p className="mt-2 text-sm text-[var(--color-error)]">

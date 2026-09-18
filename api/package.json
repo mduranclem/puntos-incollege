@@ -19,7 +19,8 @@
     "pg:local": "tsx src/scripts/pgliteServidor.ts",
     "probar:local": "tsx src/scripts/probarCicloLocal.ts",
     "preparar:local": "tsx src/scripts/prepararLocal.ts",
-    "probar:acceso": "tsx src/scripts/probarAccesoLocal.ts"
+    "probar:acceso": "tsx src/scripts/probarAccesoLocal.ts",
+    "limpiar:avisos": "tsx src/scripts/limpiarAvisosDePrueba.ts"
   },
   "prisma": {
     "seed": "tsx src/scripts/sembrar.ts"

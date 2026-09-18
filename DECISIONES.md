@@ -647,3 +647,44 @@ base ni pedírselo a nadie.
 **Por qué así.** Un sistema que maneja plata no puede quedar en producción con "1234"
 porque alguien se olvidó de leer un mensaje. Que falle el despliegue es molesto una vez;
 que el PIN sea público es un problema todos los días.
+
+---
+
+## D-030 · El aviso de WhatsApp viaja con el JID armado, no con el teléfono
+
+**Contexto.** Al conectar n8n con Evolution API, el primer envío real falló con:
+
+```
+{"jid":"543417434552@s.whatsapp.net","exists":false,"number":"+5493417434552"}
+```
+
+**Qué pasaba.** Le mandamos `+5493417434552` —el móvil argentino en E.164, con su 9—
+y Evolution, al normalizar, **le sacó el 9** y buscó `543417434552`. Ese número no existe
+en WhatsApp, así que ningún cliente argentino habría recibido nunca un aviso.
+
+**Decisión.** El nodo de n8n arma el JID a mano —los dígitos tal cual, más
+`@s.whatsapp.net`— y se lo pasa a Evolution ya resuelto. Con el JID completo, Evolution
+no renormaliza y el mensaje sale.
+
+**Dónde vive el arreglo.** En el workflow de n8n, no en nuestro sistema: es una rareza de
+Evolution con los números argentinos, y el sistema sigue guardando E.164 como siempre
+(D-010). Si algún día se cambia de proveedor de WhatsApp, se toca el workflow y nada más.
+
+**Cómo se detectó.** Mandando un aviso de verdad a un número real. Ni los tests ni el
+webhook solo lo habrían mostrado: el webhook devuelve 200 antes de intentar el envío.
+
+---
+
+## D-031 · "Enviado" quiere decir "n8n lo recibió", no "le llegó al cliente"
+
+**Contexto.** La cola de avisos marca `ENVIADO` cuando n8n responde 2xx. Pero n8n contesta
+*antes* de intentar el envío, así que un aviso puede figurar como enviado y haber fallado
+después en Evolution — que es exactamente lo que pasó con D-030.
+
+**Decisión.** Es el reparto correcto de responsabilidades (D-014): n8n se hace cargo de la
+entrega y sus reintentos, nosotros de que el aviso salga. Pero el panel deja de decir
+"Enviados" a secas y aclara que son los **entregados a n8n**, con el recordatorio de que
+la entrega final se mira en n8n.
+
+**Por qué importa.** Un tablero que dice "enviado" cuando el cliente no recibió nada es
+peor que no tener tablero: hace confiar en algo que no pasó.
