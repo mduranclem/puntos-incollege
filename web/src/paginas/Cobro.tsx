@@ -7,6 +7,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { api, ErrorApi, leerSesion, type ResumenDeCuenta } from '../api';
+import { Escaner, useHayCamara } from '../componentes/Escaner';
 
 type Linea = 'UNIFORMES' | 'ROPA_LISA';
 type Medio =
@@ -68,6 +69,8 @@ export function Cobro() {
   const [buscando, setBuscando] = useState(false);
   const [coincidencias, setCoincidencias] = useState<Coincidencia[]>([]);
   const [marcada, setMarcada] = useState(0);
+  const [escaneando, setEscaneando] = useState(false);
+  const hayCamara = useHayCamara();
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resultado, setResultado] = useState<Resultado | null>(null);
@@ -163,6 +166,14 @@ export function Cobro() {
     }
   }
 
+  /** El QR trae el teléfono: se busca como si lo hubiera tipeado (D-024). */
+  function alEscanear(texto: string) {
+    setEscaneando(false);
+    const leido = texto.trim();
+    setTelefono(leido);
+    void buscar(leido);
+  }
+
   function elegir(datos: ResumenDeCuenta) {
     setCliente(datos);
     setCoincidencias([]);
@@ -227,6 +238,8 @@ export function Cobro() {
 
   return (
     <div className="space-y-4">
+      {escaneando && <Escaner alLeer={alEscanear} alCerrar={() => setEscaneando(false)} />}
+
       <div className="flex items-baseline justify-between">
         <h1 className="text-xl font-bold tracking-tight">Cobrar</h1>
         <span className="text-sm text-slate-500">{sesion?.localNombre}</span>
@@ -292,9 +305,23 @@ export function Cobro() {
               }
             }}
           />
-          <p className="mt-1.5 text-xs text-slate-500">
-            Los últimos 4 dígitos o el nombre alcanzan. Enter para buscar.
-          </p>
+          <div className="mt-1.5 flex items-center justify-between gap-3">
+            <p className="text-xs text-slate-500">
+              Los últimos 4 dígitos o el nombre alcanzan. Enter para buscar.
+            </p>
+            {hayCamara && !cliente && (
+              <button
+                type="button"
+                className="boton-escanear"
+                onClick={() => setEscaneando(true)}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M3 3h6v2H5v4H3zm12 0h6v6h-2V5h-4zM3 15h2v4h4v2H3zm16 0h2v6h-6v-2h4zM7 7h4v4H7zm6 0h4v4h-4zM7 13h4v4H7zm6 2h2v2h-2z" />
+                </svg>
+                Escanear
+              </button>
+            )}
+          </div>
 
           {coincidencias.length > 0 && (
             <ul className="sugerencias" role="listbox" aria-label="Clientes encontrados">

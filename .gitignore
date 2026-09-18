@@ -9,3 +9,6 @@ api/dist/
 
 # Base de datos embebida para desarrollo local
 .pglite/
+
+# Artefactos de compilación de TypeScript
+*.tsbuildinfo

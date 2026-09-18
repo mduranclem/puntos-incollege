@@ -4,7 +4,8 @@
  * Abajo del saldo, lo único que el cliente necesita en el momento de comprar:
  * su número para mostrar en el mostrador. El resto queda en las otras pestañas.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import QRCode from 'qrcode';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   apiCliente,
@@ -19,6 +20,7 @@ export function Cuenta() {
   const [cuenta, setCuenta] = useState<DatosCuenta | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [mostrarNumero, setMostrarNumero] = useState(false);
+  const lienzoQr = useRef<HTMLCanvasElement>(null);
   const navegar = useNavigate();
 
   useEffect(() => {
@@ -33,6 +35,20 @@ export function Cuenta() {
         setError('No pudimos cargar tu cuenta. Probá de nuevo en un momento.');
       });
   }, [navegar]);
+
+  /**
+   * El QR lleva sólo el teléfono, que es lo que el vendedor iba a tipear igual
+   * (D-024). No lleva ninguna credencial: una foto de esta pantalla no sirve
+   * para entrar a la cuenta.
+   */
+  useEffect(() => {
+    if (!mostrarNumero || !cuenta || !lienzoQr.current) return;
+    void QRCode.toCanvas(lienzoQr.current, cuenta.telefonoE164, {
+      width: 200,
+      margin: 1,
+      color: { dark: '#0f2d52', light: '#ffffff' },
+    });
+  }, [mostrarNumero, cuenta]);
 
   if (error) {
     return (
@@ -102,7 +118,8 @@ export function Cuenta() {
 
       {mostrarNumero && (
         <section className="cta-numero-caja">
-          <p className="cta-numero-ayuda">Decí este número en la caja:</p>
+          <canvas ref={lienzoQr} className="cta-qr" aria-hidden="true" />
+          <p className="cta-numero-ayuda">O decí los últimos 4 números:</p>
           <p className="cta-numero-grande">{cuenta.telefono}</p>
           <p className="cta-numero-pie">Con eso encuentran tu cuenta. No hace falta nada más.</p>
         </section>
