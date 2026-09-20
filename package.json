@@ -15,7 +15,8 @@
   "engines": {
     "node": ">=20"
   },
-  "devDependencies": {
+  "_comentario": "El binario de esbuild para Windows va como opcional: npm lo instala en Windows y lo saltea en Linux. Como dependencia fija rompia 'npm ci' en el contenedor.",
+  "optionalDependencies": {
     "@esbuild/win32-x64": "^0.28.2"
   }
 }
