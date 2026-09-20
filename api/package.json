@@ -20,7 +20,8 @@
     "probar:local": "tsx src/scripts/probarCicloLocal.ts",
     "preparar:local": "tsx src/scripts/prepararLocal.ts",
     "probar:acceso": "tsx src/scripts/probarAccesoLocal.ts",
-    "limpiar:avisos": "tsx src/scripts/limpiarAvisosDePrueba.ts"
+    "limpiar:avisos": "tsx src/scripts/limpiarAvisosDePrueba.ts",
+    "probar:concurrencia": "tsx src/scripts/probarConcurrencia.ts"
   },
   "prisma": {
     "seed": "tsx src/scripts/sembrar.ts"

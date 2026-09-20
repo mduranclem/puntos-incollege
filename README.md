@@ -119,6 +119,7 @@ las dos historias. No borres nada: pedile a Claude que resuelva el conflicto.
 | `npm run simular` | Ciclo completo del motor por consola, sin base de datos. |
 | `npm run probar:local --workspace=api` | Ciclo completo contra la base local, incluido el vencimiento. |
 | `npm run tareas --workspace=api` | Despacho de avisos y vencimiento de temporada. |
+| `npm run probar:concurrencia --workspace=api` | Canjes simultáneos contra un PostgreSQL real (D-007). Necesita `DATABASE_URL_TEST` con `schema=pruebas`. |
 | `npm run build` | Compila API y web. |
 
 Los tests de integración contra PostgreSQL (`tests/integracionPostgres.test.ts`)
@@ -159,17 +160,28 @@ el contenedor no arranca, que es lo que corresponde. Después, una sola vez, car
 datos iniciales desde la consola del servicio:
 
 ```bash
-cd /app/api && node --experimental-strip-types src/scripts/sembrar.ts
+cd /app/api && node dist/scripts/sembrar.js
 ```
 
 Eso crea los seis locales, la temporada, la configuración y los usuarios. Sin
 `SEED_PIN_ADMIN` y `SEED_PIN_VENDEDOR` se niega a correr.
 
-**5. Después del despliegue.** Cambiar los PIN desde el panel, cargar la dirección de
-Rosario Fábrica, y correr los tests de concurrencia contra ese Postgres:
+**5. Después del despliegue.** Cambiar los PIN desde el panel y correr la prueba de
+concurrencia contra ese Postgres, que es el único que acepta varias conexiones.
+Va desde la consola del servicio, porque la base no sale a internet:
 
 ```bash
-DATABASE_URL_TEST="<la cadena del Postgres>" npm test --workspace=api
+cd /app/api && DATABASE_URL_TEST="<la cadena del Postgres>&schema=pruebas"   node dist/scripts/probarConcurrencia.js
+```
+
+**El `schema=pruebas` no es opcional.** El libro mayor es append-only: lo que esa
+prueba escribe no se borra nunca, así que va en un esquema aparte y no en el de
+producción. El script se niega a correr si la URL apunta a `public`.
+
+En una máquina con un PostgreSQL propio, el mismo control corre como test:
+
+```bash
+DATABASE_URL_TEST="postgresql://..." npm test --workspace=api
 ```
 
 ## Avisos por WhatsApp

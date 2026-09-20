@@ -710,3 +710,34 @@ despliegue nuevo llega enseguida a todos.
 
 **Consecuencia.** El despliegue es un `Dockerfile` en la raíz y un servicio de Postgres al
 lado. Las migraciones corren al arrancar: si fallan, el contenedor no levanta.
+
+---
+
+## D-033 · La prueba de concurrencia corre contra el Postgres de producción, en un esquema aparte
+
+**Contexto.** `tests/integracionPostgres.test.ts` quedó escrito desde el principio pero
+nunca corrió: necesita un PostgreSQL que acepte varias conexiones a la vez, y en la
+máquina de desarrollo sólo hay PGlite, que acepta una (D-018). Era la única regla del
+pedido original sin evidencia. Con el sistema desplegado apareció por fin un Postgres de
+verdad — pero es interno a EasyPanel, no sale a internet, y la imagen de producción no
+lleva vitest ni las dependencias de desarrollo.
+
+**Decisión.** El mismo control va también como script compilado,
+`api/src/scripts/probarConcurrencia.ts`, que se corre desde la consola del servicio. Usa
+el motor y el repositorio reales, no una copia de la lógica. Y **escribe en un esquema
+aparte** (`?schema=pruebas`), nunca en `public`: el script se niega a arrancar si la URL
+apunta al esquema de producción.
+
+**Por qué el esquema aparte.** El libro mayor es append-only (D-004): lo que esa prueba
+escribe no se puede borrar después. Dejarla correr sobre `public` metería una cuenta y
+una docena de movimientos inventados adentro de la contabilidad real del programa, para
+siempre. El esquema `pruebas` tiene las mismas tablas y las mismas restricciones —que es
+lo que se está probando— y no toca un solo dato del negocio.
+
+**Qué controla.** Que el mismo pago no se acredite dos veces (D-006), que de diez canjes
+simultáneos por todo el saldo gane exactamente uno y la cuenta nunca quede en negativo
+(D-007), y que `saldoCacheado` coincida con `SUM(puntos)` del libro mayor (D-004).
+
+**Consecuencia.** El test de vitest sigue existiendo y sigue salteándose solo sin
+`DATABASE_URL_TEST`; es el que corre en una máquina con Postgres propio. El script es el
+que corre donde está la base real. Los dos prueban lo mismo por el mismo camino.

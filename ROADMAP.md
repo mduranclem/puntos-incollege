@@ -93,11 +93,25 @@ invasiva**. La cuenta es el centro; lo demás va en segundo plano.
 - [x] Historial completo de movimientos
 - [x] Su número en grande para mostrar en el mostrador
 - [x] Los 6 locales con dirección y horarios
-- [ ] Novedades y precios, editables desde el panel
+- [x] Novedades y precios, editables desde el panel (catálogo de artículos, D-027)
 - [x] Instalable: ícono propio, pantalla completa, sesión que no se cae
 
 **Listo cuando:** el cliente la agrega a la pantalla de inicio, la abre días después y ve
 su cuenta sin volver a identificarse.
+
+---
+
+## Etapa 10 — En producción
+
+- [x] Un solo servicio con Dockerfile, la API sirve la web (D-032)
+- [x] Postgres propio en EasyPanel, separado del de Evolution API
+- [x] Desplegado en `https://n8n-puntos-incollege.fbf9ni.easypanel.host` con HTTPS
+- [x] Migraciones al arrancar, datos iniciales cargados, seis locales con dirección real
+- [x] Avisos de WhatsApp por el n8n de la empresa, probados de punta a punta
+- [x] Concurrencia del canje verificada contra el PostgreSQL de producción (D-033)
+
+**Listo cuando:** el mostrador entra desde cualquier máquina del local y el cliente abre
+su cuenta desde el celular, las dos cosas por HTTPS y contra la misma base.
 
 ---
 
