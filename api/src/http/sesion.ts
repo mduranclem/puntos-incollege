@@ -1,6 +1,6 @@
 /**
- * Sesión del personal: usuario + PIN, JWT de 12 horas con el local adentro (D-012).
- * Toda operación queda firmada por usuario, local y fecha.
+ * Sesión del personal: usuario + contraseña, JWT de 12 horas con el local
+ * adentro (D-012). Toda operación queda firmada por usuario, local y fecha.
  */
 import type { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
@@ -11,6 +11,8 @@ export type Sesion = {
   usuario: string;
   nombre: string;
   rol: Rol;
+  /** La contraseña la puso otro: no puede operar hasta cambiarla (D-034). */
+  debeCambiarContrasena: boolean;
   localId: string;
   localCodigo: string;
   localNombre: string;
@@ -42,6 +44,23 @@ export function exigeSesion(req: Request, res: Response, next: NextFunction) {
   } catch {
     return res.status(401).json({ error: 'SESION_VENCIDA', mensaje: 'La sesión venció' });
   }
+}
+
+/**
+ * Cierra el sistema mientras la contraseña la sepa alguien más.
+ *
+ * No alcanza con que la pantalla lleve al cambio: si el servidor dejara operar,
+ * cualquiera con la contraseña que puso la gerencia podría cobrar llamando a la
+ * API directamente, y el movimiento quedaría firmado con el nombre de otro.
+ */
+export function exigeContrasenaPropia(req: Request, res: Response, next: NextFunction) {
+  if (req.sesion?.debeCambiarContrasena) {
+    return res.status(403).json({
+      error: 'CAMBIO_PENDIENTE',
+      mensaje: 'Antes de seguir tenés que poner una contraseña propia.',
+    });
+  }
+  return next();
 }
 
 export function exigeRol(...roles: Rol[]) {

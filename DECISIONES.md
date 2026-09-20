@@ -741,3 +741,45 @@ simultáneos por todo el saldo gane exactamente uno y la cuenta nunca quede en n
 **Consecuencia.** El test de vitest sigue existiendo y sigue salteándose solo sin
 `DATABASE_URL_TEST`; es el que corre en una máquina con Postgres propio. El script es el
 que corre donde está la base real. Los dos prueban lo mismo por el mismo camino.
+
+---
+
+## D-034 · El personal entra con contraseña, no con PIN
+
+**Contexto.** El personal entraba con usuario + PIN de 4 a 8 números. Era cómodo para el
+mostrador, pero el PIN es el único secreto que separa a cualquiera de la caja: con seis
+dígitos hay un millón de combinaciones, y el nombre de usuario no es secreto
+(`mostrador-fisherton` se adivina solo). Lo pidió el dueño.
+
+**Decisión.** Usuario + **contraseña**. La regla está en `dominio/contrasenas.ts`, una sola
+para el alta, el cambio y el seed: mínimo 8 caracteres; si son sólo números, mínimo 10;
+nada de listas obvias ni del propio nombre de usuario; tope de 72 bytes.
+
+**Largo antes que raro.** No se piden mayúsculas ni símbolos a propósito. Una frase larga
+que la persona se acuerda es mejor que ocho caracteres con símbolos que terminan escritos
+en un papel pegado al monitor, que es lo que pasa siempre. El tope de 72 no es un capricho:
+bcrypt ignora lo que pase de ahí, así que aceptar más sería mentir.
+
+**Cambio obligatorio la primera vez.** Toda contraseña que puso otro —el alta, el reseteo
+de la gerencia, el seed— marca al usuario con `debeCambiarContrasena`. Hasta que ponga una
+propia, el servidor devuelve 403 en todo lo que opera: cobrar, canjear, el panel. No
+alcanzaba con que la pantalla lo llevara al cambio, porque cualquiera con esa contraseña
+podría llamar a la API directamente y el movimiento quedaría firmado con el nombre de otro
+(D-012). Las del seed entran en la misma bolsa: viven en las variables de entorno del
+servidor y quedan escritas en el registro del despliegue.
+
+**Espera creciente, no bloqueo.** Los intentos fallidos suman una espera que crece
+—5, 10, 20, 40 segundos— con **techo de un minuto**, por usuario, y se olvida a los 15.
+La diferencia con un bloqueo importa: esto corre en un local con gente esperando para
+pagar. Un bloqueo de quince minutos por errores de tipeo deja al vendedor sin poder cobrar
+y el problema pasa a ser del sistema. El peor caso acá es "esperá un minuto".
+
+**Consecuencia.** La columna `pinHash` se renombra a `contrasenaHash`: el hash de bcrypt de
+un PIN es un hash válido de contraseña, así que el despliegue no deja a nadie afuera, pero
+la migración marca a todos los que ya existían para que cambien al entrar. Las variables
+del seed pasan a llamarse `SEED_CONTRASENA_ADMIN` y `SEED_CONTRASENA_VENDEDOR`.
+
+**Lo que no cambia: el acceso del cliente.** El cliente sigue entrando con su teléfono y un
+código de un solo uso por WhatsApp (D-022). El teléfono **es** la cuenta (D-010), y pedirle
+una contraseña a alguien que compra guardapolvos dos veces por año es la forma más rápida
+de que no use la app: la iba a olvidar antes de la segunda visita.

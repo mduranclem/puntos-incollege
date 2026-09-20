@@ -5,6 +5,7 @@ import './estilos.css';
 
 // Mostrador y administración
 import { Ingreso } from './paginas/Ingreso';
+import { CambiarContrasena } from './paginas/CambiarContrasena';
 import { Cobro } from './paginas/Cobro';
 import { Canje } from './paginas/Canje';
 import { Admin } from './paginas/Admin';
@@ -22,6 +23,15 @@ import { DesdeElLink } from './cliente/DesdeElLink';
 import { leerAcceso } from './cliente/api';
 
 function SoloPersonal({ children }: { children: React.ReactNode }) {
+  const sesion = leerSesion();
+  if (!sesion) return <Navigate to="/ingresar" replace />;
+  // Con la contraseña puesta por otro no se opera: al cambio y nada más (D-034).
+  if (sesion.debeCambiarContrasena) return <Navigate to="/contrasena" replace />;
+  return <>{children}</>;
+}
+
+/** Con sesión alcanza: es la única pantalla que se ve con el cambio pendiente. */
+function ConSesion({ children }: { children: React.ReactNode }) {
   return leerSesion() ? <>{children}</> : <Navigate to="/ingresar" replace />;
 }
 
@@ -54,6 +64,14 @@ createRoot(document.getElementById('raiz')!).render(
 
         {/* Mostrador y administración */}
         <Route path="/ingresar" element={<Ingreso />} />
+        <Route
+          path="/contrasena"
+          element={
+            <ConSesion>
+              <CambiarContrasena />
+            </ConSesion>
+          }
+        />
         <Route
           path="/"
           element={

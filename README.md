@@ -66,8 +66,8 @@ npm run dev                             # la API queda como único cliente de la
 En `api/.env`, `DATABASE_URL` para el Postgres embebido:
 `postgresql://postgres:postgres@127.0.0.1:5432/postgres?connection_limit=1&sslmode=disable&pgbouncer=true`
 
-El seed crea `admin` (PIN 1234) y `mostrador-<local>` (PIN 1111).
-**Cambiar los PIN antes de usarlo en producción.**
+El seed crea `admin` y `mostrador-<local>` con las contraseñas de desarrollo
+`desarrollo-admin` y `desarrollo-mostrador`. El sistema pide cambiarlas al entrar (D-034).
 
 ## Trabajar desde otra computadora
 
@@ -152,8 +152,8 @@ conexión interna.
 | `N8N_WEBHOOK_URL` | La *Production URL* del nodo Webhook del workflow de avisos |
 | `N8N_WEBHOOK_TOKEN` | El mismo token que figura en el nodo "Armar el mensaje" |
 | `CRON_HABILITADO` | `true` — avisos y vencimiento automático |
-| `SEED_PIN_ADMIN` | PIN del primer gerente, 4 a 8 números (D-029) |
-| `SEED_PIN_VENDEDOR` | PIN inicial de los usuarios de mostrador |
+| `SEED_CONTRASENA_ADMIN` | Contraseña del primer gerente, mínimo 8 caracteres (D-029, D-034) |
+| `SEED_CONTRASENA_VENDEDOR` | Contraseña inicial de los usuarios de mostrador |
 
 **4. Primer arranque.** Las migraciones corren solas al levantar el contenedor; si fallan,
 el contenedor no arranca, que es lo que corresponde. Después, una sola vez, cargar los
@@ -164,9 +164,11 @@ cd /app/api && node dist/scripts/sembrar.js
 ```
 
 Eso crea los seis locales, la temporada, la configuración y los usuarios. Sin
-`SEED_PIN_ADMIN` y `SEED_PIN_VENDEDOR` se niega a correr.
+`SEED_CONTRASENA_ADMIN` y `SEED_CONTRASENA_VENDEDOR` se niega a correr.
 
-**5. Después del despliegue.** Cambiar los PIN desde el panel y correr la prueba de
+**5. Después del despliegue.** La primera vez que entre cada uno, el sistema le va a
+pedir que ponga una contraseña propia: las del seed las sabe cualquiera que tenga acceso
+al panel de infraestructura (D-034). Después, correr la prueba de
 concurrencia contra ese Postgres, que es el único que acepta varias conexiones.
 Va desde la consola del servicio, porque la base no sale a internet:
 

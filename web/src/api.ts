@@ -5,6 +5,8 @@ export type Sesion = {
   usuario: string;
   nombre: string;
   rol: 'VENDEDOR' | 'GERENTE';
+  /** La contraseña la puso otro: no puede operar hasta cambiarla (D-034). */
+  debeCambiarContrasena: boolean;
   localId: string;
   localCodigo: string;
   localNombre: string;

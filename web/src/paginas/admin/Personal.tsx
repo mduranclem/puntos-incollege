@@ -13,6 +13,8 @@ type Persona = {
   nombre: string;
   rol: 'VENDEDOR' | 'GERENTE';
   activo: boolean;
+  /** Todavía usa la contraseña que le puso la gerencia (D-034). */
+  debeCambiarContrasena: boolean;
   local: { id: string; nombre: string };
 };
 
@@ -21,12 +23,12 @@ type Local = { id: string; nombre: string };
 type Alta = {
   usuario: string;
   nombre: string;
-  pin: string;
+  contrasena: string;
   rol: 'VENDEDOR' | 'GERENTE';
   localId: string;
 };
 
-const vacio: Alta = { usuario: '', nombre: '', pin: '', rol: 'VENDEDOR', localId: '' };
+const vacio: Alta = { usuario: '', nombre: '', contrasena: '', rol: 'VENDEDOR', localId: '' };
 
 export function PanelPersonal() {
   const [personal, setPersonal] = useState<Persona[] | null>(null);
@@ -35,8 +37,8 @@ export function PanelPersonal() {
   const [abriendo, setAbriendo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mensaje, setMensaje] = useState<string | null>(null);
-  const [cambiandoPin, setCambiandoPin] = useState<string | null>(null);
-  const [pinNuevo, setPinNuevo] = useState('');
+  const [cambiandoContrasena, setCambiandoContrasena] = useState<string | null>(null);
+  const [contrasenaNueva, setContrasenaNueva] = useState('');
 
   async function cargar() {
     const [p, l] = await Promise.all([
@@ -123,17 +125,22 @@ export function PanelPersonal() {
               />
             </div>
             <div>
-              <label className="etiqueta" htmlFor="p-pin">
-                PIN (4 a 8 números)
+              <label className="etiqueta" htmlFor="p-contrasena">
+                Contraseña provisoria
               </label>
               <input
-                id="p-pin"
-                className="campo tabular"
-                inputMode="numeric"
-                value={alta.pin}
-                onChange={(e) => setAlta({ ...alta, pin: e.target.value.replace(/\D/g, '') })}
+                id="p-contrasena"
+                className="campo"
+                type="text"
+                autoComplete="off"
+                placeholder="al menos 8 caracteres"
+                value={alta.contrasena}
+                onChange={(e) => setAlta({ ...alta, contrasena: e.target.value })}
                 required
               />
+              <p className="mt-1 text-xs text-slate-500">
+                Se la decís y la cambia al entrar.
+              </p>
             </div>
             <div>
               <label className="etiqueta" htmlFor="p-local">
@@ -235,24 +242,37 @@ export function PanelPersonal() {
                   ) : (
                     <span className="chip bg-slate-100 text-slate-500">Inactivo</span>
                   )}
+                  {/* Sirve para saber quién sigue entrando con la contraseña
+                      que le dictaron y todavía no puso una propia. */}
+                  {p.activo && p.debeCambiarContrasena && (
+                    <span
+                      className="chip ml-1 bg-amber-50 text-amber-700"
+                      title="Todavía usa la contraseña que le puso la gerencia"
+                    >
+                      Sin contraseña propia
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  {cambiandoPin === p.id ? (
+                  {cambiandoContrasena === p.id ? (
                     <span className="flex items-center justify-end gap-2">
                       <input
-                        className="campo tabular w-28 py-1.5 text-sm"
-                        inputMode="numeric"
+                        className="campo w-48 py-1.5 text-sm"
+                        type="text"
+                        autoComplete="off"
                         autoFocus
-                        placeholder="PIN nuevo"
-                        value={pinNuevo}
-                        onChange={(e) => setPinNuevo(e.target.value.replace(/\D/g, ''))}
+                        placeholder="contraseña provisoria"
+                        value={contrasenaNueva}
+                        onChange={(e) => setContrasenaNueva(e.target.value)}
                         onKeyDown={(e) => {
-                          if (e.key === 'Escape') setCambiandoPin(null);
-                          if (e.key === 'Enter' && pinNuevo.length >= 4) {
-                            void cambiar(p.id, { pin: pinNuevo }).then(() => {
-                              setCambiandoPin(null);
-                              setPinNuevo('');
-                              setMensaje(`Listo. ${p.nombre} entra con el PIN nuevo.`);
+                          if (e.key === 'Escape') setCambiandoContrasena(null);
+                          if (e.key === 'Enter' && contrasenaNueva.length >= 8) {
+                            void cambiar(p.id, { contrasena: contrasenaNueva }).then(() => {
+                              setCambiandoContrasena(null);
+                              setContrasenaNueva('');
+                              setMensaje(
+                                `Listo. Decile a ${p.nombre} la contraseña nueva: la va a tener que cambiar al entrar.`,
+                              );
                             });
                           }
                         }}
@@ -260,8 +280,8 @@ export function PanelPersonal() {
                       <button
                         className="text-sm font-medium text-slate-500 underline"
                         onClick={() => {
-                          setCambiandoPin(null);
-                          setPinNuevo('');
+                          setCambiandoContrasena(null);
+                          setContrasenaNueva('');
                         }}
                       >
                         Cancelar
@@ -272,12 +292,12 @@ export function PanelPersonal() {
                       <button
                         className="text-sm font-medium text-[var(--color-marino-claro)] underline"
                         onClick={() => {
-                          setCambiandoPin(p.id);
-                          setPinNuevo('');
+                          setCambiandoContrasena(p.id);
+                          setContrasenaNueva('');
                           setMensaje(null);
                         }}
                       >
-                        Cambiar PIN
+                        Cambiar contraseña
                       </button>
                       <button
                         className="text-sm font-medium text-[var(--color-marino-claro)] underline"

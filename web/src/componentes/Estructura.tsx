@@ -38,6 +38,13 @@ export function Estructura() {
 
           <div className="ml-auto flex items-center gap-3 text-sm">
             <span className="hidden text-white/80 sm:inline">{sesion?.localNombre}</span>
+            <NavLink
+              to="/contrasena"
+              className="chip bg-white/10 text-white/90 hover:bg-white/20"
+              title="Cambiar mi contraseña"
+            >
+              {sesion?.usuario}
+            </NavLink>
             <button
               type="button"
               className="chip bg-white/10 text-white/90 hover:bg-white/20"

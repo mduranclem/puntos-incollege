@@ -84,7 +84,12 @@ model Usuario {
   id       String   @id @default(uuid())
   usuario  String   @unique
   nombre   String
-  pinHash  String
+  /// bcrypt de la contraseña. Antes era un PIN de 4 a 8 números (D-034).
+  contrasenaHash String
+  /// Obliga a poner una propia antes de hacer nada. La pone en true el alta,
+  /// el reseteo de la gerencia y el seed: esas contraseñas las sabe otro.
+  debeCambiarContrasena Boolean   @default(false)
+  contrasenaCambiadaEn  DateTime?
   rol      Rol      @default(VENDEDOR)
   activo   Boolean  @default(true)
   creadoEn DateTime @default(now())

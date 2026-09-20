@@ -6,6 +6,7 @@
  * cambiar después desde el panel sin tocar nada.
  */
 import bcrypt from 'bcryptjs';
+import { motivoContrasenaInvalida } from '../dominio/contrasenas.js';
 import { prisma } from '../infra/prisma/cliente.js';
 import { parsearImporte } from '../dominio/dinero.js';
 import { fechaArgentina, finDelDiaArgentina } from '../dominio/fechas.js';
@@ -136,19 +137,32 @@ export async function sembrar() {
   }
 
   /**
-   * Los PIN no tienen valor por defecto fuera de desarrollo (D-029). Un sistema
-   * que maneja plata no puede quedar en producción con "1234" porque alguien se
-   * olvidó de cambiarlo: acá directamente no arranca.
+   * Las contraseñas del seed no tienen valor por defecto fuera de desarrollo
+   * (D-029). Un sistema que maneja plata no puede quedar en producción con
+   * "1234" porque alguien se olvidó de cambiarlo: acá directamente no arranca.
+   *
+   * Además quedan marcadas para cambio obligatorio (D-034): estas contraseñas
+   * viven en las variables de entorno del servidor y suelen quedar escritas en
+   * el registro del despliegue, así que las sabe cualquiera que tenga acceso al
+   * panel de infraestructura.
    */
   const enDesarrollo = process.env.NODE_ENV !== 'production';
-  const pinAdmin = process.env.SEED_PIN_ADMIN ?? (enDesarrollo ? '1234' : '');
-  const pinVendedor = process.env.SEED_PIN_VENDEDOR ?? (enDesarrollo ? '1111' : '');
-  if (!/^\d{4,8}$/.test(pinAdmin) || !/^\d{4,8}$/.test(pinVendedor)) {
-    throw new Error(
-      'Faltan SEED_PIN_ADMIN y SEED_PIN_VENDEDOR (4 a 8 números). ' +
-        'En producción el seed no crea usuarios con PIN por defecto.',
-    );
+  const claveAdmin = process.env.SEED_CONTRASENA_ADMIN ?? (enDesarrollo ? 'desarrollo-admin' : '');
+  const claveVendedor =
+    process.env.SEED_CONTRASENA_VENDEDOR ?? (enDesarrollo ? 'desarrollo-mostrador' : '');
+  for (const [nombre, valor] of [
+    ['SEED_CONTRASENA_ADMIN', claveAdmin],
+    ['SEED_CONTRASENA_VENDEDOR', claveVendedor],
+  ] as const) {
+    const motivo = motivoContrasenaInvalida(valor);
+    if (motivo) {
+      throw new Error(
+        `${nombre}: ${motivo || 'falta'} ` +
+          'En producción el seed no crea usuarios con contraseñas por defecto.',
+      );
+    }
   }
+
   const primerLocal = await prisma.local.findUniqueOrThrow({ where: { codigo: 'ROS-SUR' } });
 
   await prisma.usuario.upsert({
@@ -157,7 +171,8 @@ export async function sembrar() {
     create: {
       usuario: 'admin',
       nombre: 'Gerencia',
-      pinHash: await bcrypt.hash(pinAdmin, 10),
+      contrasenaHash: await bcrypt.hash(claveAdmin, 10),
+      debeCambiarContrasena: true,
       rol: 'GERENTE',
       localId: primerLocal.id,
     },
@@ -173,7 +188,8 @@ export async function sembrar() {
       create: {
         usuario,
         nombre: `Mostrador ${local.nombre}`,
-        pinHash: await bcrypt.hash(pinVendedor, 10),
+        contrasenaHash: await bcrypt.hash(claveVendedor, 10),
+        debeCambiarContrasena: true,
         rol: 'VENDEDOR',
         localId: fila.id,
       },
@@ -182,10 +198,10 @@ export async function sembrar() {
 
   console.log(
     enDesarrollo
-      ? `Usuarios: admin (PIN ${pinAdmin}) y mostrador-<local> (PIN ${pinVendedor}).
-` +
-          'Son PIN de desarrollo. Cambialos desde el panel antes de usarlo con clientes.'
-      : 'Usuarios creados con los PIN de SEED_PIN_ADMIN y SEED_PIN_VENDEDOR.',
+      ? `Usuarios: admin (${claveAdmin}) y mostrador-<local> (${claveVendedor}). ` +
+          'Son contraseñas de desarrollo, y el sistema va a pedir cambiarlas al entrar.'
+      : 'Usuarios creados con SEED_CONTRASENA_ADMIN y SEED_CONTRASENA_VENDEDOR. ' +
+          'Cada uno tiene que poner una contraseña propia la primera vez que entre.',
   );
 }
 

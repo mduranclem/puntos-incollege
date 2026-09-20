@@ -14,10 +14,17 @@ import { z } from 'zod';
 import { prisma } from '../../infra/prisma/cliente.js';
 import { exigeRol, exigeSesion } from '../sesion.js';
 import { ErrorDeNegocio, ROLES } from '../../dominio/tipos.js';
+import { motivoContrasenaInvalida } from '../../dominio/contrasenas.js';
 
-const PIN = z
-  .string()
-  .regex(/^\d{4,8}$/, 'El PIN tiene que ser de 4 a 8 números');
+/**
+ * La contraseña que pone la gerencia es provisoria por definición: la sabe otro.
+ * Se valida con la misma regla que la propia y el usuario queda obligado a
+ * cambiarla al entrar (D-034).
+ */
+function exigirContrasenaValida(contrasena: string, usuario: string): void {
+  const motivo = motivoContrasenaInvalida(contrasena, { usuario });
+  if (motivo) throw new ErrorDeNegocio('CONTRASENA_DEBIL', motivo);
+}
 
 const Alta = z.object({
   usuario: z
@@ -27,7 +34,7 @@ const Alta = z.object({
     .max(40)
     .regex(/^[a-z0-9.-]+$/i, 'El usuario puede tener letras, números, puntos y guiones'),
   nombre: z.string().trim().min(2).max(80),
-  pin: PIN,
+  contrasena: z.string().min(1).max(200),
   rol: z.enum(ROLES),
   localId: z.string().uuid(),
 });
@@ -37,7 +44,7 @@ const Cambio = z.object({
   rol: z.enum(ROLES).optional(),
   localId: z.string().uuid().optional(),
   activo: z.boolean().optional(),
-  pin: PIN.optional(),
+  contrasena: z.string().min(1).max(200).optional(),
 });
 
 export function rutasDePersonal() {
@@ -57,6 +64,7 @@ export function rutasDePersonal() {
           nombre: u.nombre,
           rol: u.rol,
           activo: u.activo,
+          debeCambiarContrasena: u.debeCambiarContrasena,
           local: u.local,
           creadoEn: u.creadoEn,
         })),
@@ -78,11 +86,14 @@ export function rutasDePersonal() {
         throw new ErrorDeNegocio('LOCAL_INEXISTENTE', 'Ese local no existe');
       }
 
+      exigirContrasenaValida(datos.contrasena, usuario);
+
       const creado = await prisma.usuario.create({
         data: {
           usuario,
           nombre: datos.nombre,
-          pinHash: await bcrypt.hash(datos.pin, 10),
+          contrasenaHash: await bcrypt.hash(datos.contrasena, 10),
+          debeCambiarContrasena: true,
           rol: datos.rol,
           localId: datos.localId,
         },
@@ -123,6 +134,8 @@ export function rutasDePersonal() {
         }
       }
 
+      if (datos.contrasena) exigirContrasenaValida(datos.contrasena, usuario.usuario);
+
       const actualizado = await prisma.usuario.update({
         where: { id },
         data: {
@@ -130,7 +143,13 @@ export function rutasDePersonal() {
           ...(datos.rol ? { rol: datos.rol } : {}),
           ...(datos.localId ? { localId: datos.localId } : {}),
           ...(datos.activo !== undefined ? { activo: datos.activo } : {}),
-          ...(datos.pin ? { pinHash: await bcrypt.hash(datos.pin, 10) } : {}),
+          ...(datos.contrasena
+            ? {
+                contrasenaHash: await bcrypt.hash(datos.contrasena, 10),
+                // La puso la gerencia: la persona la cambia al entrar.
+                debeCambiarContrasena: true,
+              }
+            : {}),
         },
         include: { local: { select: { id: true, nombre: true } } },
       });

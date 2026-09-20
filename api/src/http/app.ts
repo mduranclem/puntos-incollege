@@ -3,6 +3,7 @@ import cors from 'cors';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { ErrorDeNegocio } from '../dominio/tipos.js';
+import { exigeContrasenaPropia, exigeSesion } from './sesion.js';
 import { rutasDeAuth } from './rutas/auth.js';
 import { rutasDeClientes } from './rutas/clientes.js';
 import { rutasDeCobros } from './rutas/cobros.js';
@@ -31,12 +32,16 @@ export function crearApp() {
   app.get('/api/salud', (_req, res) => res.json({ ok: true, ahora: new Date().toISOString() }));
 
   app.use('/api/auth', rutasDeAuth());
-  app.use('/api/clientes', rutasDeClientes());
-  app.use('/api/cobros', rutasDeCobros());
-  app.use('/api/canjes', rutasDeCanjes());
-  app.use('/api/admin', rutasDeAdmin());
-  app.use('/api/personal', rutasDePersonal());
-  app.use('/api/articulos', rutasDeArticulos());
+
+  // Todo lo que opera queda cerrado mientras la contraseña la sepa otro (D-034).
+  // `/api/auth` queda afuera a propósito: es por donde se sale de esa situación.
+  const operativas = [exigeSesion, exigeContrasenaPropia];
+  app.use('/api/clientes', operativas, rutasDeClientes());
+  app.use('/api/cobros', operativas, rutasDeCobros());
+  app.use('/api/canjes', operativas, rutasDeCanjes());
+  app.use('/api/admin', operativas, rutasDeAdmin());
+  app.use('/api/personal', operativas, rutasDePersonal());
+  app.use('/api/articulos', operativas, rutasDeArticulos());
   app.use('/api/publico', rutasPublicas());
 
   /**
