@@ -128,6 +128,30 @@
            active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50;
     background: var(--color-marino);
   }
+  /* El campo grande y centrado es para el teléfono y el código. Un mail largo
+     escrito así no entra ni se lee: estos van alineados a la izquierda. */
+  .ingreso-campo-texto {
+    @apply text-left text-base font-normal;
+    font-variant-numeric: normal;
+  }
+  .ingreso-fila { @apply mt-4 flex items-center justify-between gap-3 text-sm; }
+  .ingreso-enlace {
+    @apply font-medium underline;
+    color: var(--color-marino-claro);
+  }
+  .ingreso-o {
+    @apply my-5 flex items-center gap-3 text-xs uppercase tracking-wide text-slate-400;
+  }
+  .ingreso-o::before,
+  .ingreso-o::after {
+    @apply h-px flex-1 bg-[var(--color-borde)];
+    content: '';
+  }
+  .ingreso-boton-suave {
+    @apply w-full rounded-xl border border-[var(--color-borde)] px-5 py-3.5 text-sm
+           font-semibold text-[var(--color-tinta)] transition active:scale-[0.99]
+           disabled:cursor-not-allowed disabled:opacity-50;
+  }
   .ingreso-volver { @apply mt-3 w-full text-sm font-medium text-slate-500 underline; }
   .ingreso-pie { @apply max-w-sm text-center text-xs leading-relaxed text-white/70; }
 

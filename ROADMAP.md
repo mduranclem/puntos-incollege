@@ -88,6 +88,7 @@ le mande un link. Web instalable en la pantalla de inicio, no app de las tiendas
 Criterio de diseño del dueño: **que se entienda, que sea fácil de usar y que no sea
 invasiva**. La cuenta es el centro; lo demás va en segundo plano.
 
+- [x] Cuenta propia con mail y contraseña, y recuperación por WhatsApp (D-036)
 - [x] Acceso con teléfono + código de un solo uso por WhatsApp (D-022)
 - [x] Pantalla de cuenta: saldo, equivalente, cuánto falta para el próximo, vencimiento
 - [x] Historial completo de movimientos

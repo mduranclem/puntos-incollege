@@ -1,9 +1,14 @@
 /**
- * Acceso del cliente a su propia cuenta (D-022).
+ * Acceso del cliente a su propia cuenta con un código de un solo uso (D-022).
  *
- * El teléfono es la cuenta (D-010) y no hay contraseña, así que la identidad se
- * prueba mandando un código de un solo uso **a ese mismo teléfono** por WhatsApp.
- * Quien no tiene el celular no entra.
+ * Es el camino de siempre y el que sigue probando la identidad: el teléfono es
+ * la cuenta (D-010), así que mandar el código **a ese mismo teléfono** por
+ * WhatsApp es lo que demuestra que la cuenta es suya. Quien no tiene el celular
+ * no entra.
+ *
+ * Desde D-036 este no es el único camino: el cliente también puede registrarse
+ * y entrar con su mail y su contraseña (ver `cuentaCliente.ts`). Pero el código
+ * sigue siendo la base: registrarse lo pide, y recuperar la contraseña también.
  *
  * Defensas, todas acá y no repartidas por las rutas:
  *  - el código se guarda hasheado: no se puede leer ni desde la base;
@@ -21,7 +26,7 @@ import { ErrorDeNegocio } from '../dominio/tipos.js';
 import { encolarEvento } from './avisos.js';
 import { firmarTokenCliente } from './tokenCliente.js';
 
-const MINUTO = 60_000;
+export const MINUTO = 60_000;
 
 export const VIGENCIA_CODIGO_MIN = 10;
 export const INTENTOS_POR_CODIGO = 5;
@@ -42,6 +47,112 @@ export type PedidoDeAcceso = {
   vigenciaMinutos: number;
 };
 
+export type AccesoConcedido = {
+  token: string;
+  clienteId: string;
+  nombre: string;
+};
+
+// --- Piezas compartidas con el registro y la recuperación (D-036) ---
+
+/** Un bcrypt con forma válida que no coincide con ninguna contraseña. */
+export const HASH_QUE_NUNCA_COINCIDE =
+  '$2a$10$invalidoinvalidoinvalidoinvalidoinvalidoinvalidoinvalidoinva';
+
+export async function exigirCupoDeCodigos(
+  prisma: PrismaClient,
+  telefonoE164: string,
+): Promise<void> {
+  const recientes = await prisma.codigoDeAcceso.count({
+    where: { telefonoE164, creadoEn: { gte: new Date(Date.now() - 60 * MINUTO) } },
+  });
+  if (recientes >= CODIGOS_POR_HORA) {
+    throw new ErrorDeNegocio(
+      'DEMASIADOS_PEDIDOS',
+      'Pediste el código muchas veces seguidas. Esperá un rato y probá de nuevo.',
+    );
+  }
+}
+
+/**
+ * Genera el código, lo guarda hasheado y encola el aviso.
+ *
+ * Usa el evento `acceso.codigo` para todo —acceso, registro y recuperación— a
+ * propósito: el workflow de n8n ya sabe armar ese mensaje, y el texto que le
+ * llega a la persona es el mismo en los tres casos ("tu código es…").
+ */
+export async function emitirCodigo(
+  prisma: PrismaClient,
+  telefonoE164: string,
+  nombre: string,
+): Promise<void> {
+  const codigo = generarCodigo();
+  await prisma.codigoDeAcceso.create({
+    data: {
+      telefonoE164,
+      codigoHash: await bcrypt.hash(codigo, 10),
+      expiraEn: new Date(Date.now() + VIGENCIA_CODIGO_MIN * MINUTO),
+    },
+  });
+  await encolarEvento(prisma, 'acceso.codigo', {
+    telefono: telefonoE164,
+    nombre,
+    codigo,
+    vigenciaMinutos: VIGENCIA_CODIGO_MIN,
+  });
+}
+
+/** Valida el código vigente de ese teléfono y lo deja usado. Tira si no sirve. */
+export async function consumirCodigo(
+  prisma: PrismaClient,
+  telefonoE164: string,
+  codigoCrudo: string,
+): Promise<void> {
+  const limpio = String(codigoCrudo).replace(/\D/g, '');
+  const invalido = new ErrorDeNegocio(
+    'CODIGO_INVALIDO',
+    'El código no es correcto o ya venció. Pedí uno nuevo.',
+  );
+
+  const vigente = await prisma.codigoDeAcceso.findFirst({
+    where: { telefonoE164, usadoEn: null, expiraEn: { gt: new Date() } },
+    orderBy: { creadoEn: 'desc' },
+  });
+  if (!vigente || vigente.intentos >= INTENTOS_POR_CODIGO) throw invalido;
+
+  if (!(await bcrypt.compare(limpio, vigente.codigoHash))) {
+    await prisma.codigoDeAcceso.update({
+      where: { id: vigente.id },
+      data: { intentos: vigente.intentos + 1 },
+    });
+    throw invalido;
+  }
+
+  // Un código sirve una sola vez.
+  await prisma.codigoDeAcceso.update({
+    where: { id: vigente.id },
+    data: { usadoEn: new Date() },
+  });
+}
+
+/** El cliente vigente de una cuenta, siguiendo la fusión si la hubo (D-010). */
+export async function accesoPara(
+  prisma: PrismaClient,
+  clienteId: string,
+  fusionadoEnId: string | null,
+): Promise<AccesoConcedido> {
+  const vigente = await prisma.cliente.findUniqueOrThrow({
+    where: { id: fusionadoEnId ?? clienteId },
+  });
+  return {
+    token: firmarTokenCliente(vigente.id, vigente.tokenVersion),
+    clienteId: vigente.id,
+    nombre: vigente.nombre,
+  };
+}
+
+// --- Acceso por código (D-022) ---
+
 /**
  * Genera y encola el código. Si el teléfono no tiene cuenta no manda nada, pero
  * responde igual: el cliente ve la misma pantalla en los dos casos.
@@ -59,15 +170,7 @@ export async function pedirCodigo(
     vigenciaMinutos: VIGENCIA_CODIGO_MIN,
   };
 
-  const pedidosRecientes = await prisma.codigoDeAcceso.count({
-    where: { telefonoE164, creadoEn: { gte: new Date(Date.now() - 60 * MINUTO) } },
-  });
-  if (pedidosRecientes >= CODIGOS_POR_HORA) {
-    throw new ErrorDeNegocio(
-      'DEMASIADOS_PEDIDOS',
-      'Pediste el código muchas veces seguidas. Esperá un rato y probá de nuevo.',
-    );
-  }
+  await exigirCupoDeCodigos(prisma, telefonoE164);
 
   const cliente = await prisma.cliente.findUnique({
     where: { telefonoE164 },
@@ -76,30 +179,9 @@ export async function pedirCodigo(
   // Sin cuenta no se manda nada, pero la respuesta es idéntica.
   if (!cliente) return respuesta;
 
-  const codigo = generarCodigo();
-  await prisma.codigoDeAcceso.create({
-    data: {
-      telefonoE164,
-      codigoHash: await bcrypt.hash(codigo, 10),
-      expiraEn: new Date(Date.now() + VIGENCIA_CODIGO_MIN * MINUTO),
-    },
-  });
-
-  await encolarEvento(prisma, 'acceso.codigo', {
-    telefono: telefonoE164,
-    nombre: cliente.nombre,
-    codigo,
-    vigenciaMinutos: VIGENCIA_CODIGO_MIN,
-  });
-
+  await emitirCodigo(prisma, telefonoE164, cliente.nombre);
   return respuesta;
 }
-
-export type AccesoConcedido = {
-  token: string;
-  clienteId: string;
-  nombre: string;
-};
 
 /**
  * Valida el código y devuelve el token de cliente (D-011), el mismo que usa el
@@ -112,46 +194,17 @@ export async function confirmarCodigo(
   areaPorDefecto?: string,
 ): Promise<AccesoConcedido> {
   const telefonoE164 = normalizarTelefono(telefonoCrudo, { areaPorDefecto });
-  const limpio = String(codigo).replace(/\D/g, '');
-
-  const invalido = new ErrorDeNegocio(
-    'CODIGO_INVALIDO',
-    'El código no es correcto o ya venció. Pedí uno nuevo.',
-  );
-
-  const vigente = await prisma.codigoDeAcceso.findFirst({
-    where: { telefonoE164, usadoEn: null, expiraEn: { gt: new Date() } },
-    orderBy: { creadoEn: 'desc' },
-  });
-  if (!vigente || vigente.intentos >= INTENTOS_POR_CODIGO) throw invalido;
-
-  const coincide = await bcrypt.compare(limpio, vigente.codigoHash);
-  if (!coincide) {
-    await prisma.codigoDeAcceso.update({
-      where: { id: vigente.id },
-      data: { intentos: vigente.intentos + 1 },
-    });
-    throw invalido;
-  }
 
   const cliente = await prisma.cliente.findUnique({ where: { telefonoE164 } });
-  if (!cliente) throw invalido;
+  if (!cliente) {
+    throw new ErrorDeNegocio(
+      'CODIGO_INVALIDO',
+      'El código no es correcto o ya venció. Pedí uno nuevo.',
+    );
+  }
 
-  // Un código sirve una sola vez.
-  await prisma.codigoDeAcceso.update({
-    where: { id: vigente.id },
-    data: { usadoEn: new Date() },
-  });
-
-  // Si esta cuenta se fusionó con otra, entra a la que sobrevivió (D-010).
-  const id = cliente.fusionadoEnId ?? cliente.id;
-  const vigenteCliente = await prisma.cliente.findUniqueOrThrow({ where: { id } });
-
-  return {
-    token: firmarTokenCliente(vigenteCliente.id, vigenteCliente.tokenVersion),
-    clienteId: vigenteCliente.id,
-    nombre: vigenteCliente.nombre,
-  };
+  await consumirCodigo(prisma, telefonoE164, codigo);
+  return accesoPara(prisma, cliente.id, cliente.fusionadoEnId);
 }
 
 /** Limpieza de códigos vencidos. La corre la tarea programada. */

@@ -199,6 +199,24 @@ La API no habla con Evolution API: publica eventos en el webhook de n8n
 
 El `link` es la pantalla pública de saldo, firmada y sin login.
 
+El evento `acceso.codigo` lleva el código de un solo uso, y lo usan las tres puertas de
+entrada del cliente: el acceso por teléfono (D-022), la confirmación del registro y la
+recuperación de contraseña (D-036). El workflow de n8n no necesita ningún cambio: es
+siempre el mismo mensaje.
+
+## Cómo entra cada uno
+
+| Quién | Con qué | Dónde |
+|---|---|---|
+| Gerente y vendedores | usuario + contraseña (D-034) | `/ingresar` |
+| Cliente registrado | mail + contraseña (D-036) | `/app/entrar` |
+| Cliente sin registrar | teléfono + código por WhatsApp (D-022) | `/app/entrar-con-codigo` |
+| Cliente desde el aviso | link firmado, sin login (D-011) | `/s/<token>` |
+
+La cuenta del cliente **es su teléfono** (D-010) en los cuatro casos: el mail es sólo un
+nombre de usuario. Por eso registrarse pide una vez el código por WhatsApp, y por eso la
+recuperación de contraseña también va por ahí y no por mail.
+
 ## Lo que sigue
 
 Los pagos de egresados entran implementando una clase `FuenteEgresados` que cumpla

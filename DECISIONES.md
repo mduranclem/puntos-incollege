@@ -783,3 +783,82 @@ del seed pasan a llamarse `SEED_CONTRASENA_ADMIN` y `SEED_CONTRASENA_VENDEDOR`.
 código de un solo uso por WhatsApp (D-022). El teléfono **es** la cuenta (D-010), y pedirle
 una contraseña a alguien que compra guardapolvos dos veces por año es la forma más rápida
 de que no use la app: la iba a olvidar antes de la segunda visita.
+
+---
+
+## D-035 · La espera por intentos fallidos es invisible para una persona
+
+**Contexto.** D-034 puso una espera que crecía —5, 10, 20, 40 segundos, techo de un
+minuto— después de cuatro errores. El dueño la objetó, y con razón: cuatro errores de
+tipeo en un mostrador con gente esperando no son un ataque, son un martes.
+
+**Decisión.** Diez intentos sin ninguna demora, y recién a partir del once una pausa
+**fija de cinco segundos**. Sin escalera y sin bloqueo.
+
+**Por qué no se saca del todo.** Porque no está puesta para el vendedor. La app vive en
+una dirección pública de internet y el nombre de usuario del mostrador no es un secreto:
+`mostrador-fisherton` se adivina solo. Lo único que separa a cualquiera de la caja es la
+contraseña. Sin ninguna pausa, una máquina prueba miles por segundo contra esa URL.
+
+**Por qué cinco segundos alcanzan.** El ataque pasa de miles por segundo a doce por
+minuto. Contra una contraseña de ocho caracteres eso no llega a ningún lado en años. La
+defensa no necesita ser molesta para servir: necesita ser suficiente.
+
+**Consecuencia.** Nadie del local la va a ver nunca. Quien se equivoque diez veces
+seguidas espera cinco segundos, una vez, y sigue. También la usa el ingreso del cliente
+a la app, contra el mail (D-036).
+
+---
+
+## D-036 · El cliente tiene cuenta propia: mail y contraseña
+
+**Contexto.** Hasta acá el cliente entraba con su teléfono y un código por WhatsApp
+(D-022). Funciona, pero el dueño lo comparó con las apps de las estaciones de servicio y
+tiene razón: la gente se acuerda de su mail y su contraseña, y esperar un código cada vez
+para mirar el saldo es una fricción que se paga en gente que deja de abrir la app.
+
+**Decisión.** El cliente se registra con **mail, contraseña y teléfono**, y de ahí en
+adelante entra con mail y contraseña.
+
+**Lo que no cambia, y es lo importante: la cuenta sigue siendo el teléfono** (D-010). El
+mail es un nombre de usuario. El teléfono es lo que el vendedor tipea en el mostrador, lo
+que recibe los avisos y lo que ata los puntos a una persona. Si el mail fuera la
+identidad, habría que cambiar el mostrador, los avisos y el libro mayor; no hay ninguna
+razón para eso.
+
+**Registrarse igual pide el código por WhatsApp, una vez.** Parece un rodeo y no lo es:
+los puntos valen plata. Si alcanzara con escribir un teléfono y una contraseña, cualquiera
+pondría el número de otro y se quedaría con sus puntos. El código prueba que el teléfono
+es suyo. Después no lo ve nunca más.
+
+**Registrarse no crea una cuenta nueva.** El caso más común es que el teléfono **ya tenga**
+cuenta, porque el mostrador se la abrió al cobrarle: ahí se le agregan el mail y la
+contraseña a esa misma cuenta, con sus puntos y su historial intactos. Está probado.
+
+**El mail no se verifica.** No hay servidor de correo, y no hace falta: lo que hay que
+probar es el teléfono. Quien se registre con un mail ajeno sólo se perjudica a sí mismo,
+porque no va a poder recuperar la contraseña.
+
+**"Me olvidé la contraseña" manda el código por WhatsApp, no por mail.** Otra vez porque
+el teléfono es la cuenta: así ni siquiera alguien que entró al mail del cliente puede
+quedarse con sus puntos. Restablecer sube `tokenVersion`, con lo que se caen los links de
+saldo ya emitidos (D-011).
+
+**Nada revela quién es cliente.** Pedir recuperación devuelve **exactamente** la misma
+respuesta exista o no la cuenta —ni siquiera el teléfono enmascarado, que era una
+filtración que tenía la primera versión— y entrar con mail equivocado devuelve el mismo
+mensaje que con contraseña equivocada. Es la misma regla que ya seguía el acceso por
+código (D-022).
+
+**El código por WhatsApp sigue estando**, en segundo plano. Es por donde entra quien nunca
+se registró y quien se olvidó hasta del mail con el que se anotó. El teléfono siempre
+alcanza.
+
+**Sobre entrar con Google.** Se evaluó y se descartó para los dos lados. Para el cliente,
+porque su identidad es el teléfono: entrar con Gmail deja una identidad que no coincide
+con la cuenta de puntos. Para el personal, porque las cuentas son Gmail personales, que la
+empresa no controla —si alguien se va no se le puede sacar el acceso— y porque en una
+computadora compartida de mostrador "entrar apretando la cuenta" significa que el que se
+sienta ahí es ese vendedor, y entonces la firma de cada movimiento (D-012) deja de querer
+decir algo. Se reconsideraría sólo con cuentas de Google Workspace de la empresa, y sólo
+para gerencia.

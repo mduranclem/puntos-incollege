@@ -1,9 +1,10 @@
 /**
  * Todo lo que consume la app del cliente. Sin sesión de personal.
  *
- * Dos formas de identificarse, las dos con el mismo token de cliente (D-011):
- *  - el link firmado que manda el mostrador o el aviso automático,
- *  - el acceso propio con teléfono + código por WhatsApp (D-022).
+ * Tres formas de identificarse, las tres con el mismo token de cliente (D-011):
+ *  - la cuenta propia con mail y contraseña (D-036), que es la de todos los días;
+ *  - el teléfono + código por WhatsApp (D-022), para quien no se registró;
+ *  - el link firmado que manda el mostrador o el aviso automático.
  *
  * Ninguna respuesta de acá expone datos de otros clientes ni el documento.
  */
@@ -13,9 +14,40 @@ import { prisma } from '../../infra/prisma/cliente.js';
 import { verificarTokenCliente } from '../../servicios/tokenCliente.js';
 import { resumenDeCuenta } from '../../servicios/saldos.js';
 import { confirmarCodigo, pedirCodigo } from '../../servicios/accesoCliente.js';
+import {
+  cambiarContrasenaDelCliente,
+  confirmarRegistro,
+  ingresarConEmail,
+  pedirCodigoDeRegistro,
+  pedirRecuperacion,
+  restablecerContrasena,
+} from '../../servicios/cuentaCliente.js';
+import { esperaPendiente, registrarExito, registrarFallo } from '../../servicios/intentosDeIngreso.js';
 import { formatearPesos } from '../../dominio/dinero.js';
 
 const Pedido = z.object({ telefono: z.string().min(3).max(30) });
+
+const Registro = z.object({
+  nombre: z.string().trim().max(120).optional(),
+  email: z.string().min(3).max(254),
+  contrasena: z.string().min(1).max(200),
+  telefono: z.string().min(3).max(30),
+});
+const RegistroConCodigo = Registro.extend({ codigo: z.string().min(4).max(10) });
+const IngresoCliente = z.object({
+  email: z.string().min(3).max(254),
+  contrasena: z.string().min(1).max(200),
+});
+const Recuperacion = z.object({ email: z.string().min(3).max(254) });
+const Restablecimiento = z.object({
+  email: z.string().min(3).max(254),
+  codigo: z.string().min(4).max(10),
+  contrasena: z.string().min(1).max(200),
+});
+const CambioDeContrasena = z.object({
+  contrasenaActual: z.string().min(1).max(200),
+  contrasenaNueva: z.string().min(1).max(200),
+});
 const Confirmacion = z.object({
   telefono: z.string().min(3).max(30),
   codigo: z.string().min(4).max(10),
@@ -79,7 +111,107 @@ async function armarCuenta(clienteId: string, cantidadDeMovimientos: number) {
 export function rutasPublicas() {
   const router = Router();
 
-  // --- Acceso propio del cliente (D-022) ---
+  // --- Cuenta propia del cliente: mail y contraseña (D-036) ---
+
+  /** Paso 1 del registro: valida los datos y manda el código por WhatsApp. */
+  router.post('/cuenta/registrar', async (req, res, next) => {
+    try {
+      const datos = Registro.parse(req.body);
+      const pedido = await pedirCodigoDeRegistro(
+        prisma,
+        { ...datos, telefonoCrudo: datos.telefono },
+        '341',
+      );
+      return res.json(pedido);
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+  /** Paso 2: con el código, queda registrado y adentro. */
+  router.post('/cuenta/confirmar', async (req, res, next) => {
+    try {
+      const datos = RegistroConCodigo.parse(req.body);
+      const acceso = await confirmarRegistro(
+        prisma,
+        { ...datos, telefonoCrudo: datos.telefono },
+        '341',
+      );
+      return res.json({ token: acceso.token, cuenta: await armarCuenta(acceso.clienteId, 30) });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+  router.post('/cuenta/ingresar', async (req, res, next) => {
+    try {
+      const datos = IngresoCliente.parse(req.body);
+      const clave = `cliente:${datos.email.trim().toLowerCase()}`;
+
+      const espera = esperaPendiente(clave);
+      if (espera > 0) {
+        return res.status(429).json({
+          error: 'DEMASIADOS_INTENTOS',
+          mensaje: `Probá de nuevo en ${espera} segundos.`,
+          detalle: { esperaSegundos: espera },
+        });
+      }
+
+      try {
+        const acceso = await ingresarConEmail(prisma, datos.email, datos.contrasena);
+        registrarExito(clave);
+        return res.json({ token: acceso.token, cuenta: await armarCuenta(acceso.clienteId, 30) });
+      } catch (error) {
+        registrarFallo(clave);
+        throw error;
+      }
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+  /** Me olvidé la contraseña: el código va al teléfono de la cuenta. */
+  router.post('/cuenta/recuperar', async (req, res, next) => {
+    try {
+      const { email } = Recuperacion.parse(req.body);
+      return res.json(await pedirRecuperacion(prisma, email));
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+  router.post('/cuenta/restablecer', async (req, res, next) => {
+    try {
+      const datos = Restablecimiento.parse(req.body);
+      const acceso = await restablecerContrasena(
+        prisma,
+        datos.email,
+        datos.codigo,
+        datos.contrasena,
+      );
+      return res.json({ token: acceso.token, cuenta: await armarCuenta(acceso.clienteId, 30) });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+  /** Cambiar la contraseña desde adentro de la app. */
+  router.post('/cuenta/contrasena', exigeCliente, async (req, res, next) => {
+    try {
+      const datos = CambioDeContrasena.parse(req.body);
+      await cambiarContrasenaDelCliente(
+        prisma,
+        res.locals.clienteId,
+        datos.contrasenaActual,
+        datos.contrasenaNueva,
+      );
+      return res.json({ cambiada: true });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+  // --- Acceso por código, para quien todavía no se registró (D-022) ---
 
   router.post('/acceso/pedir', async (req, res, next) => {
     try {

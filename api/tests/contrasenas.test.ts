@@ -12,7 +12,7 @@ import {
   motivoContrasenaInvalida,
 } from '../src/dominio/contrasenas.js';
 import {
-  ESPERA_MAXIMA_SEG,
+  ESPERA_SEG,
   INTENTOS_LIBRES,
   OLVIDO_MIN,
   esperaPendiente,
@@ -73,55 +73,54 @@ describe('qué se acepta como contraseña', () => {
 describe('freno a los intentos de ingreso', () => {
   beforeEach(() => olvidarTodo());
 
-  it('los primeros errores no hacen esperar', () => {
+  it('una persona nunca lo ve: diez intentos sin ninguna demora', () => {
     for (let i = 0; i < INTENTOS_LIBRES; i++) {
       expect(registrarFallo('admin')).toBe(0);
     }
     expect(esperaPendiente('admin')).toBe(0);
   });
 
-  it('después la espera crece', () => {
+  it('recién después aparece la pausa, y es siempre la misma', () => {
     for (let i = 0; i < INTENTOS_LIBRES; i++) registrarFallo('admin');
-    expect(registrarFallo('admin')).toBe(5);
-    expect(registrarFallo('admin')).toBe(10);
-    expect(registrarFallo('admin')).toBe(20);
-    expect(registrarFallo('admin')).toBe(40);
+    expect(registrarFallo('admin')).toBe(ESPERA_SEG);
+    expect(registrarFallo('admin')).toBe(ESPERA_SEG);
+    expect(registrarFallo('admin')).toBe(ESPERA_SEG);
   });
 
-  it('la espera tiene techo: nunca deja un local sin poder cobrar', () => {
-    for (let i = 0; i < 40; i++) registrarFallo('admin');
-    expect(registrarFallo('admin')).toBe(ESPERA_MAXIMA_SEG);
+  it('no escala: cien intentos siguen siendo cinco segundos', () => {
+    for (let i = 0; i < 100; i++) registrarFallo('admin');
+    expect(registrarFallo('admin')).toBe(ESPERA_SEG);
   });
 
   it('entrar bien borra el historial', () => {
-    for (let i = 0; i < 10; i++) registrarFallo('admin');
+    for (let i = 0; i < 20; i++) registrarFallo('admin');
     expect(esperaPendiente('admin')).toBeGreaterThan(0);
     registrarExito('admin');
     expect(esperaPendiente('admin')).toBe(0);
   });
 
   it('cuenta por usuario: un vendedor trabado no traba a los demás', () => {
-    for (let i = 0; i < 10; i++) registrarFallo('mostrador-ros-sur');
+    for (let i = 0; i < 20; i++) registrarFallo('mostrador-ros-sur');
     expect(esperaPendiente('mostrador-ros-sur')).toBeGreaterThan(0);
     expect(esperaPendiente('mostrador-fisherton')).toBe(0);
   });
 
   it('no distingue mayúsculas: es el mismo usuario', () => {
-    for (let i = 0; i < 10; i++) registrarFallo('Admin');
+    for (let i = 0; i < 20; i++) registrarFallo('Admin');
     expect(esperaPendiente('admin')).toBeGreaterThan(0);
   });
 
   it('se olvida solo con el tiempo', () => {
     const ahora = Date.now();
-    for (let i = 0; i < 10; i++) registrarFallo('admin', ahora);
+    for (let i = 0; i < 20; i++) registrarFallo('admin', ahora);
     expect(esperaPendiente('admin', ahora)).toBeGreaterThan(0);
     expect(esperaPendiente('admin', ahora + (OLVIDO_MIN + 1) * 60_000)).toBe(0);
   });
 
-  it('la espera se agota sola sin tener que fallar de nuevo', () => {
+  it('la pausa se agota sola sin tener que fallar de nuevo', () => {
     const ahora = Date.now();
     for (let i = 0; i < INTENTOS_LIBRES + 1; i++) registrarFallo('admin', ahora);
-    expect(esperaPendiente('admin', ahora)).toBe(5);
-    expect(esperaPendiente('admin', ahora + 6_000)).toBe(0);
+    expect(esperaPendiente('admin', ahora)).toBe(ESPERA_SEG);
+    expect(esperaPendiente('admin', ahora + (ESPERA_SEG + 1) * 1000)).toBe(0);
   });
 });

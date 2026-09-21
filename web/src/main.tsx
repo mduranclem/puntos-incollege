@@ -15,6 +15,9 @@ import { leerSesion } from './api';
 // App del cliente
 import { AppCliente } from './cliente/AppCliente';
 import { IngresoCliente } from './cliente/Ingreso';
+import { IngresoPorCodigo } from './cliente/IngresoPorCodigo';
+import { RegistroCliente } from './cliente/Registro';
+import { RecuperarCliente } from './cliente/Recuperar';
 import { Cuenta } from './cliente/Cuenta';
 import { Movimientos } from './cliente/Movimientos';
 import { Locales } from './cliente/Locales';
@@ -45,6 +48,9 @@ createRoot(document.getElementById('raiz')!).render(
       <Routes>
         {/* App del cliente */}
         <Route path="/app/entrar" element={<IngresoCliente />} />
+        <Route path="/app/entrar-con-codigo" element={<IngresoPorCodigo />} />
+        <Route path="/app/registrarse" element={<RegistroCliente />} />
+        <Route path="/app/recuperar" element={<RecuperarCliente />} />
         <Route
           path="/app"
           element={

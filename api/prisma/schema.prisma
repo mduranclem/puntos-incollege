@@ -111,6 +111,14 @@ model Cliente {
   nombre        String
   documento     String?
   creadoEn      DateTime @default(now())
+
+  /// Con qué entra a la app. Es un nombre de usuario, no la identidad de la
+  /// cuenta: la identidad sigue siendo el teléfono (D-010, D-036). Vacío
+  /// mientras el cliente no se haya registrado: la cuenta la pudo haber abierto
+  /// el mostrador al cobrarle.
+  email          String?   @unique
+  contrasenaHash String?
+  registradoEn   DateTime?
   /// Se sube para invalidar los links de saldo ya emitidos (D-011).
   tokenVersion  Int      @default(1)
 
