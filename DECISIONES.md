@@ -1004,3 +1004,20 @@ descontar después, que es un error que el propio vendedor ve.
 **todavía no lo impide**: para hacerlo habría que atar el cobro y el canje a una misma
 venta, que hoy no existe como entidad. Queda anotado; si la empresa quiere que el sistema
 lo impida y no sólo lo documente, es un cambio de modelo, no de pantalla.
+
+---
+
+## D-041 · Una compra con promoción sí suma puntos
+
+**Contexto.** Quedaba sin definir si una compra que tuvo promoción acredita puntos. El
+sistema nunca preguntó por promociones al cobrar, así que de hecho acreditaba; hacía falta
+saber si eso era lo querido o un descuido.
+
+**Decisión (del dueño).** Sí, suma igual. Los puntos se calculan sobre **lo que la persona
+pagó realmente**: si una remera de $12.000 estaba en liquidación a $9.000 y pagó $9.000 en
+efectivo, acredita sobre $9.000.
+
+**Consecuencia.** No hay nada que cambiar: es lo que el sistema ya hacía. Queda escrito
+para que nadie lo "arregle" más adelante creyendo que es un olvido. La regla de no
+acumulación (D-008) sigue siendo cosa del canje, no del cobro: son dos momentos distintos
+y no tienen por qué responder igual.
