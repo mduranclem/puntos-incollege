@@ -96,6 +96,8 @@ invasiva**. La cuenta es el centro; lo demás va en segundo plano.
 - [x] Los 6 locales con dirección y horarios
 - [x] Novedades y precios, editables desde el panel (catálogo de artículos, D-027)
 - [x] Instalable: ícono propio, pantalla completa, sesión que no se cae
+- [x] Rediseño con la identidad de la marca: credencial colegial, estados reales de
+      la cuenta y jerarquía corregida del QR (D-039)
 
 **Listo cuando:** el cliente la agrega a la pantalla de inicio, la abre días después y ve
 su cuenta sin volver a identificarse.

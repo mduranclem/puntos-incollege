@@ -22,6 +22,11 @@ export type Cuenta = {
   faltaParaElProximoTexto: string;
   topeCanjeBps: number;
   valorPuntoTexto: string;
+  /** Cuánto hay que pagar en efectivo por cada punto. Sale de la configuración. */
+  porPuntoTexto: string;
+  /** Los dos en centavos, como string: con ellos se dibuja el avance real. */
+  porPuntoCentavos: string;
+  remanenteCentavos: string;
   temporada: { nombre: string; venceEn: string };
   movimientos: Movimiento[];
 };
@@ -92,9 +97,21 @@ export const fechaLarga = (iso: string) =>
   new Date(iso).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
 
 export const TEXTO_MOVIMIENTO: Record<Movimiento['tipo'], string> = {
-  ACREDITACION: 'Compra en efectivo',
-  CANJE: 'Canje de puntos',
-  VENCIMIENTO: 'Vencimiento',
+  ACREDITACION: 'Puntos sumados',
+  CANJE: 'Puntos usados',
+  VENCIMIENTO: 'Puntos vencidos',
   REVERSA: 'Anulación',
   AJUSTE: 'Ajuste',
+};
+
+/**
+ * Cómo se pinta cada tipo. El color acompaña, no informa: el signo y el texto
+ * ya dicen qué pasó, para quien no distingue colores o mira con poca luz.
+ */
+export const CLASE_MOVIMIENTO: Record<Movimiento['tipo'], string> = {
+  ACREDITACION: 'suma',
+  CANJE: 'resta',
+  VENCIMIENTO: 'vence',
+  REVERSA: 'resta',
+  AJUSTE: 'resta',
 };

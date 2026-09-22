@@ -1,18 +1,32 @@
 @import 'tailwindcss';
 
 @theme {
+  /* Paleta de la marca (D-039). El verde es el del logo; el dorado va sólo en
+     detalles chicos y nunca como texto sobre fondo claro, donde no contrasta. */
   --color-tinta: #0b1b2e;
-  --color-marino: #0f2d52;
+  --color-marino: #102d4f;
   --color-marino-claro: #1b4a86;
-  --color-punto: #e0a325;
+  --color-crema: #f7f4ec;
+  --color-verde: #12664f;
+  --color-verde-suave: #ddf3e8;
+  --color-punto: #e8b84c;
   --color-punto-suave: #fdf3dd;
+  /* Texto secundario: uno para fondo claro y otro para fondo oscuro. */
+  --color-apagado: #526173;
+  --color-apagado-claro: #becbdd;
   --color-papel: #f6f7f9;
   --color-borde: #dfe3ea;
-  --color-ok: #1a7f4b;
+  --color-ok: #12664f;
   --color-error: #b4232a;
 
-  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-sans: 'Manrope', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Condensada, sólo para titulares expresivos. Nunca en instrucciones. */
+  --font-titulo: 'Barlow Condensed', 'Manrope', ui-sans-serif, system-ui, sans-serif;
   --radius-suave: 0.75rem;
+
+  /* Altura real de la barra de pestañas, medida en pantalla. El contenido
+     reserva esto más un margen para que la última tarjeta se vea entera. */
+  --alto-pestanias: 72px;
 }
 
 @layer base {
@@ -37,6 +51,18 @@
   :focus-visible {
     outline: 3px solid var(--color-marino-claro);
     outline-offset: 2px;
+  }
+
+  /* Quien pidió menos movimiento no ve ninguno. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
@@ -157,126 +183,248 @@
   .ingreso-volver { @apply mt-3 w-full text-sm font-medium text-slate-500 underline; }
   .ingreso-pie { @apply max-w-sm text-center text-xs leading-relaxed text-white/70; }
 
-  /* ---- Armazón ---- */
+  /* ---- Armazón ----
+     Marino de fondo, contenido en tarjetas, pestañas abajo. El contenido
+     reserva abajo la altura real de la barra más un margen: la última tarjeta
+     tiene que verse entera al llegar al final del scroll. */
   .app-cliente { @apply flex min-h-dvh flex-col; background: var(--color-marino); }
   .app-encabezado {
-    @apply mx-auto flex w-full max-w-md items-center px-4 pb-1;
+    @apply mx-auto flex w-full max-w-md items-center justify-between gap-3 px-5 pb-2;
     padding-top: calc(12px + env(safe-area-inset-top));
   }
+  .app-salir {
+    @apply -mr-2 inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl px-3
+           text-sm font-semibold transition;
+    color: var(--color-apagado-claro);
+  }
+  .app-salir:hover { @apply text-white; }
   .app-contenido {
-    @apply mx-auto w-full max-w-md flex-1 px-4 pt-3;
-    padding-bottom: calc(84px + env(safe-area-inset-bottom));
+    @apply mx-auto w-full max-w-md flex-1 px-5 pt-2;
+    padding-bottom: calc(var(--alto-pestanias) + 20px + env(safe-area-inset-bottom));
   }
   .app-pestanias {
-    @apply fixed inset-x-0 bottom-0 z-10 mx-auto flex max-w-md justify-around border-t
-           border-white/10 bg-[var(--color-marino)] px-2 pt-2;
+    @apply fixed inset-x-0 bottom-0 z-10 mx-auto flex max-w-md justify-around gap-1 border-t
+           border-white/10 px-3 pt-2;
+    background: var(--color-marino);
     padding-bottom: calc(8px + env(safe-area-inset-bottom));
   }
   .app-pestania {
-    @apply flex flex-1 flex-col items-center gap-1 rounded-xl py-1.5 text-[11px] font-medium
-           text-white/55 transition;
+    @apply flex flex-1 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[11px]
+           font-medium transition;
+    color: var(--color-apagado-claro);
   }
-  .app-pestania svg { @apply h-6 w-6; fill: currentColor; }
-  .app-pestania.activa { color: var(--color-punto); }
+  .app-pestania svg { @apply h-[22px] w-[22px]; fill: currentColor; }
+  /* La pestaña elegida se reconoce por fondo y peso, no sólo por color. */
+  .app-pestania.activa {
+    @apply font-bold;
+    background: var(--color-verde-suave);
+    color: var(--color-verde);
+  }
 
-  /* ---- Cuenta ---- */
-  .cta { @apply flex flex-col gap-4 pb-4; }
-  .cta-centro { @apply flex min-h-[60vh] items-center justify-center px-6 text-center text-white/80; }
-  .cta-cargando { @apply text-sm; }
-  .cta-encabezado { @apply flex items-baseline justify-between gap-3; }
-  .cta-hola { @apply text-base font-medium text-white; }
-  .cta-salir { @apply text-xs font-medium text-white/60 underline; }
+  /* ---- Mi cuenta ---- */
+  .cta { @apply flex flex-col gap-5 pb-2; }
+  .cta-saludo { @apply text-2xl font-extrabold leading-tight text-white; }
+  .cta-bajada { @apply mt-1 text-sm; color: var(--color-apagado-claro); }
 
-  .cta-tarjeta { @apply rounded-3xl bg-white p-6 text-center shadow-xl; }
-  .cta-numero {
-    @apply text-7xl font-bold leading-none;
+  /* Tarjeta de saldo: crema, alineada a la izquierda. Es la credencial. */
+  .saldo {
+    @apply relative rounded-3xl p-6;
+    background: var(--color-crema);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 10%);
+  }
+  /* Costura: el hilo punteado de una etiqueta de ropa. Es el único lugar donde
+     aparece el dorado, y va como línea, nunca como texto sobre fondo claro. */
+  .saldo::before {
+    @apply pointer-events-none absolute inset-2 rounded-[18px] border border-dashed;
+    border-color: color-mix(in srgb, var(--color-punto) 45%, transparent);
+    content: '';
+  }
+  .saldo > * { @apply relative; }
+  .saldo-etiqueta {
+    @apply text-[13px] font-bold uppercase tracking-wide;
+    color: var(--color-apagado);
+  }
+  /* Con saldo, el protagonista es el descuento: es el beneficio concreto. */
+  .saldo-plata {
+    @apply mt-2 text-[40px] font-extrabold leading-none;
+    color: var(--color-verde);
+    font-variant-numeric: tabular-nums;
+  }
+  .saldo-plata small { @apply ml-1 text-lg font-bold; }
+  .saldo-puntos { @apply mt-2 text-base font-semibold; color: var(--color-apagado); }
+  /* En cero el número está, pero no manda. */
+  .saldo-cero {
+    @apply mt-2 text-[38px] font-extrabold leading-none;
     color: var(--color-marino);
     font-variant-numeric: tabular-nums;
   }
-  .cta-unidad { @apply mt-2 text-lg font-semibold; }
-  .cta-equivale { @apply mt-1 text-sm text-slate-600; }
-  .cta-falta {
-    @apply mt-4 rounded-xl px-4 py-3 text-sm leading-snug;
-    background: var(--color-punto-suave);
+  .saldo-cero small { @apply ml-1 text-base font-semibold; color: var(--color-apagado); }
+  .saldo-titular {
+    @apply mt-4 text-[30px] font-bold leading-[1.1];
+    font-family: var(--font-titulo);
+    color: var(--color-marino);
   }
-  .cta-vence { @apply mt-4 text-xs text-slate-500; }
+  .saldo-explica { @apply mt-3 text-[15px] leading-relaxed; color: var(--color-apagado); }
+  .saldo-remate {
+    @apply mt-4 inline-block rounded-xl px-4 py-2.5 text-[15px] font-bold;
+    background: var(--color-verde-suave);
+    color: var(--color-verde);
+  }
+  .saldo-vence { @apply mt-4 text-[13px]; color: var(--color-apagado); }
 
-  .cta-numero-boton {
-    @apply flex w-full items-center justify-between rounded-2xl border border-white/15
-           bg-white/10 px-5 py-4 text-left text-sm font-semibold text-white transition
-           active:scale-[0.99];
+  /* Barra de avance: sólo se dibuja cuando hay datos reales para dibujarla. */
+  .avance { @apply mt-5; }
+  .avance-riel {
+    @apply h-1.5 w-full overflow-hidden rounded-full;
+    background: color-mix(in srgb, var(--color-apagado) 22%, transparent);
   }
-  .cta-numero-boton svg { @apply h-5 w-5 transition-transform; fill: currentColor; }
-  .cta-numero-boton svg.girado { @apply rotate-180; }
-  .cta-numero-caja { @apply rounded-2xl bg-white px-5 py-6 text-center; }
-  .cta-qr { @apply mx-auto mb-3 h-auto w-44 max-w-full rounded-lg; }
-  .cta-numero-ayuda { @apply text-xs text-slate-500; }
-  .cta-numero-grande {
-    @apply my-2 text-3xl font-bold;
+  .avance-parte {
+    @apply h-full rounded-full transition-[width] duration-200;
+    background: var(--color-verde);
+  }
+  .avance-texto { @apply mt-2 text-[13px] leading-snug; color: var(--color-apagado); }
+
+  /* Esqueleto de carga: reserva el lugar en vez de mostrar un cero que no es. */
+  .esqueleto { @apply animate-pulse rounded-full; background: rgb(82 97 115 / 18%); }
+
+  /* ---- Desplegables ---- */
+  .desplegable { @apply overflow-hidden rounded-[20px] bg-white; }
+  .desplegable-cabecera {
+    @apply flex min-h-12 w-full items-center justify-between gap-3 px-5 py-3.5 text-left
+           transition;
+  }
+  .desplegable-titulo { @apply text-[16px] font-bold; color: var(--color-marino); }
+  .desplegable-dato { @apply mt-0.5 text-[13px]; color: var(--color-apagado); }
+  .desplegable-dato b {
+    @apply font-bold;
     color: var(--color-marino);
     font-variant-numeric: tabular-nums;
   }
-  .cta-numero-pie { @apply text-xs text-slate-500; }
-
-  .cta-ultimos { @apply rounded-2xl bg-white px-5 py-4; }
-  .cta-ultimos-titulo { @apply mb-1 flex items-baseline justify-between gap-3; }
-  .cta-ultimos-titulo h2 { @apply text-sm font-semibold; }
-  .cta-ultimos-titulo a { @apply text-xs font-medium text-[var(--color-marino-claro)]; }
-
-  .cta-lista { @apply flex flex-col; }
-  .cta-lista li {
-    @apply flex items-baseline justify-between gap-3 border-t border-[var(--color-borde)] py-3;
+  .desplegable-flecha {
+    @apply h-5 w-5 shrink-0 transition-transform duration-200;
+    fill: currentColor;
+    color: var(--color-apagado);
   }
-  .cta-lista li:first-child { @apply border-t-0; }
-  .cta-lista-que { @apply min-w-0 text-sm font-medium; }
-  .cta-lista-que small { @apply mt-0.5 block text-xs font-normal text-slate-500; }
-  .cta-lista-pts {
-    @apply text-lg font-bold;
+  .desplegable-flecha.abierta { @apply rotate-180; }
+  .desplegable-cuerpo { @apply border-t border-[var(--color-borde)] px-5 py-5; }
+
+  /* El QR va sobre blanco y sin nada encima: tiene que poder escanearse. */
+  .qr-lienzo { @apply mx-auto block h-auto w-[190px] max-w-full rounded-xl bg-white; }
+  .qr-instruccion { @apply mt-4 text-center text-[15px] font-semibold; color: var(--color-marino); }
+  .qr-alternativa { @apply mt-4 text-center text-[13px]; color: var(--color-apagado); }
+  .qr-digitos {
+    @apply mt-1 text-center text-[32px] font-extrabold leading-tight;
+    color: var(--color-marino);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.08em;
+  }
+  .qr-telefono { @apply mt-2 text-center text-[12px]; color: var(--color-apagado); }
+
+  /* ---- Así de simple ---- */
+  .simple { @apply rounded-[20px] bg-white px-5 py-5; }
+  .simple h2 { @apply text-[16px] font-extrabold; color: var(--color-marino); }
+  .simple-grilla { @apply mt-4 flex flex-wrap gap-4; }
+  .simple-caja { @apply min-w-[130px] flex-1; }
+  .simple-rotulo {
+    @apply text-[12px] font-extrabold uppercase tracking-wider;
+    color: var(--color-verde);
+  }
+  .simple-dato {
+    @apply mt-1 text-[22px] font-extrabold leading-tight;
+    color: var(--color-marino);
     font-variant-numeric: tabular-nums;
   }
-  .cta-lista-pts.suma { color: var(--color-ok); }
-  .cta-lista-pts.resta { @apply text-slate-500; }
+  .simple-detalle { @apply mt-1 text-[13px] leading-normal; color: var(--color-apagado); }
 
-  .cta-como { @apply rounded-2xl border border-white/15 px-5 py-4 text-sm text-white/85; }
-  .cta-como h2 { @apply mb-2 text-sm font-semibold text-white; }
-  .cta-como ul { @apply flex flex-col gap-1.5; }
+  /* ---- Condiciones ---- */
+  .condiciones-lista {
+    @apply flex flex-col gap-2.5 text-[14px] leading-relaxed;
+    color: var(--color-apagado);
+  }
+
+  .cta-enlace-local {
+    @apply inline-flex min-h-11 items-center gap-2 self-start rounded-xl px-1 text-[15px]
+           font-bold underline;
+    color: var(--color-apagado-claro);
+  }
+
+  /* ---- Estados ---- */
+  .cta-error { @apply rounded-[20px] bg-white px-5 py-8 text-center; }
+  .cta-error p { @apply text-[15px] font-semibold; color: var(--color-marino); }
+  .cta-reintentar {
+    @apply mt-4 inline-flex min-h-11 items-center justify-center rounded-xl px-5 text-[15px]
+           font-bold text-white transition;
+    background: var(--color-marino);
+  }
 
   /* ---- Pantallas secundarias ---- */
-  .pantalla-titulo { @apply text-xl font-bold text-white; }
-  .pantalla-bajada { @apply -mt-2 text-sm text-white/70; }
+  .pantalla-titulo { @apply text-2xl font-extrabold text-white; }
+  .pantalla-bajada { @apply -mt-3 text-sm; color: var(--color-apagado-claro); }
 
-  .vacio { @apply rounded-2xl bg-white px-6 py-10 text-center text-sm text-slate-600; }
-  .vacio-titulo { @apply mb-2 text-base font-semibold text-[var(--color-tinta)]; }
-
-  .mov-mes { @apply rounded-2xl bg-white px-5 py-4; }
-  .mov-mes-titulo { @apply mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500; }
-
-  .locales { @apply flex flex-col gap-3; }
-  .local { @apply rounded-2xl bg-white px-5 py-4; }
-  .local h2 { @apply text-base font-bold; }
-  .local-dir { @apply mt-0.5 text-sm text-slate-600; }
-  .local-hor { @apply mt-0.5 text-xs text-slate-500; }
-  .local-acciones { @apply mt-3 flex gap-2; }
-  .local-boton {
-    @apply rounded-lg border border-[var(--color-borde)] px-3 py-1.5 text-xs font-semibold
-           text-[var(--color-marino)] no-underline;
+  .vacio { @apply rounded-[20px] bg-white px-6 py-10 text-center; }
+  .vacio-titulo { @apply mb-2 text-[18px] font-extrabold; color: var(--color-marino); }
+  .vacio p { @apply text-[14px] leading-relaxed; color: var(--color-apagado); }
+  .vacio-accion {
+    @apply mt-5 inline-flex min-h-11 items-center justify-center rounded-xl px-5 text-[15px]
+           font-bold text-white no-underline transition;
+    background: var(--color-marino);
   }
 
-  .nov-grupo { @apply rounded-2xl bg-white px-5 py-4; }
-  .nov-grupo-titulo { @apply mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500; }
+  /* ---- Movimientos ---- */
+  .mov-mes { @apply rounded-[20px] bg-white px-5 py-4; }
+  .mov-mes-titulo {
+    @apply mb-1 text-[12px] font-extrabold uppercase tracking-wider;
+    color: var(--color-apagado);
+  }
+  .cta-lista { @apply flex flex-col; }
+  .cta-lista li {
+    @apply flex items-center justify-between gap-3 border-t border-[var(--color-borde)] py-3;
+  }
+  .cta-lista li:first-child { @apply border-t-0; }
+  .cta-lista-que { @apply min-w-0 text-[15px] font-semibold; color: var(--color-marino); }
+  .cta-lista-que small { @apply mt-0.5 block text-[13px] font-normal; color: var(--color-apagado); }
+  /* El signo y el texto dicen qué pasó; el color sólo acompaña. */
+  .cta-lista-pts {
+    @apply shrink-0 text-right text-[18px] font-extrabold;
+    font-variant-numeric: tabular-nums;
+  }
+  .cta-lista-pts.suma { color: var(--color-verde); }
+  .cta-lista-pts.resta { color: var(--color-marino); }
+  .cta-lista-pts.vence { color: var(--color-apagado); }
+
+  /* ---- Locales ---- */
+  .locales { @apply flex flex-col gap-3; }
+  .local { @apply rounded-[20px] bg-white px-5 py-5; }
+  .local h2 { @apply text-[17px] font-bold; color: var(--color-marino); }
+  .local-dir { @apply mt-1 text-[14px]; color: var(--color-apagado); }
+  .local-hor { @apply mt-0.5 text-[13px]; color: var(--color-apagado); }
+  .local-acciones { @apply mt-4 flex flex-wrap gap-2; }
+  .local-boton {
+    @apply inline-flex min-h-11 items-center justify-center rounded-xl border
+           border-[var(--color-borde)] px-4 text-[14px] font-bold no-underline transition;
+    color: var(--color-marino);
+  }
+
+  /* ---- Precios ---- */
+  .nov-grupo { @apply rounded-[20px] bg-white px-5 py-4; }
+  .nov-grupo-titulo {
+    @apply mb-1 text-[12px] font-extrabold uppercase tracking-wider;
+    color: var(--color-apagado);
+  }
   .novedades { @apply flex flex-col; }
   .novedad {
-    @apply flex items-baseline justify-between gap-4 border-t border-[var(--color-borde)] py-3;
+    @apply flex items-start justify-between gap-4 border-t border-[var(--color-borde)] py-3;
   }
   .novedad:first-child { @apply border-t-0; }
-  .novedad-texto h3 { @apply text-sm font-semibold; }
-  .novedad-texto p { @apply mt-0.5 text-xs text-slate-500; }
+  .novedad-texto { @apply min-w-0; }
+  .novedad-texto h3 { @apply text-[15px] font-semibold leading-snug; color: var(--color-marino); }
+  .novedad-texto p { @apply mt-0.5 text-[13px]; color: var(--color-apagado); }
   .novedad-precio {
-    @apply whitespace-nowrap text-base font-bold;
+    @apply shrink-0 whitespace-nowrap pt-0.5 text-right text-[16px] font-bold;
     color: var(--color-marino);
     font-variant-numeric: tabular-nums;
   }
-  .nov-pie { @apply px-2 text-center text-xs text-white/50; }
+  .nov-pie { @apply px-2 text-center text-[12px]; color: var(--color-apagado-claro); }
 }
 
 @layer components {

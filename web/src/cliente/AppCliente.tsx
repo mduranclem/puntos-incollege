@@ -1,11 +1,15 @@
 /**
- * Armazón de la app del cliente: contenido arriba, cuatro pestañas abajo.
+ * Armazón de la app del cliente: logo y salida arriba, cuatro pestañas abajo.
  *
- * Cuatro y no más: cuenta, movimientos, locales y novedades. La cuenta es lo
+ * Cuatro y no más: cuenta, movimientos, locales y precios. La cuenta es lo
  * primero que se ve al abrir, siempre.
+ *
+ * "Salir" vive acá y no adentro de Mi cuenta: se puede salir desde cualquier
+ * pestaña, y el encabezado queda igual en las cuatro.
  */
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { Logo } from '../componentes/Logo';
+import { cerrarAcceso } from './api';
 
 type Pestania = { a: string; texto: string; icono: JSX.Element; exacto?: boolean };
 
@@ -35,19 +39,33 @@ const PESTANIAS: Pestania[] = [
     ),
   },
   {
+    // La ruta sigue siendo /novedades para no romper ningún enlace ya repartido;
+    // lo que cambia es el nombre, porque lo que muestra son precios.
     a: '/app/novedades',
-    texto: 'Novedades',
-    icono: <Icono d="M4 4h16v12H7l-3 3zm3 4h10v2H7zm0 4h7v2H7z" />,
+    texto: 'Precios',
+    icono: (
+      <Icono d="M3 5h12l6 7-6 7H3l6-7-6-7zm9.5 4.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" />
+    ),
   },
 ];
 
 export function AppCliente() {
+  const navegar = useNavigate();
+
   return (
     <div className="app-cliente">
-      {/* El logo arriba de todo: es la única marca visible una vez adentro,
-          porque la pantalla la manda el saldo y no el encabezado (D-037). */}
       <header className="app-encabezado">
         <Logo alto={26} alt="InCollege" />
+        <button
+          type="button"
+          className="app-salir"
+          onClick={() => {
+            cerrarAcceso();
+            navegar('/app/entrar', { replace: true });
+          }}
+        >
+          Salir
+        </button>
       </header>
 
       <main className="app-contenido">
@@ -60,6 +78,7 @@ export function AppCliente() {
             key={p.a}
             to={p.a}
             end={p.exacto}
+            // NavLink pone `aria-current="page"` solo en la que está activa.
             className={({ isActive }) => `app-pestania${isActive ? ' activa' : ''}`}
           >
             {p.icono}

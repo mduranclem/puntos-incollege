@@ -4,8 +4,9 @@
  * Si todavía no cargaron la dirección desde el panel, se muestra el local igual
  * con el nombre: media ficha es mejor que una pantalla vacía.
  */
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { apiCliente, type Local } from './api';
+import { Cargando, ErrorDePantalla } from './Estados';
 
 const comoLlegar = (local: Local) =>
   `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
@@ -14,33 +15,33 @@ const comoLlegar = (local: Local) =>
 
 export function Locales() {
   const [locales, setLocales] = useState<Local[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(false);
+  const [cargando, setCargando] = useState(true);
 
-  useEffect(() => {
+  const cargar = useCallback(() => {
+    setCargando(true);
+    setError(false);
     apiCliente<{ locales: Local[] }>('/locales')
-      .then((d) => setLocales(d.locales))
-      .catch(() => setError('No pudimos cargar los locales. Probá de nuevo en un momento.'));
+      .then((d) => {
+        setLocales(d.locales);
+        setCargando(false);
+      })
+      .catch(() => {
+        setError(true);
+        setCargando(false);
+      });
   }, []);
 
-  if (error) {
-    return (
-      <div className="cta-centro">
-        <p>{error}</p>
-      </div>
-    );
-  }
+  useEffect(cargar, [cargar]);
 
-  if (!locales) {
-    return (
-      <div className="cta-centro">
-        <p className="cta-cargando">Cargando…</p>
-      </div>
-    );
+  if (cargando) return <Cargando filas={4} etiqueta="Cargando los locales" />;
+  if (error || !locales) {
+    return <ErrorDePantalla mensaje="No pudimos cargar los locales" alReintentar={cargar} />;
   }
 
   return (
     <div className="cta">
-      <h1 className="pantalla-titulo">Nuestros locales</h1>
+      <h1 className="pantalla-titulo">Locales</h1>
       <p className="pantalla-bajada">
         Sumás puntos pagando en efectivo en cualquiera de ellos.
       </p>

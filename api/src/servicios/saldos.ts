@@ -60,6 +60,13 @@ export async function resumenDeCuenta(
     /** Cuánto falta pagar en efectivo para sumar el próximo punto. */
     faltaParaElProximoCentavos: faltaCentavos > 0n ? faltaCentavos : 0n,
     faltaParaElProximoTexto: formatearPesos(faltaCentavos > 0n ? faltaCentavos : 0n),
+    /**
+     * Cuánto hay que pagar en efectivo por cada punto. Sale de la configuración,
+     * nunca del código (D-009): las pantallas lo muestran tal cual y si mañana
+     * deja de ser $10.000, cambia solo.
+     */
+    porPuntoCentavos: config.tasas.UNIFORMES ?? 0n,
+    porPuntoTexto: formatearPesos(config.tasas.UNIFORMES ?? 0n),
     valorPuntoCentavos: config.valorPuntoCentavos,
     topeCanjeBps: config.topeCanjeBps,
     temporada: {

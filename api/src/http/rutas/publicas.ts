@@ -95,6 +95,11 @@ async function armarCuenta(clienteId: string, cantidadDeMovimientos: number) {
     saldoPuntos: resumen.saldoPuntos,
     equivalenteTexto: resumen.equivalenteTexto,
     faltaParaElProximoTexto: resumen.faltaParaElProximoTexto,
+    // Con estos dos la pantalla dibuja el avance real hacia el próximo punto.
+    // Sin ellos habría que inventar un porcentaje, y eso no se hace.
+    remanenteCentavos: resumen.remanenteCentavos,
+    porPuntoCentavos: resumen.porPuntoCentavos,
+    porPuntoTexto: resumen.porPuntoTexto,
     topeCanjeBps: resumen.topeCanjeBps,
     valorPuntoTexto: formatearPesos(BigInt(resumen.valorPuntoCentavos)),
     temporada: resumen.temporada,

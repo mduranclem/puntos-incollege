@@ -924,3 +924,61 @@ Y hay algo peor que la incomodidad: un cliente que llega a una pantalla que le p
 guardó la dirección vieja. El `start_url` de la app instalada y el link que va por WhatsApp
 ya apuntaban a `/app` y no cambian. El QR del cliente lleva sólo el teléfono (D-024), así
 que tampoco lo toca.
+
+---
+
+## D-039 · Rediseño de la app del cliente
+
+**Contexto.** La app funcionaba pero se veía plana y sin identidad. La usan chicos de 16 a
+18 años y sus padres. El pedido: que en tres segundos se entienda cuántos puntos hay,
+cuánto descuento son y cómo identificarse en caja, con una estética de credencial
+colegial —marino, crema y verde— sin perder simplicidad.
+
+**Decisión.** Sistema visual propio en tokens (`estilos.css`): marino `#102D4F`, crema
+`#F7F4EC` para la tarjeta de saldo, verde `#12664F` —el del logo— para el beneficio, verde
+claro `#DDF3E8` para la pestaña elegida, y dorado `#E8B84C` **sólo** como línea decorativa.
+Manrope para todo, y Barlow Condensed únicamente en el titular de la tarjeta.
+
+**El protagonista cambia según el estado real de la cuenta.** La tarjeta tiene tres caras
+y ninguna se inventa:
+
+| Estado | Qué manda |
+|---|---|
+| Con saldo | El **descuento** en grande (`$8.000 de descuento`), y abajo los puntos. Es lo que la persona va a usar; "8 puntos" no le dice cuánto se ahorra. |
+| Cuenta nueva, sin movimientos | El cero está pero no manda. Manda "Todo empieza con tu primer punto" y la explicación de cómo se suma. |
+| Saldo cero con historial | "Ya aprovechaste tus puntos. Tu próxima compra vuelve a sumar". No corresponde darle la bienvenida a quien ya compró. |
+
+Los dos últimos se distinguen porque los movimientos están: sin ellos sería adivinar.
+
+**Un cero nunca significa "no cargó".** La carga reserva el lugar con bloques grises y el
+error dice "No pudimos cargar tus puntos" con un botón para reintentar. Mostrar `0 puntos`
+mientras carga, o cuando falló la consulta, es mentirle a alguien sobre su plata.
+
+**La barra de avance sale del libro mayor, no de una estimación.** Se dibuja con el
+remanente real que guarda cada movimiento (D-005) contra la tasa configurada, y **sólo si
+hay movimientos**: sin datos no se dibuja nada. Para eso la API ahora expone
+`remanenteCentavos`, `porPuntoCentavos` y `porPuntoTexto`.
+
+**La tasa se muestra, no se escribe.** "Por cada $10.000" sale de `Configuracion`, igual
+que el valor del punto y el tope (D-009). Si mañana la tasa cambia, la pantalla cambia
+sola; si estuviera escrita en el código, mentiría.
+
+**Se corrigió la jerarquía del QR.** La pantalla decía "últimos 4 números" y mostraba el
+teléfono entero en grande. Ahora el desplegable se llama "Mostrar QR para caja", la
+cabecera entera es el botón, y adentro van el QR real —sin logos encima ni efectos, tiene
+que escanearse—, los cuatro dígitos en grande y el teléfono completo como dato secundario.
+El QR sigue llevando sólo el teléfono (D-024): no es una credencial y una foto de la
+pantalla no sirve para entrar.
+
+**"Novedades" pasa a llamarse "Precios"**, que es lo que muestra. La ruta sigue siendo
+`/app/novedades` para no romper enlaces ya repartidos.
+
+**Lo que se sacó.** El bloque "Últimos movimientos" de Mi cuenta: el pedido define el orden
+de la pantalla y no lo incluye, y hay una pestaña entera para eso.
+
+**Lo que quedó sin definir, y por eso la app no lo afirma.** Si los puntos se pueden usar
+en la misma compra que los genera: cobro y canje son dos operaciones independientes y nada
+las vincula ni lo impide. Y si una compra con promoción acredita: el cobro no pregunta por
+promociones, así que hoy cualquier pago en efectivo acredita, mientras que la regla de no
+acumulación se aplica recién en el canje (D-008). Ninguna de las dos cosas se redactó en la
+interfaz hasta que la empresa las defina.

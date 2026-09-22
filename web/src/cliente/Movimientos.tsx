@@ -1,15 +1,18 @@
 /**
  * Historial completo, agrupado por mes. Es la pantalla del "¿y esto cuándo fue?".
  */
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   apiCliente,
   cerrarAcceso,
+  CLASE_MOVIMIENTO,
   TEXTO_MOVIMIENTO,
   type Cuenta as DatosCuenta,
   type Movimiento,
 } from './api';
+import { Cargando, ErrorDePantalla } from './Estados';
 
 const mesDe = (iso: string) =>
   new Date(iso).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
@@ -19,36 +22,34 @@ const diaDe = (iso: string) =>
 
 export function Movimientos() {
   const [cuenta, setCuenta] = useState<DatosCuenta | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(false);
+  const [cargando, setCargando] = useState(true);
   const navegar = useNavigate();
 
-  useEffect(() => {
+  const cargar = useCallback(() => {
+    setCargando(true);
+    setError(false);
     apiCliente<DatosCuenta>('/cuenta', { conSesion: true })
-      .then(setCuenta)
+      .then((datos) => {
+        setCuenta(datos);
+        setCargando(false);
+      })
       .catch((e) => {
         if (e?.codigo === 'LINK_INVALIDO') {
           cerrarAcceso();
           navegar('/app/entrar', { replace: true });
           return;
         }
-        setError('No pudimos cargar tus movimientos. Probá de nuevo en un momento.');
+        setError(true);
+        setCargando(false);
       });
   }, [navegar]);
 
-  if (error) {
-    return (
-      <div className="cta-centro">
-        <p>{error}</p>
-      </div>
-    );
-  }
+  useEffect(cargar, [cargar]);
 
-  if (!cuenta) {
-    return (
-      <div className="cta-centro">
-        <p className="cta-cargando">Cargando…</p>
-      </div>
-    );
+  if (cargando) return <Cargando etiqueta="Cargando tus movimientos" />;
+  if (error || !cuenta) {
+    return <ErrorDePantalla mensaje="No pudimos cargar tus movimientos" alReintentar={cargar} />;
   }
 
   const porMes = new Map<string, Movimiento[]>();
@@ -63,11 +64,14 @@ export function Movimientos() {
 
       {cuenta.movimientos.length === 0 ? (
         <div className="vacio">
-          <p className="vacio-titulo">Todavía no tenés movimientos</p>
+          <p className="vacio-titulo">Acá vas a ver tus puntos en movimiento</p>
           <p>
-            Vas a ver acá cada compra que sume puntos y cada descuento que uses.
-            Empezás a sumar pagando en efectivo en el local.
+            Después de tu primera compra, vas a encontrar los puntos que sumaste y los
+            descuentos que usaste.
           </p>
+          <Link className="vacio-accion" to="/app/locales">
+            Ver locales
+          </Link>
         </div>
       ) : (
         [...porMes.entries()].map(([mes, movimientos]) => (
@@ -84,7 +88,8 @@ export function Movimientos() {
                       {m.local ? ` · ${m.local}` : ''}
                     </small>
                   </span>
-                  <span className={`cta-lista-pts ${m.puntos > 0 ? 'suma' : 'resta'}`}>
+                  {/* Signo, texto y fecha: el color es lo último que informa. */}
+                  <span className={`cta-lista-pts ${CLASE_MOVIMIENTO[m.tipo]}`}>
                     {m.puntos > 0 ? `+${m.puntos}` : m.puntos}
                   </span>
                 </li>

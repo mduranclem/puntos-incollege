@@ -1,12 +1,17 @@
 /**
- * Novedades y precios. Es lo que hace que el cliente conozca las líneas por las
- * que no vino: uno de los dos motivos por los que existe el programa.
+ * Precios. Es lo que hace que el cliente conozca las líneas por las que no
+ * vino: uno de los dos motivos por los que existe el programa.
+ *
+ * Se llama "Precios" y no "Novedades" porque es lo que muestra: el catálogo con
+ * su precio de lista (D-039). La ruta sigue siendo `/app/novedades` para no
+ * romper ningún enlace ya repartido.
  *
  * Lo carga la administración desde el panel. Si no hay nada cargado, la pantalla
  * lo dice y no finge contenido.
  */
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { apiCliente, type Novedad } from './api';
+import { Cargando, ErrorDePantalla } from './Estados';
 
 const NOMBRE_LINEA: Record<string, string> = {
   UNIFORMES: 'Uniformes',
@@ -16,28 +21,28 @@ const NOMBRE_LINEA: Record<string, string> = {
 
 export function Novedades() {
   const [novedades, setNovedades] = useState<Novedad[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(false);
+  const [cargando, setCargando] = useState(true);
 
-  useEffect(() => {
+  const cargar = useCallback(() => {
+    setCargando(true);
+    setError(false);
     apiCliente<{ novedades: Novedad[] }>('/novedades')
-      .then((d) => setNovedades(d.novedades))
-      .catch(() => setError('No pudimos cargar las novedades. Probá de nuevo en un momento.'));
+      .then((d) => {
+        setNovedades(d.novedades);
+        setCargando(false);
+      })
+      .catch(() => {
+        setError(true);
+        setCargando(false);
+      });
   }, []);
 
-  if (error) {
-    return (
-      <div className="cta-centro">
-        <p>{error}</p>
-      </div>
-    );
-  }
+  useEffect(cargar, [cargar]);
 
-  if (!novedades) {
-    return (
-      <div className="cta-centro">
-        <p className="cta-cargando">Cargando…</p>
-      </div>
-    );
+  if (cargando) return <Cargando filas={3} etiqueta="Cargando los precios" />;
+  if (error || !novedades) {
+    return <ErrorDePantalla mensaje="No pudimos cargar los precios" alReintentar={cargar} />;
   }
 
   const porLinea = new Map<string, Novedad[]>();
@@ -48,12 +53,12 @@ export function Novedades() {
 
   return (
     <div className="cta">
-      <h1 className="pantalla-titulo">Novedades</h1>
+      <h1 className="pantalla-titulo">Precios</h1>
 
       {novedades.length === 0 ? (
         <div className="vacio">
-          <p className="vacio-titulo">Todavía no hay novedades</p>
-          <p>Cuando haya precios o promociones para mostrar, van a aparecer acá.</p>
+          <p className="vacio-titulo">Todavía no hay precios cargados</p>
+          <p>Cuando la lista esté disponible, la vas a ver acá.</p>
         </div>
       ) : (
         [...porLinea.entries()].map(([linea, items]) => (
