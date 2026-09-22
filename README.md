@@ -93,8 +93,26 @@ juego y sin eso Git autentica con la otra, contra la que este repo privado respo
 permiso", le dice "no existe". Si alguna vez ves ese error, revisá esto antes que el
 nombre del repo.
 
+**Qué poner en `api/.env` para trabajar local.** No hace falta ningún secreto de
+producción: para desarrollo sirve cualquier cosa, porque la base es otra.
+
+| Variable | Qué poner en la máquina nueva |
+|---|---|
+| `DATABASE_URL` | La de Docker, o la del Postgres embebido (está más arriba) |
+| `JWT_SECRET`, `TOKEN_CLIENTE_SECRET` | Cualquier cadena larga; son locales |
+| `CRON_HABILITADO` | **`false`**. Ver el párrafo de abajo |
+| `N8N_WEBHOOK_URL` | Vacío, salvo que estés probando los avisos a propósito |
+
+**El `CRON_HABILITADO=false` importa.** Si lo prendés con `N8N_WEBHOOK_URL` apuntando al
+n8n de la empresa, los avisos de prueba **salen por WhatsApp de verdad**, y un teléfono
+inventado puede ser de una persona real. Los archivos de ejemplo vienen así; dejalos.
+
+Los secretos de producción viven en las variables de entorno del servicio en EasyPanel,
+no en ningún archivo del repositorio.
+
 Después levantás la base como dice más arriba (con Docker o con el Postgres embebido) y
-ya estás trabajando.
+ya estás trabajando. Si vas a tocar la marca, además: `pip install pillow scipy`, que no
+son dependencias del proyecto y sólo hacen falta para `marca/generar.py` (D-037).
 
 **Cada vez que te sentás a trabajar, en cualquiera de las dos:**
 

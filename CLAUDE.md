@@ -9,7 +9,7 @@ descuento en pesos.
 Leé, en este orden:
 
 1. `ROADMAP.md` — qué etapa está hecha y qué falta.
-2. `DECISIONES.md` — el por qué de cada decisión (D-000 a D-019). **Es la fuente de
+2. `DECISIONES.md` — el por qué de cada decisión (D-000 a D-037). **Es la fuente de
    verdad del proyecto.** Si vas a contradecir una decisión, leela entera primero y
    decilo explícitamente.
 3. `README.md` — cómo levantarlo y cómo se despliega.
@@ -39,9 +39,16 @@ acá va el resumen para que no se rompan por descuido:
   tope de canje y fecha de cierre salen de la tabla `Configuracion`.
 - **Los pagos entran por el puerto `FuenteDePagos`** (D-003). El motor no sabe de dónde
   viene un pago. Así entra egresados después sin refactor.
+- **Nadie entra sin contraseña propia** (D-034). El personal usa usuario + contraseña; la
+  que puso otro obliga a cambiarla al entrar y el servidor devuelve 403 en todo lo que
+  opera hasta que eso pase.
+- **La cuenta del cliente es su teléfono** (D-010, D-036). Desde D-036 entra con mail y
+  contraseña, pero el mail es sólo un nombre de usuario: el teléfono es lo que ata los
+  puntos a una persona. Por eso registrarse pide una vez el código por WhatsApp, y por eso
+  recuperar la contraseña también va por ahí y no por mail.
 
 Si tocás el motor (`api/src/motor/`, `api/src/dominio/`), corré `npm test` y que pasen
-los 45 tests antes de dar nada por hecho.
+los 75 tests antes de dar nada por hecho.
 
 ## Convenciones
 
@@ -53,6 +60,12 @@ los 45 tests antes de dar nada por hecho.
 - No inventes datos de prueba que parezcan clientes reales. Si necesitás precios, usá
   los reales: remera lisa $9.900, remera estampada $12.650, chomba bordada $26.950, buzo
   cuello redondo con frisa bordado $29.700, campera canguro con frisa bordada $41.800.
+- **Ojo con los avisos de prueba.** Un teléfono inventado puede ser de una persona real.
+  En desarrollo `CRON_HABILITADO=false`, así que los eventos quedan encolados y no salen;
+  verificá que siga así antes de probar cobros o códigos.
+- La marca está en `marca/` y los archivos que usa la web se generan con
+  `marca/generar.py` (D-037). La mascota va **sólo como ícono**, recortada a la cara: su
+  buzo dice "EGRESADOS", que no participa del programa.
 
 ## Fuera de alcance (no construir sin que lo pidan)
 
@@ -71,9 +84,17 @@ Ver `README.md`. Dos caminos según la máquina:
 
 `npm test` y `npm run simular` no necesitan base de datos.
 
-## Qué falta verificar
+## Estado
 
-Los tests de concurrencia del canje (`api/tests/integracionPostgres.test.ts`) están
-escritos pero **nunca corrieron**: necesitan un PostgreSQL real con varias conexiones.
-Se saltean solos si no hay `DATABASE_URL_TEST`. Si estás en una máquina con Docker o con
-Postgres instalado, correlos: es la única regla del pedido sin evidencia.
+Desplegado y funcionando en `https://n8n-puntos-incollege.fbf9ni.easypanel.host`
+(EasyPanel, adentro del proyecto `n8n`; la base es el servicio `puntos-db`).
+
+Los tests de concurrencia del canje ya corrieron contra el PostgreSQL real y pasan
+(D-033): `api/src/scripts/probarConcurrencia.ts`, desde la consola del servicio y contra
+el esquema `pruebas`, nunca contra `public`. Era la única regla del pedido sin evidencia.
+
+Lo que queda pendiente, y es del dueño, no del código:
+
+- Cargar el catálogo real de artículos; hoy están los cinco precios de muestra.
+- Probar el escaneo del QR con un celular de verdad sobre HTTPS.
+- Una versión de la mascota sin la ropa de egresados, si se la quiere usar en grande.
