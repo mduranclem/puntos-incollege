@@ -2,7 +2,8 @@
  * Reglas de puntos, puras y sin efectos. Toda la aritmética del programa vive acá;
  * el motor sólo la orquesta contra el libro mayor.
  *
- * Ver DECISIONES.md § D-005 (remanente derivado) y § D-008 (un beneficio por operación).
+ * Ver DECISIONES.md § D-005 (remanente derivado) y § D-042, que reemplaza a D-008:
+ * el canje ya **no** rechaza la venta que tuvo otros beneficios.
  */
 import { aplicarBps, dividirTecho } from './dinero.js';
 import { BeneficioComercial, ErrorDeNegocio } from './tipos.js';
@@ -129,18 +130,12 @@ export function calcularCanje(pedido: PedidoDeCanje): ResultadoCanje {
     saldoDisponible,
     valorPuntoCentavos,
     topeCanjeBps,
-    beneficiosAplicados,
   } = pedido;
 
-  // D-008: un solo beneficio por operación. Lo impide el sistema, no el vendedor.
-  if (beneficiosAplicados.length > 0) {
-    throw new ErrorDeNegocio(
-      'BENEFICIOS_NO_ACUMULABLES',
-      'El canje de puntos no se acumula con otros beneficios. Ya se aplicó: ' +
-        beneficiosAplicados.join(', '),
-      { beneficiosAplicados },
-    );
-  }
+  // Los beneficios declarados ya no frenan nada (D-042, reemplaza a D-008): la
+  // decisión de combinar es del mostrador. Se siguen recibiendo y quedan
+  // guardados en el movimiento, que es lo que permite medir después cuántas
+  // ventas combinaron puntos con otra cosa.
   if (!Number.isInteger(puntosPedidos) || puntosPedidos <= 0) {
     throw new ErrorDeNegocio('CANJE_INVALIDO', 'Los puntos a canjear deben ser un entero positivo');
   }

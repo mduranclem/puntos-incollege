@@ -165,32 +165,38 @@ describe('canje', () => {
     expect((await repo.estadoDeCuenta(CUENTA)).saldoPuntos).toBe(30);
   });
 
-  it('no se acumula con el descuento por pago contado ni con la bonificación de primera cuota', async () => {
-    await expect(
-      motor.canjear({
-        cuentaId: CUENTA,
-        puntosPedidos: 2,
-        totalVentaCentavos: parsearImporte('100000'),
-        valorPuntoCentavos: VALOR_PUNTO,
-        topeCanjeBps: TOPE_BPS,
-        beneficiosAplicados: ['DESCUENTO_CONTADO_10'],
-        contexto: CONTEXTO,
-      }),
-    ).rejects.toMatchObject({ codigo: 'BENEFICIOS_NO_ACUMULABLES' });
+  // Hasta D-042 esto se rechazaba. Ahora se permite y la decisión es del
+  // mostrador; lo que el sistema garantiza es que quede registrado.
+  it('se puede canjear en una venta que ya tuvo otro beneficio (D-042)', async () => {
+    const resultado = await motor.canjear({
+      cuentaId: CUENTA,
+      puntosPedidos: 2,
+      totalVentaCentavos: parsearImporte('100000'),
+      valorPuntoCentavos: VALOR_PUNTO,
+      topeCanjeBps: TOPE_BPS,
+      beneficiosAplicados: ['DESCUENTO_CONTADO_10'],
+      contexto: CONTEXTO,
+    });
 
-    await expect(
-      motor.canjear({
-        cuentaId: CUENTA,
-        puntosPedidos: 2,
-        totalVentaCentavos: parsearImporte('100000'),
-        valorPuntoCentavos: VALOR_PUNTO,
-        topeCanjeBps: TOPE_BPS,
-        beneficiosAplicados: ['BONIFICACION_PRIMERA_CUOTA_50'],
-        contexto: CONTEXTO,
-      }),
-    ).rejects.toMatchObject({ codigo: 'BENEFICIOS_NO_ACUMULABLES' });
+    expect(resultado.movimiento?.puntos).toBe(-2);
+    expect((await repo.estadoDeCuenta(CUENTA)).saldoPuntos).toBe(28);
+  });
 
-    expect((await repo.estadoDeCuenta(CUENTA)).saldoPuntos).toBe(30);
+  it('el beneficio declarado queda guardado en el movimiento, para poder medirlo', async () => {
+    const resultado = await motor.canjear({
+      cuentaId: CUENTA,
+      puntosPedidos: 1,
+      totalVentaCentavos: parsearImporte('100000'),
+      valorPuntoCentavos: VALOR_PUNTO,
+      topeCanjeBps: TOPE_BPS,
+      beneficiosAplicados: ['BONIFICACION_PRIMERA_CUOTA_50'],
+      contexto: CONTEXTO,
+    });
+
+    const metadata = resultado.movimiento?.metadata as {
+      beneficiosDeclarados?: string[];
+    } | null;
+    expect(metadata?.beneficiosDeclarados).toEqual(['BONIFICACION_PRIMERA_CUOTA_50']);
   });
 
   it('el canje no toca el remanente', async () => {

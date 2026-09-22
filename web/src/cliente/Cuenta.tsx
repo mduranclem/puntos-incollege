@@ -151,7 +151,6 @@ export function Cuenta() {
             Los puntos de una compra se suman cuando terminás de pagarla, así que no se
             pueden usar en esa misma compra.
           </p>
-          <p>El descuento con puntos no se combina con otras promociones.</p>
           <p>Tus puntos vencen el {fechaLarga(cuenta.temporada.venceEn)}.</p>
         </div>
       </Desplegable>

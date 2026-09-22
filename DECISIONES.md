@@ -1021,3 +1021,37 @@ efectivo, acredita sobre $9.000.
 para que nadie lo "arregle" más adelante creyendo que es un olvido. La regla de no
 acumulación (D-008) sigue siendo cosa del canje, no del cobro: son dos momentos distintos
 y no tienen por qué responder igual.
+
+---
+
+## D-042 · El canje sí se combina con otros beneficios · **reemplaza a D-008**
+
+**Contradice a D-008 explícitamente.** D-008 dice: *"El canje no se acumula con el 10% de
+descuento por pago contado ni con la bonificación del 50% de la primera cuota… Si viene
+alguno distinto de vacío, el canje se rechaza… No es una advertencia ni queda a criterio
+del vendedor."* Eso dejó de valer.
+
+**Contexto.** Al preguntar por las compras en promoción, el dueño respondió: *"el vendedor
+carga lo que compra, si es una promoción y tiene puntos para usar, que lo haga"*. Se le
+puso adelante lo que costaba cada opción —con la combinación permitida, un cliente puede
+llevarse el 10% por efectivo **más** el descuento en puntos sobre la misma venta— y
+eligió permitirla.
+
+**Decisión.** El canje **no se rechaza nunca** por los beneficios declarados. La decisión
+de combinar es del mostrador.
+
+**Qué se conserva.** Los beneficios se siguen recibiendo y guardando en el movimiento
+(`metadata.beneficiosDeclarados`). Eso es lo que va a permitir contestar después "cuántas
+ventas combinaron puntos con el 10%", que es la pregunta que se va a hacer la gerencia
+cuando mire los números. Declararlos pasa a ser **opcional** en la pantalla: antes era
+obligatorio y además bloqueaba; obligar a un paso que ya no cambia nada, con gente
+esperando en el mostrador, es sólo fricción.
+
+**Consecuencia en la app del cliente.** Se retiró de las condiciones la frase "El descuento
+con puntos no se combina con otras promociones". Dejarla sería mentirle al cliente sobre
+algo que sí puede hacer.
+
+**Lo que queda pendiente y no se hizo acá.** La lista de beneficios sigue escrita en el
+código (`BENEFICIOS_COMERCIALES`), no en `Configuracion`. Es una deuda con D-009: cambiar
+los beneficios hoy exige tocar código y desplegar. No se resolvió en este cambio porque no
+hacía falta para la decisión, pero queda anotado.

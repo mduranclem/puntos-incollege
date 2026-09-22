@@ -1,7 +1,12 @@
 /**
  * Canje en el mostrador. El vendedor busca por teléfono, ve el saldo, carga el
- * total de la venta y aplica el descuento. El tope y la regla de no acumular con
- * otros beneficios las impone el backend; acá se muestran para que se entiendan.
+ * total de la venta y aplica el descuento. El tope lo impone el backend; acá se
+ * muestra para que se entienda.
+ *
+ * Declarar si hubo otro beneficio es **opcional** desde D-042: ya no frena el
+ * canje, y sirve para medir después cuántas ventas combinaron puntos con otra
+ * cosa. Antes era obligatorio y bloqueaba, y con gente esperando eso era un
+ * paso que no cambiaba nada.
  */
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -257,7 +262,7 @@ export function Canje() {
 
             <fieldset>
               <legend className="etiqueta">
-                ¿Se aplicó otro beneficio en esta venta? (obligatorio)
+                ¿Se aplicó otro beneficio en esta venta? <span className="font-normal text-slate-500">(opcional)</span>
               </legend>
               <div className="flex flex-wrap gap-2">
                 {BENEFICIOS.map((b) => (
@@ -276,8 +281,8 @@ export function Canje() {
                 ))}
               </div>
               {beneficio && beneficio !== 'NINGUNO' && (
-                <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-[var(--color-error)]">
-                  El canje no se acumula con otros beneficios: es uno o el otro.
+                <p className="mt-2 rounded-lg bg-[var(--color-punto-suave)] px-3 py-2 text-sm">
+                  Se puede canjear igual. Queda registrado que esta venta combinó los dos.
                 </p>
               )}
             </fieldset>
@@ -290,13 +295,7 @@ export function Canje() {
 
             <button
               className="boton-principal w-full py-4 text-lg"
-              disabled={
-                cargando ||
-                !beneficio ||
-                beneficio !== 'NINGUNO' ||
-                puntosNumero <= 0 ||
-                excede
-              }
+              disabled={cargando || puntosNumero <= 0 || excede}
             >
               {cargando ? 'Aplicando…' : 'Aplicar canje'}
             </button>

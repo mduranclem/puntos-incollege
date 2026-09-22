@@ -37,6 +37,14 @@ export type TipoDeMovimiento = (typeof TIPOS_DE_MOVIMIENTO)[number];
  * Otros beneficios comerciales de la casa. El canje de puntos no se acumula con
  * ninguno de estos (D-008): un solo beneficio por operación.
  */
+/**
+ * Beneficios comerciales que el mostrador puede declarar en una venta.
+ *
+ * Ya no bloquean el canje (D-042): se registran para poder medir después cuántas
+ * ventas combinaron puntos con otro beneficio. Siguen escritos acá y no en
+ * `Configuracion`, que es una deuda con D-009: cambiar esta lista hoy exige
+ * tocar código y desplegar.
+ */
 export const BENEFICIOS_COMERCIALES = [
   'DESCUENTO_CONTADO_10',
   'BONIFICACION_PRIMERA_CUOTA_50',
