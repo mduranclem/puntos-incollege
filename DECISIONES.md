@@ -982,3 +982,25 @@ las vincula ni lo impide. Y si una compra con promoción acredita: el cobro no p
 promociones, así que hoy cualquier pago en efectivo acredita, mientras que la regla de no
 acumulación se aplica recién en el canje (D-008). Ninguna de las dos cosas se redactó en la
 interfaz hasta que la empresa las defina.
+
+---
+
+## D-040 · Los puntos de una compra no se usan en esa misma compra
+
+**Contexto.** Al rediseñar la app del cliente quedó sin definir si los puntos que genera
+una compra se pueden usar en esa misma compra. El sistema no lo impedía: cobro y canje son
+operaciones independientes, así que un vendedor que registrara primero el cobro dejaba los
+puntos recién acreditados disponibles para descontar ahí mismo.
+
+**Decisión (del dueño).** No. El orden es: **se canjea, se paga, y recién ahí se suman los
+puntos nuevos.** Los puntos se acreditan cuando la compra está confirmada y pagada.
+
+**Por qué el orden natural ya lo cumple.** El canje tiene que ocurrir antes del cobro
+porque es lo que determina cuánto hay que cobrar: el vendedor no puede saber el importe a
+cobrar sin haber aplicado el descuento. Hacerlo al revés significaría cobrar de más y
+descontar después, que es un error que el propio vendedor ve.
+
+**Consecuencia y lo que falta.** La app del cliente lo dice en las condiciones. El sistema
+**todavía no lo impide**: para hacerlo habría que atar el cobro y el canje a una misma
+venta, que hoy no existe como entidad. Queda anotado; si la empresa quiere que el sistema
+lo impida y no sólo lo documente, es un cambio de modelo, no de pantalla.
