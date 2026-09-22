@@ -89,7 +89,9 @@ export async function api<T>(
   if (!respuesta.ok) {
     if (respuesta.status === 401 && !opciones.publico) {
       cerrarSesion();
-      if (!location.pathname.startsWith('/ingresar')) location.assign('/ingresar');
+      if (!location.pathname.startsWith('/mostrador/ingresar')) {
+        location.assign('/mostrador/ingresar');
+      }
     }
     throw new ErrorApi(
       datos?.error ?? 'ERROR',

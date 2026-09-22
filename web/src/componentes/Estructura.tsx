@@ -3,9 +3,9 @@ import { cerrarSesion, leerSesion } from '../api';
 import { Logo } from './Logo';
 
 const enlaces = [
-  { a: '/', texto: 'Cobrar', exacto: true },
-  { a: '/canje', texto: 'Canjear' },
-  { a: '/admin', texto: 'Panel', soloAdmin: true },
+  { a: '/mostrador', texto: 'Cobrar', exacto: true },
+  { a: '/mostrador/canje', texto: 'Canjear' },
+  { a: '/mostrador/admin', texto: 'Panel', soloAdmin: true },
 ];
 
 export function Estructura() {
@@ -41,7 +41,7 @@ export function Estructura() {
           <div className="ml-auto flex items-center gap-3 text-sm">
             <span className="hidden text-white/80 sm:inline">{sesion?.localNombre}</span>
             <NavLink
-              to="/contrasena"
+              to="/mostrador/contrasena"
               className="chip bg-white/10 text-white/90 hover:bg-white/20"
               title="Cambiar mi contraseña"
             >
@@ -52,7 +52,7 @@ export function Estructura() {
               className="chip bg-white/10 text-white/90 hover:bg-white/20"
               onClick={() => {
                 cerrarSesion();
-                navegar('/ingresar');
+                navegar('/mostrador/ingresar');
               }}
             >
               Salir

@@ -89,6 +89,9 @@ Ver `README.md`. Dos caminos según la máquina:
 Desplegado y funcionando en `https://n8n-puntos-incollege.fbf9ni.easypanel.host`
 (EasyPanel, adentro del proyecto `n8n`; la base es el servicio `puntos-db`).
 
+La dirección pelada es **la del cliente**; el mostrador y el panel cuelgan de
+`/mostrador` (D-038).
+
 Los tests de concurrencia del canje ya corrieron contra el PostgreSQL real y pasan
 (D-033): `api/src/scripts/probarConcurrencia.ts`, desde la consola del servicio y contra
 el esquema `pruebas`, nunca contra `public`. Era la única regla del pedido sin evidencia.

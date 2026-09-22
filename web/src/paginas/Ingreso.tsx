@@ -32,7 +32,9 @@ export function Ingreso() {
         cuerpo: { usuario: usuario.trim().toLowerCase(), contrasena },
       });
       guardarSesion(datos.token, datos.sesion);
-      navegar(datos.sesion.debeCambiarContrasena ? '/contrasena' : '/', { replace: true });
+      navegar(datos.sesion.debeCambiarContrasena ? '/mostrador/contrasena' : '/mostrador', {
+        replace: true,
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo ingresar');
       const segundos =

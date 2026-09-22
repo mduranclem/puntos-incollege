@@ -27,15 +27,15 @@ import { leerAcceso } from './cliente/api';
 
 function SoloPersonal({ children }: { children: React.ReactNode }) {
   const sesion = leerSesion();
-  if (!sesion) return <Navigate to="/ingresar" replace />;
+  if (!sesion) return <Navigate to="/mostrador/ingresar" replace />;
   // Con la contraseña puesta por otro no se opera: al cambio y nada más (D-034).
-  if (sesion.debeCambiarContrasena) return <Navigate to="/contrasena" replace />;
+  if (sesion.debeCambiarContrasena) return <Navigate to="/mostrador/contrasena" replace />;
   return <>{children}</>;
 }
 
 /** Con sesión alcanza: es la única pantalla que se ve con el cambio pendiente. */
 function ConSesion({ children }: { children: React.ReactNode }) {
-  return leerSesion() ? <>{children}</> : <Navigate to="/ingresar" replace />;
+  return leerSesion() ? <>{children}</> : <Navigate to="/mostrador/ingresar" replace />;
 }
 
 function SoloCliente({ children }: { children: React.ReactNode }) {
@@ -68,10 +68,10 @@ createRoot(document.getElementById('raiz')!).render(
         {/* El link de WhatsApp deja la sesión abierta y entra a la app */}
         <Route path="/s/:token" element={<DesdeElLink />} />
 
-        {/* Mostrador y administración */}
-        <Route path="/ingresar" element={<Ingreso />} />
+        {/* Mostrador y administración, todo bajo /mostrador (D-038) */}
+        <Route path="/mostrador/ingresar" element={<Ingreso />} />
         <Route
-          path="/contrasena"
+          path="/mostrador/contrasena"
           element={
             <ConSesion>
               <CambiarContrasena />
@@ -79,7 +79,7 @@ createRoot(document.getElementById('raiz')!).render(
           }
         />
         <Route
-          path="/"
+          path="/mostrador"
           element={
             <SoloPersonal>
               <Estructura />
@@ -90,6 +90,11 @@ createRoot(document.getElementById('raiz')!).render(
           <Route path="canje" element={<Canje />} />
           <Route path="admin" element={<Admin />} />
         </Route>
+
+        {/* La dirección pelada la escribe un cliente, no un vendedor (D-038). */}
+        <Route path="/" element={<Navigate to="/app" replace />} />
+        {/* Por si alguien del local se guardó la dirección vieja. */}
+        <Route path="/ingresar" element={<Navigate to="/mostrador/ingresar" replace />} />
 
         <Route path="*" element={<Navigate to="/app" replace />} />
       </Routes>

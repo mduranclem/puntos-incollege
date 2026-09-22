@@ -58,7 +58,7 @@ export function CambiarContrasena() {
       // El token viejo lleva adentro la marca de cambio pendiente: hay que
       // reemplazarlo, si no el servidor sigue sin dejar operar.
       guardarSesion(datos.token, datos.sesion);
-      navegar('/', { replace: true });
+      navegar('/mostrador', { replace: true });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo cambiar la contraseña');
       setActual('');
@@ -148,7 +148,7 @@ export function CambiarContrasena() {
             className="mt-3 w-full text-center text-xs text-slate-500 hover:text-slate-800"
             onClick={() => {
               cerrarSesion();
-              navegar('/ingresar', { replace: true });
+              navegar('/mostrador/ingresar', { replace: true });
             }}
           >
             Salir
@@ -157,7 +157,7 @@ export function CambiarContrasena() {
           <button
             type="button"
             className="mt-3 w-full text-center text-xs text-slate-500 hover:text-slate-800"
-            onClick={() => navegar('/', { replace: true })}
+            onClick={() => navegar('/mostrador', { replace: true })}
           >
             Volver
           </button>

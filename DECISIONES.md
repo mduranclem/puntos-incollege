@@ -897,3 +897,30 @@ color— así que se recorta **por forma**: la calcomanía es una sola pieza con
 generan con `marca/generar.py`, que se corre a mano y sólo cuando cambia la marca. Pillow y
 SciPy no son dependencias del proyecto: lo que viaja en el repositorio son los archivos ya
 generados. Se retiró `web/scripts/generarIconos.mjs`, que dibujaba la estrella de relleno.
+
+---
+
+## D-038 · La dirección pelada es la del cliente; el mostrador vive en `/mostrador`
+
+**Contexto.** Abrir `https://…/` llevaba a "Ingresá con tu usuario de mostrador". El dueño
+entró a ver su propio sistema y preguntó si era sólo para vendedores y dónde estaban los
+clientes. Estaban en `/app`, pero eso no lo adivina nadie.
+
+**Decisión.** La raíz lleva a la app del cliente. Todo el mostrador y el panel pasan a
+colgar de `/mostrador`: `/mostrador` para cobrar, `/mostrador/canje`, `/mostrador/admin`,
+y el ingreso en `/mostrador/ingresar`.
+
+**Por qué.** Es una cuestión de cuántos son. Los vendedores son seis máquinas que se
+guardan el link una vez y lo usan todos los días. Los clientes son todos los demás: son
+los que van a escribir la dirección a mano, los que la van a recibir de boca de una
+vendedora y los que la van a tipear mal. La dirección más corta y más fácil de decir tiene
+que ser la de ellos.
+
+Y hay algo peor que la incomodidad: un cliente que llega a una pantalla que le pide
+"usuario de mostrador" no piensa "me equivoqué de dirección", piensa que la app no es para
+él y cierra. El programa existe para que use la app.
+
+**Consecuencia.** `/ingresar` sigue funcionando y redirige, por si alguien del local ya se
+guardó la dirección vieja. El `start_url` de la app instalada y el link que va por WhatsApp
+ya apuntaban a `/app` y no cambian. El QR del cliente lleva sólo el teléfono (D-024), así
+que tampoco lo toca.

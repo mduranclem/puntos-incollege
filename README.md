@@ -241,10 +241,14 @@ siempre el mismo mensaje.
 
 | Quién | Con qué | Dónde |
 |---|---|---|
-| Gerente y vendedores | usuario + contraseña (D-034) | `/ingresar` |
-| Cliente registrado | mail + contraseña (D-036) | `/app/entrar` |
+| Cliente registrado | mail + contraseña (D-036) | `/` o `/app` |
 | Cliente sin registrar | teléfono + código por WhatsApp (D-022) | `/app/entrar-con-codigo` |
 | Cliente desde el aviso | link firmado, sin login (D-011) | `/s/<token>` |
+| Gerente y vendedores | usuario + contraseña (D-034) | `/mostrador` |
+
+**La dirección pelada es la del cliente** (D-038): es la que se dice en voz alta en el
+local y la que alguien va a tipear mal. El mostrador son seis máquinas que se guardan
+`/mostrador` una vez.
 
 La cuenta del cliente **es su teléfono** (D-010) en los cuatro casos: el mail es sólo un
 nombre de usuario. Por eso registrarse pide una vez el código por WhatsApp, y por eso la
