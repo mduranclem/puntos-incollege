@@ -2,6 +2,7 @@
   "name": "Puntos InCollege",
   "short_name": "Puntos",
   "description": "Tu cuenta de puntos de InCollege: saldo, movimientos y locales.",
+  "categories": ["shopping", "lifestyle"],
   "lang": "es-AR",
   "dir": "ltr",
   "start_url": "/app",

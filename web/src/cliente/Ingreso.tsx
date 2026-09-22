@@ -7,6 +7,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiCliente, ErrorCliente, guardarAcceso } from './api';
+import { Logo } from '../componentes/Logo';
 
 export function IngresoCliente() {
   const [email, setEmail] = useState('');
@@ -41,12 +42,7 @@ export function IngresoCliente() {
   return (
     <div className="ingreso-cliente">
       <div className="ingreso-caja">
-        <div className="ingreso-estrella" aria-hidden="true">
-          ★
-        </div>
-        <h1 className="ingreso-titulo">
-          Puntos <span>InCollege</span>
-        </h1>
+        <Logo alto={56} alt="InCollege" className="ingreso-logo" />
 
         <form onSubmit={entrar} noValidate>
           <p className="ingreso-texto">Entrá a tu cuenta para ver tus puntos.</p>

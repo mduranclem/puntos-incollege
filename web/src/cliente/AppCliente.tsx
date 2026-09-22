@@ -5,6 +5,7 @@
  * primero que se ve al abrir, siempre.
  */
 import { NavLink, Outlet } from 'react-router-dom';
+import { Logo } from '../componentes/Logo';
 
 type Pestania = { a: string; texto: string; icono: JSX.Element; exacto?: boolean };
 
@@ -43,6 +44,12 @@ const PESTANIAS: Pestania[] = [
 export function AppCliente() {
   return (
     <div className="app-cliente">
+      {/* El logo arriba de todo: es la única marca visible una vez adentro,
+          porque la pantalla la manda el saldo y no el encabezado (D-037). */}
+      <header className="app-encabezado">
+        <Logo alto={26} alt="InCollege" />
+      </header>
+
       <main className="app-contenido">
         <Outlet />
       </main>

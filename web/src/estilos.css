@@ -107,6 +107,8 @@
     background: var(--color-marino);
     color: var(--color-punto);
   }
+  /* El logo es apaisado y ancho: centrado y con aire abajo. */
+  .ingreso-logo { @apply mx-auto mb-1 block; }
   .ingreso-titulo { @apply text-xl font-bold tracking-tight; }
   .ingreso-titulo span { color: var(--color-punto); }
   .ingreso-texto { @apply mt-2 mb-5 text-sm text-slate-600; }
@@ -157,8 +159,12 @@
 
   /* ---- Armazón ---- */
   .app-cliente { @apply flex min-h-dvh flex-col; background: var(--color-marino); }
+  .app-encabezado {
+    @apply mx-auto flex w-full max-w-md items-center px-4 pb-1;
+    padding-top: calc(12px + env(safe-area-inset-top));
+  }
   .app-contenido {
-    @apply mx-auto w-full max-w-md flex-1 px-4 pt-5;
+    @apply mx-auto w-full max-w-md flex-1 px-4 pt-3;
     padding-bottom: calc(84px + env(safe-area-inset-bottom));
   }
   .app-pestanias {

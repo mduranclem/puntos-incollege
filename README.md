@@ -16,6 +16,7 @@ decisión.
 ## Cómo está armado
 
 ```
+marca/  Logotipo y mascota originales, y el script que genera los archivos de la web
 api/    Node + Express + Prisma + PostgreSQL (TypeScript)
   src/dominio/     reglas puras: dinero en centavos, teléfonos, cálculo de puntos
   src/motor/       motor de puntos, puerto FuenteDePagos, ingestor
@@ -185,6 +186,20 @@ En una máquina con un PostgreSQL propio, el mismo control corre como test:
 ```bash
 DATABASE_URL_TEST="postgresql://..." npm test --workspace=api
 ```
+
+## La marca
+
+El logotipo y la mascota originales están en `marca/`. Lo que la web usa —el logotipo con
+el fondo recortado y los íconos de la app— se genera desde ahí:
+
+```bash
+pip install pillow scipy      # no son dependencias del proyecto
+python marca/generar.py
+```
+
+Se corre a mano y sólo cuando cambia la marca: los archivos generados viajan en el
+repositorio (D-037). El logotipo es la marca de las pantallas; la mascota es el ícono, y
+va recortada a la cara porque su buzo dice "EGRESADOS", que no participa del programa.
 
 ## Avisos por WhatsApp
 

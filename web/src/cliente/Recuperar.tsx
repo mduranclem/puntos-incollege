@@ -8,6 +8,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiCliente, ErrorCliente, guardarAcceso } from './api';
+import { Logo } from '../componentes/Logo';
 
 type Paso = 'mail' | 'codigo';
 
@@ -76,9 +77,7 @@ export function RecuperarCliente() {
   return (
     <div className="ingreso-cliente">
       <div className="ingreso-caja">
-        <div className="ingreso-estrella" aria-hidden="true">
-          ★
-        </div>
+        <Logo alto={44} alt="" className="ingreso-logo" />
         <h1 className="ingreso-titulo">Recuperar tu cuenta</h1>
 
         {paso === 'mail' ? (

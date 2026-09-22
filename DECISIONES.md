@@ -862,3 +862,38 @@ computadora compartida de mostrador "entrar apretando la cuenta" significa que e
 sienta ahí es ese vendedor, y entonces la firma de cada movimiento (D-012) deja de querer
 decir algo. Se reconsideraría sólo con cuentas de Google Workspace de la empresa, y sólo
 para gerencia.
+
+---
+
+## D-037 · El logo de la marca en la aplicación, y por qué la mascota va sólo como ícono
+
+**Contexto.** Hasta acá la aplicación escribía "Puntos **InCollege**" con la tipografía del
+sistema y usaba una estrella dorada como ícono, que era un relleno hasta tener la marca. El
+dueño pasó dos archivos: el logotipo de InCollege y una mascota —un oso blanco con buzo—
+pidiendo ponerlos donde quedaran mejor.
+
+**Decisión.** El **logotipo** es la marca de la aplicación: va en las dos pantallas de
+ingreso, en el encabezado del mostrador y del panel, y en un encabezado nuevo arriba de la
+app del cliente, que no tenía ninguno. La **mascota** es el **ícono**: el de la pantalla de
+inicio del celular, el de la pestaña del navegador y el de la app instalada.
+
+**Por qué la mascota no va más grande.** Su buzo dice "EGRESADOS XXVII · PROMO 27".
+Egresados **no participa de este programa** (D-003): sus pagos no suman puntos todavía.
+Una clienta que abre la app y ve la mascota de egresados en grande concluye, con toda
+lógica, que lo que le pagó a la empresa por el buzo de su hijo le sumó puntos. No le sumó.
+Recortada a la cara no queda nada de ese texto, y como ícono es mucho más reconocible en
+una pantalla de inicio que un logotipo apaisado apretado en un cuadrado.
+
+Si aparece una versión de la mascota sin la ropa de egresados, entra en la app sin
+problema y queda muy bien.
+
+**El recorte del logotipo no es un "achicar".** El original es una calcomanía sobre un
+fondo gris con resplandor; sobre el azul de la app ese fondo sería un recuadro gris. No se
+puede recortar por color —el contorno negro del logo y el fondo oscuro son casi el mismo
+color— así que se recorta **por forma**: la calcomanía es una sola pieza conectada y es la
+única que tiene borde blanco; el contorno negro aparece solo al rellenar su interior.
+
+**Consecuencia.** Los originales viven en `marca/` y los archivos que usa la web se
+generan con `marca/generar.py`, que se corre a mano y sólo cuando cambia la marca. Pillow y
+SciPy no son dependencias del proyecto: lo que viaja en el repositorio son los archivos ya
+generados. Se retiró `web/scripts/generarIconos.mjs`, que dibujaba la estrella de relleno.

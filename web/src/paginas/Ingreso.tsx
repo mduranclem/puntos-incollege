@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ErrorApi, api, guardarSesion, type Sesion } from '../api';
+import { Logo } from '../componentes/Logo';
 
 export function Ingreso() {
   const [usuario, setUsuario] = useState('');
@@ -50,9 +51,8 @@ export function Ingreso() {
   return (
     <div className="flex min-h-dvh items-center justify-center bg-[var(--color-marino)] px-4">
       <form onSubmit={ingresar} className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
-        <h1 className="text-2xl font-bold tracking-tight">
-          Puntos <span className="text-[var(--color-punto)]">InCollege</span>
-        </h1>
+        <Logo alto={52} alt="" />
+        <h1 className="mt-3 text-lg font-bold tracking-tight">Programa de puntos</h1>
         <p className="mt-1 mb-5 text-sm text-slate-600">Ingresá con tu usuario de mostrador.</p>
 
         <label className="etiqueta" htmlFor="usuario">

@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { cerrarSesion, leerSesion } from '../api';
+import { Logo } from './Logo';
 
 const enlaces = [
   { a: '/', texto: 'Cobrar', exacto: true },
@@ -15,8 +16,9 @@ export function Estructura() {
     <div className="min-h-dvh">
       <header className="sticky top-0 z-10 border-b border-[var(--color-borde)] bg-[var(--color-marino)] text-white">
         <div className="mx-auto flex max-w-4xl items-center gap-3 px-4 py-3">
-          <span className="text-lg font-bold tracking-tight">
-            Puntos <span className="text-[var(--color-punto)]">InCollege</span>
+          <span className="flex items-center gap-2">
+            <Logo alto={30} alt="InCollege" />
+            <span className="hidden text-sm font-semibold text-white/80 sm:inline">Puntos</span>
           </span>
 
           <nav className="ml-2 flex gap-1">
