@@ -580,3 +580,123 @@
     background: var(--color-punto-suave);
   }
 }
+
+@layer components {
+  /* ---- Buscador de artículos (D-043) ---- */
+  .art-buscador { @apply mt-1 flex flex-wrap items-center gap-2; }
+  .art-buscador .campo { @apply min-w-0 flex-1; }
+  .art-ver-todos {
+    @apply shrink-0 rounded-xl border border-[var(--color-borde)] bg-white px-4 py-3 text-sm
+           font-semibold text-[var(--color-marino)] transition hover:border-[var(--color-marino-claro)];
+  }
+  .art-resultados { @apply mt-3; }
+  .art-sin-resultados { @apply px-1 py-2 text-sm text-slate-500; }
+
+  /* La línea deducida de lo que se vendió, en vez de un paso más. */
+  .linea-deducida {
+    @apply flex flex-wrap items-baseline gap-x-1.5 rounded-xl bg-[var(--color-papel)] px-4 py-3
+           text-sm text-slate-600;
+  }
+  .linea-deducida strong { @apply font-semibold text-[var(--color-tinta)]; }
+  .linea-deducida button {
+    @apply ml-auto shrink-0 text-sm font-semibold text-[var(--color-marino-claro)] underline;
+  }
+}
+
+/* =========================================================================
+   Recibo imprimible (D-043)
+   En pantalla no se ve. Al imprimir desaparece todo lo demás y queda sólo
+   esto, angosto, para el rollo de 80 mm de la impresora del mostrador.
+   ========================================================================= */
+.recibo {
+  display: none;
+}
+
+@media print {
+  /* Se ocultan todos los hermanos de la cadena que llega al recibo; así no
+     hace falta saber cómo está armado el resto de la pantalla. */
+  body * {
+    visibility: hidden;
+  }
+  .recibo,
+  .recibo * {
+    visibility: visible;
+  }
+
+  .recibo {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: block;
+    width: 72mm;
+    padding: 0;
+    color: #000;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    line-height: 1.45;
+  }
+
+  .recibo-logo {
+    display: block;
+    width: 42mm;
+    margin: 0 auto 2mm;
+  }
+  .recibo-subtitulo {
+    margin: 0 0 3mm;
+    text-align: center;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .recibo-meta {
+    margin: 0 0 2mm;
+    font-size: 10.5px;
+  }
+  .recibo-linea {
+    border: 0;
+    border-top: 1px dashed #000;
+    margin: 2.5mm 0;
+  }
+  .recibo-tabla {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .recibo-tabla td {
+    padding: 0.6mm 0;
+    vertical-align: top;
+  }
+  .recibo-cant {
+    width: 7mm;
+    font-weight: 700;
+  }
+  .recibo-que small {
+    display: block;
+    font-size: 9.5px;
+  }
+  .recibo-sub {
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .recibo-total {
+    display: flex;
+    justify-content: space-between;
+    gap: 4mm;
+    margin: 0 0 1mm;
+    font-size: 13px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+  .recibo-pie {
+    margin: 0;
+    text-align: center;
+    font-size: 10px;
+  }
+
+  /* Rollo continuo: alto automático y sin márgenes del navegador, que en
+     papel angosto se comen media hoja. */
+  @page {
+    size: 80mm auto;
+    margin: 4mm;
+  }
+}

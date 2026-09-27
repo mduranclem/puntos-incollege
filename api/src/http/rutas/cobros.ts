@@ -83,6 +83,13 @@ export function rutasDeCobros() {
       }
 
       const resumen = await resumenDeCuenta(prisma, resultado.clienteId, 5);
+      // La fecha del recibo sale del pago, no del reloj del navegador: es la
+      // que quedó en el libro mayor y la que va a coincidir con el registro
+      // diario si alguien después compara papel contra sistema (D-043).
+      const pago = await prisma.pago.findUniqueOrThrow({
+        where: { id: resultado.pagoId },
+        select: { creadoEn: true },
+      });
 
       if (resultado.acredito && !resultado.yaAplicado && resultado.puntosAcreditados > 0) {
         await encolarAvisoDeAcreditacion(prisma, {
@@ -95,6 +102,7 @@ export function rutasDeCobros() {
 
       return res.status(201).json({
         pagoId: resultado.pagoId,
+        fecha: pago.creadoEn,
         acredito: resultado.acredito,
         yaAplicado: resultado.yaAplicado,
         puntosAcreditados: resultado.puntosAcreditados,

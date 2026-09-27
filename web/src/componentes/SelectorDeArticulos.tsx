@@ -1,20 +1,19 @@
 /**
- * Elegir qué se vendió, en el mostrador (D-027).
+ * Elegir qué se vendió, en el mostrador (D-027, rediseñado en D-043).
  *
  * La vendedora toca el artículo y el sistema pone el precio: no tipea importes.
- * Por eso cargar el detalle sale más rápido que escribir el total a mano, que
- * es lo que hacía antes.
+ * Por eso cargar el detalle sale más rápido que escribir el total a mano.
+ *
+ * **Por qué el buscador y no la grilla abierta.** Con el catálogo entero
+ * desplegado, la pantalla se llena de botones y hay que buscar con la vista
+ * entre treinta cosas. Escribir "cam" y que queden dos es más rápido que
+ * recorrer la grilla, y además deja la pantalla tranquila mientras no se usa.
+ * La grilla completa sigue estando, plegada, para cuando se quiere mirar todo.
  *
  * Para lo que no está en la lista está "Otro", que sí pide nombre y precio.
  */
-import { useEffect, useState } from 'react';
-import {
-  api,
-  formatearPesos,
-  totalDeItems,
-  type Articulo,
-  type ItemElegido,
-} from '../api';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { api, formatearPesos, totalDeItems, type Articulo, type ItemElegido } from '../api';
 
 const NOMBRE_LINEA: Record<string, string> = {
   UNIFORMES: 'Uniformes',
@@ -27,6 +26,13 @@ const nuevaClave = () =>
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random()}`;
 
+/** Sin acentos y en minúsculas: "chomba" tiene que encontrar "Chómba". */
+const plano = (texto: string) =>
+  texto
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '');
+
 export function SelectorDeArticulos({
   items,
   alCambiar,
@@ -37,9 +43,12 @@ export function SelectorDeArticulos({
   titulo?: string;
 }) {
   const [articulos, setArticulos] = useState<Articulo[]>([]);
+  const [busqueda, setBusqueda] = useState('');
+  const [verTodos, setVerTodos] = useState(false);
   const [otroAbierto, setOtroAbierto] = useState(false);
   const [otroNombre, setOtroNombre] = useState('');
   const [otroPrecio, setOtroPrecio] = useState('');
+  const campoBusqueda = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     api<{ articulos: Articulo[] }>('/articulos')
@@ -47,24 +56,37 @@ export function SelectorDeArticulos({
       .catch(() => setArticulos([]));
   }, []);
 
+  const encontrados = useMemo(() => {
+    const q = plano(busqueda.trim());
+    if (!q) return [];
+    return articulos.filter(
+      (a) => plano(a.nombre).includes(q) || plano(a.detalle ?? '').includes(q),
+    );
+  }, [articulos, busqueda]);
+
   function agregar(articulo: Articulo) {
     const yaEsta = items.find((i) => i.articuloId === articulo.id);
     if (yaEsta) {
       alCambiar(
         items.map((i) => (i.clave === yaEsta.clave ? { ...i, cantidad: i.cantidad + 1 } : i)),
       );
-      return;
+    } else {
+      alCambiar([
+        ...items,
+        {
+          clave: nuevaClave(),
+          articuloId: articulo.id,
+          descripcion: articulo.nombre,
+          cantidad: 1,
+          precioUnitarioCentavos: Number(articulo.precioCentavos),
+          // Se guarda para poder deducir la línea de la venta sin preguntarla.
+          lineaDeNegocio: articulo.lineaDeNegocio ?? undefined,
+        },
+      ]);
     }
-    alCambiar([
-      ...items,
-      {
-        clave: nuevaClave(),
-        articuloId: articulo.id,
-        descripcion: articulo.nombre,
-        cantidad: 1,
-        precioUnitarioCentavos: Number(articulo.precioCentavos),
-      },
-    ]);
+    // Listo para el siguiente: se limpia la búsqueda y el foco se queda acá.
+    setBusqueda('');
+    campoBusqueda.current?.focus();
   }
 
   function cambiarCantidad(clave: string, delta: number) {
@@ -100,23 +122,69 @@ export function SelectorDeArticulos({
     porLinea.set(clave, [...(porLinea.get(clave) ?? []), a]);
   }
 
+  const Boton = ({ a }: { a: Articulo }) => (
+    <button type="button" className="art-boton" onClick={() => agregar(a)}>
+      <span className="art-boton-nombre">{a.nombre}</span>
+      <span className="art-boton-precio">{a.precioTexto}</span>
+    </button>
+  );
+
   return (
     <div>
       <span className="etiqueta">{titulo}</span>
 
-      {[...porLinea.entries()].map(([linea, delGrupo]) => (
-        <div key={linea} className="art-grupo">
-          <p className="art-grupo-titulo">{NOMBRE_LINEA[linea] ?? 'Otros'}</p>
-          <div className="art-botones">
-            {delGrupo.map((a) => (
-              <button key={a.id} type="button" className="art-boton" onClick={() => agregar(a)}>
-                <span className="art-boton-nombre">{a.nombre}</span>
-                <span className="art-boton-precio">{a.precioTexto}</span>
-              </button>
-            ))}
-          </div>
+      <div className="art-buscador">
+        <input
+          ref={campoBusqueda}
+          className="campo"
+          type="search"
+          placeholder="Buscar artículo…"
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          onKeyDown={(e) => {
+            // Enter agrega el primero de la lista: escribir y darle enter
+            // alcanza, sin sacar la mano del teclado.
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              if (encontrados[0]) agregar(encontrados[0]);
+            }
+            if (e.key === 'Escape') setBusqueda('');
+          }}
+        />
+        <button
+          type="button"
+          className="art-ver-todos"
+          onClick={() => setVerTodos((v) => !v)}
+          aria-expanded={verTodos}
+        >
+          {verTodos ? 'Ocultar lista' : `Ver todos (${articulos.length})`}
+        </button>
+      </div>
+
+      {busqueda.trim() !== '' && (
+        <div className="art-botones art-resultados">
+          {encontrados.length > 0 ? (
+            encontrados.map((a) => <Boton key={a.id} a={a} />)
+          ) : (
+            <p className="art-sin-resultados">
+              Nada con “{busqueda.trim()}”. Podés cargarlo con “Otro artículo”.
+            </p>
+          )}
         </div>
-      ))}
+      )}
+
+      {verTodos &&
+        busqueda.trim() === '' &&
+        [...porLinea.entries()].map(([linea, delGrupo]) => (
+          <div key={linea} className="art-grupo">
+            <p className="art-grupo-titulo">{NOMBRE_LINEA[linea] ?? 'Otros'}</p>
+            <div className="art-botones">
+              {delGrupo.map((a) => (
+                <Boton key={a.id} a={a} />
+              ))}
+            </div>
+          </div>
+        ))}
 
       {!otroAbierto ? (
         <button type="button" className="art-otro" onClick={() => setOtroAbierto(true)}>
@@ -166,11 +234,19 @@ export function SelectorDeArticulos({
                 <small>{formatearPesos(i.precioUnitarioCentavos)} c/u</small>
               </span>
               <span className="art-cantidad">
-                <button type="button" onClick={() => cambiarCantidad(i.clave, -1)} aria-label="Quitar uno">
+                <button
+                  type="button"
+                  onClick={() => cambiarCantidad(i.clave, -1)}
+                  aria-label={`Quitar uno de ${i.descripcion}`}
+                >
                   −
                 </button>
                 <b>{i.cantidad}</b>
-                <button type="button" onClick={() => cambiarCantidad(i.clave, 1)} aria-label="Agregar uno">
+                <button
+                  type="button"
+                  onClick={() => cambiarCantidad(i.clave, 1)}
+                  aria-label={`Agregar uno de ${i.descripcion}`}
+                >
                   +
                 </button>
               </span>

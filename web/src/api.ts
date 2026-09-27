@@ -133,6 +133,12 @@ export type ItemElegido = {
   descripcion: string;
   cantidad: number;
   precioUnitarioCentavos: number;
+  /**
+   * De qué línea es el artículo, cuando salió del catálogo. Con esto la
+   * pantalla deduce la línea de la venta sin preguntarla (D-043). Vacío en los
+   * artículos cargados a mano con "Otro": de esos no se sabe.
+   */
+  lineaDeNegocio?: 'UNIFORMES' | 'ROPA_LISA' | 'EGRESADOS';
 };
 
 export const totalDeItems = (items: ItemElegido[]) =>

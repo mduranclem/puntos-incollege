@@ -1055,3 +1055,55 @@ algo que sí puede hacer.
 código (`BENEFICIOS_COMERCIALES`), no en `Configuracion`. Es una deuda con D-009: cambiar
 los beneficios hoy exige tocar código y desplegar. No se resolvió en este cambio porque no
 hacía falta para la decisión, pero queda anotado.
+
+---
+
+## D-043 · El mostrador más tranquilo: buscador, línea deducida y recibo imprimible
+
+**Contexto.** El dueño usó la pantalla de cobro y marcó tres cosas: se siente apretada, los
+artículos hacen ruido, y elegir la línea es un paso que el sistema podría deducir solo.
+Además pidió poder imprimir un recibo con el detalle de la compra.
+
+### El catálogo se busca, no se despliega
+
+Con la grilla entera abierta hay que buscar con la vista entre todos los botones, y hoy son
+cinco artículos: con treinta es impracticable. Ahora hay un **buscador** siempre visible y
+la grilla queda plegada detrás de "Ver todos".
+
+Escribir "cam" y darle Enter agrega la campera sin sacar la mano del teclado; la búsqueda
+ignora acentos y se limpia sola después de agregar, lista para el siguiente. La grilla
+completa sigue estando para cuando se quiere mirar el catálogo.
+
+### La línea sale de lo que se vendió
+
+Los artículos ya saben de qué línea son. Preguntárselo a la vendedora era pedirle que
+repita un dato que el sistema tiene.
+
+**Cuando la venta mezcla líneas** —una remera lisa y una campera de uniforme, que es lo más
+común— se registra con la línea que se llevó **la mayor parte del importe**, y la pantalla
+lo dice: "la venta mezcla líneas, se registra por la de mayor importe". No se elige en
+silencio: de la línea sale la tasa de acumulación (D-009), así que es una decisión sobre
+plata y tiene que verse. El botón "Cambiar" y los atajos `alt+u` / `alt+r` siguen estando.
+
+Si no hay artículos cargados —cobro con importe tipeado a mano— la línea se sigue
+preguntando, porque no hay con qué deducirla.
+
+**Lo que no se hizo.** Un pago guarda **una** línea, así que una venta mezclada acumula toda
+con la tasa de la línea mayoritaria. Hoy las dos tasas son iguales y no cambia un peso; si
+alguna vez difieren, lo correcto sería partir la venta en dos pagos. Queda anotado.
+
+### Recibo imprimible
+
+Se agrega "Imprimir recibo" al comprobante. Sale por la impresora del mostrador con el
+detalle de artículos, total, medio de pago, cliente, local, vendedora, fecha y hora, puntos
+sumados, saldo y vencimiento. Está pensado para rollo de 80 mm: en pantalla no se ve, y al
+imprimir desaparece todo lo demás.
+
+**La fecha sale del pago, no del navegador.** Para eso el cobro ahora devuelve `fecha`: es
+la que quedó en el libro mayor, y si alguien compara el papel contra el registro diario
+tienen que decir lo mismo.
+
+**El recibo no lleva el link firmado de la cuenta** (D-011). El aviso de WhatsApp sí, porque
+va al teléfono del dueño de la cuenta; un papel se pierde, se tira y lo levanta cualquiera.
+En el papel va la dirección pelada de la app, que sola no da acceso a nada — y de paso
+sirve para que el cliente se entere de que la app existe.

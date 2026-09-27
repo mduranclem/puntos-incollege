@@ -18,6 +18,7 @@ import {
 } from '../api';
 import { Escaner, useHayCamara } from '../componentes/Escaner';
 import { SelectorDeArticulos } from '../componentes/SelectorDeArticulos';
+import { Recibo } from '../componentes/Recibo';
 
 type Linea = 'UNIFORMES' | 'ROPA_LISA';
 type Medio =
@@ -38,6 +39,7 @@ type Coincidencia = {
 
 type Resultado = ResumenDeCuenta & {
   pagoId: string;
+  fecha: string;
   acredito: boolean;
   yaAplicado: boolean;
   puntosAcreditados: number;
@@ -71,7 +73,8 @@ export function Cobro() {
   const [nombre, setNombre] = useState('');
   const [importe, setImporte] = useState('');
   const [medio, setMedio] = useState<Medio>('EFECTIVO');
-  const [linea, setLinea] = useState<Linea>('UNIFORMES');
+  /** `null` = deducida de los artículos. Con valor, la eligió la vendedora. */
+  const [lineaElegida, setLineaElegida] = useState<Linea | null>(null);
   const [referencia, setReferencia] = useState(nuevaReferencia);
 
   const [cliente, setCliente] = useState<ResumenDeCuenta | null>(null);
@@ -143,10 +146,12 @@ export function Cobro() {
         setMedio(porMedio.valor);
         return;
       }
+      // alt+u / alt+r siguen sirviendo para forzar la línea a mano, por si la
+      // deducida no es la que corresponde.
       const porLinea = LINEAS.find((l) => l.tecla === evento.key.toLowerCase());
       if (porLinea) {
         evento.preventDefault();
-        setLinea(porLinea.valor);
+        setLineaElegida(porLinea.valor);
       }
     }
     window.addEventListener('keydown', alTeclear);
@@ -211,6 +216,28 @@ export function Cobro() {
   const totalCentavos = items.length > 0 ? totalDeItems(items) : 0;
   const hayMonto = items.length > 0 || importe.trim() !== '';
 
+  /**
+   * La línea sale de lo que se vendió, no de un botón más (D-043).
+   *
+   * Si la venta mezcla líneas —una remera lisa y una campera de uniforme, que
+   * es de lo más común— se registra con la que se llevó la mayor parte de la
+   * plata, y la pantalla lo dice. El modelo guarda una línea por pago y de ahí
+   * sale la tasa de acumulación: elegir en silencio sería decidir sobre plata
+   * sin que nadie lo vea.
+   */
+  const porLineaCentavos = items.reduce<Record<string, number>>((acc, i) => {
+    if (!i.lineaDeNegocio) return acc;
+    acc[i.lineaDeNegocio] = (acc[i.lineaDeNegocio] ?? 0) + i.precioUnitarioCentavos * i.cantidad;
+    return acc;
+  }, {});
+  const lineasPresentes = Object.keys(porLineaCentavos) as Linea[];
+  const lineaDeducida: Linea | null =
+    lineasPresentes.length === 0
+      ? null
+      : lineasPresentes.reduce((a, b) => (porLineaCentavos[a]! >= porLineaCentavos[b]! ? a : b));
+  const lineaMezclada = lineasPresentes.length > 1;
+  const linea: Linea = lineaElegida ?? lineaDeducida ?? 'UNIFORMES';
+
   async function registrar() {
     if (!telefono.trim() || !hayMonto || guardando) return;
     setGuardando(true);
@@ -242,6 +269,7 @@ export function Cobro() {
     setItems([]);
     setConfirmando(false);
     setMedio('EFECTIVO');
+    setLineaElegida(null);
     setCliente(null);
     setEsNuevo(false);
     setCoincidencias([]);
@@ -252,7 +280,16 @@ export function Cobro() {
   }
 
   if (resultado) {
-    return <Comprobante resultado={resultado} alSeguir={nuevoCobro} />;
+    return (
+      <Comprobante
+        resultado={resultado}
+        items={items}
+        medio={MEDIOS.find((m) => m.valor === medio)?.texto ?? medio}
+        local={sesion?.localNombre ?? ''}
+        vendedor={sesion?.nombre ?? sesion?.usuario ?? ''}
+        alSeguir={nuevoCobro}
+      />
+    );
   }
 
   if (confirmando) {
@@ -479,26 +516,49 @@ export function Cobro() {
           )}
         </div>
 
-        <div>
-          <span className="etiqueta">Línea</span>
-          <div className="flex gap-2">
-            {LINEAS.map((l) => (
-              <button
-                key={l.valor}
-                type="button"
-                onClick={() => setLinea(l.valor)}
-                className={`chip border ${
-                  linea === l.valor
-                    ? 'border-[var(--color-marino)] bg-[var(--color-marino)] text-white'
-                    : 'border-[var(--color-borde)] bg-white text-slate-700'
-                }`}
-              >
-                {l.texto}
-                <span className="ml-1.5 text-[10px] opacity-60">alt+{l.tecla}</span>
-              </button>
-            ))}
+        {/* La línea se deduce de los artículos; sólo se pregunta cuando no
+            hay con qué deducirla, o cuando la vendedora la quiere cambiar. */}
+        {lineaDeducida && !lineaElegida ? (
+          <p className="linea-deducida">
+            Línea: <strong>{LINEAS.find((l) => l.valor === linea)?.texto}</strong>
+            <span>
+              {lineaMezclada
+                ? ' · la venta mezcla líneas, se registra por la de mayor importe'
+                : ' · según lo que se vendió'}
+            </span>
+            <button type="button" onClick={() => setLineaElegida(linea)}>
+              Cambiar
+            </button>
+          </p>
+        ) : (
+          <div>
+            <span className="etiqueta">
+              Línea{' '}
+              {!lineaDeducida && (
+                <span className="font-normal text-slate-500">
+                  (no hay artículos cargados para deducirla)
+                </span>
+              )}
+            </span>
+            <div className="flex gap-2">
+              {LINEAS.map((l) => (
+                <button
+                  key={l.valor}
+                  type="button"
+                  onClick={() => setLineaElegida(l.valor)}
+                  className={`chip border ${
+                    linea === l.valor
+                      ? 'border-[var(--color-marino)] bg-[var(--color-marino)] text-white'
+                      : 'border-[var(--color-borde)] bg-white text-slate-700'
+                  }`}
+                >
+                  {l.texto}
+                  <span className="ml-1.5 text-[10px] opacity-60">alt+{l.tecla}</span>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {error && (
           <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-[var(--color-error)]">{error}</p>
@@ -515,7 +575,21 @@ export function Cobro() {
   );
 }
 
-function Comprobante({ resultado, alSeguir }: { resultado: Resultado; alSeguir: () => void }) {
+function Comprobante({
+  resultado,
+  items,
+  medio,
+  local,
+  vendedor,
+  alSeguir,
+}: {
+  resultado: Resultado;
+  items: ItemElegido[];
+  medio: string;
+  local: string;
+  vendedor: string;
+  alSeguir: () => void;
+}) {
   const boton = useRef<HTMLButtonElement>(null);
   const [copiado, setCopiado] = useState(false);
   useEffect(() => boton.current?.focus(), []);
@@ -561,9 +635,12 @@ function Comprobante({ resultado, alSeguir }: { resultado: Resultado; alSeguir: 
         </p>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid gap-2 sm:grid-cols-3">
         <button ref={boton} className="boton-principal py-4 text-lg" onClick={alSeguir}>
           Nuevo cobro
+        </button>
+        <button className="boton-secundario py-4" onClick={() => window.print()}>
+          Imprimir recibo
         </button>
         <button
           className="boton-secundario py-4"
@@ -584,6 +661,24 @@ function Comprobante({ resultado, alSeguir }: { resultado: Resultado; alSeguir: 
           {copiado ? 'Copiado' : 'Copiar mensaje de WhatsApp'}
         </button>
       </div>
+
+      {/* Invisible en pantalla; al imprimir es lo único que sale. */}
+      <Recibo
+        pagoId={resultado.pagoId}
+        fecha={resultado.fecha}
+        local={local}
+        vendedor={vendedor}
+        cliente={resultado.cliente.nombre}
+        telefono={resultado.cliente.telefono}
+        items={items}
+        totalTexto={resultado.importeTexto}
+        medio={medio}
+        acredito={resultado.acredito}
+        puntosAcreditados={resultado.puntosAcreditados}
+        saldoPuntos={resultado.saldoPuntos}
+        equivalenteTexto={resultado.equivalenteTexto}
+        venceEn={resultado.temporada.venceEn}
+      />
     </div>
   );
 }
