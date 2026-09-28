@@ -11,7 +11,7 @@
 import { Router, type NextFunction, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../../infra/prisma/cliente.js';
-import { verificarTokenCliente } from '../../servicios/tokenCliente.js';
+import { firmarTokenCliente, verificarTokenCliente } from '../../servicios/tokenCliente.js';
 import { resumenDeCuenta } from '../../servicios/saldos.js';
 import { confirmarCodigo, pedirCodigo } from '../../servicios/accesoCliente.js';
 import {
@@ -211,6 +211,48 @@ export function rutasPublicas() {
         datos.contrasenaNueva,
       );
       return res.json({ cambiada: true });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+  /**
+   * Canjea el token corto del link de WhatsApp por una sesión propia (D-045).
+   *
+   * El link dura 7 días porque queda guardado en el historial de n8n, que no
+   * controlamos. Pero la persona que lo abre de verdad no tiene por qué pagar
+   * esa cuenta: acá lo cambia por una sesión normal, que dura lo que dura
+   * cualquier otra. Quien lea ese historial una semana después no encuentra
+   * nada que sirva.
+   *
+   * De paso arregla algo que estaba mal: antes la app guardaba el token del
+   * link sin mirarlo, así que uno vencido quedaba guardado como sesión y la
+   * pantalla fallaba después, sin decir por qué.
+   */
+  router.post('/acceso/desde-link', async (req, res, next) => {
+    try {
+      const { token } = z.object({ token: z.string().min(10).max(2000) }).parse(req.body);
+      const contenido = verificarTokenCliente(token);
+      const cliente = contenido
+        ? await prisma.cliente.findUnique({
+            where: { id: contenido.sub },
+            select: { id: true, tokenVersion: true, fusionadoEnId: true },
+          })
+        : null;
+
+      if (!contenido || !cliente || cliente.tokenVersion !== contenido.v) {
+        return res.status(404).json({
+          error: 'LINK_INVALIDO',
+          mensaje: 'Ese link venció. Entrá con tu mail o pedí un código.',
+        });
+      }
+
+      const id = cliente.fusionadoEnId ?? cliente.id;
+      const vigente = await prisma.cliente.findUniqueOrThrow({ where: { id } });
+      return res.json({
+        token: firmarTokenCliente(vigente.id, vigente.tokenVersion),
+        cuenta: await armarCuenta(vigente.id, 30),
+      });
     } catch (error) {
       return next(error);
     }

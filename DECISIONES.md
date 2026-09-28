@@ -1222,3 +1222,50 @@ semana de apertura para arreglar algo que no es alcanzable acá. Queda anotado.
 en el servidor, que para algo que pasa una vez por turno no se nota, y cuadruplica lo que
 le cuesta a alguien probar contraseñas contra un volcado. Los hashes viejos siguen
 sirviendo: bcrypt guarda el coste adentro.
+
+---
+
+## D-045 · El link que sale por WhatsApp dura poco y se canjea al entrar
+
+**Contexto.** El aviso de acreditación lleva un link firmado que entra a la cuenta sin
+login (D-011). Ese link **sale de nuestro dominio**: viaja por la red de Meta, pasa por
+n8n y queda escrito en su historial de ejecuciones — un sistema que comparte servidor con
+Evolution API y tiene sus propios usuarios. La auditoría (D-044) lo marcó: eran tokens de
+30 días guardados en un lugar que no controlamos.
+
+Lo correcto sería que el aviso no llevara el token y que n8n armara el mensaje con el
+`clienteId`. Pero el workflow usa ese campo para escribir el mensaje, y cambiarlo sin poder
+editar el workflow rompe los avisos, que hoy funcionan.
+
+**Decisión.** Dos vidas distintas para el mismo tipo de token:
+
+- La **sesión** que guarda la app en el celular dura lo de siempre (30 días en producción).
+- El **link que sale por WhatsApp** dura **7 días**.
+
+Y cuando alguien abre el link, la app **lo canjea** por una sesión propia en vez de
+guardarlo: `POST /publico/acceso/desde-link`.
+
+**Por qué así.** La persona que abre el aviso no paga la cuenta de que el token haya
+viajado: entra y queda con una sesión normal. Quien lea el historial de n8n una semana
+después no encuentra nada que sirva. Y la forma del link no cambia —sigue siendo
+`/s/<token>`— así que el workflow de n8n no se toca.
+
+Siete días alcanzan de sobra: un aviso se mira el día que llega o no se mira. Si vence, se
+entra con mail y contraseña (D-036), que es lo que la persona va a hacer igual de ahí en
+adelante.
+
+**De paso se arregló algo que estaba mal.** La app guardaba el token del link **sin
+mirarlo**, así que uno vencido o mal formado quedaba guardado como sesión y la pantalla
+fallaba más adelante sin decir por qué. Ahora se valida contra el servidor: si no sirve,
+manda a entrar y no guarda nada.
+
+**Lo que queda pendiente.** Sacar el token del aviso por completo sigue siendo lo correcto,
+y entra cuando se toque el workflow para conectar el WhatsApp real de la empresa.
+
+**Además, react-router pasa a la 7.** La 6 tenía un aviso de redirección abierta vía
+`<Link>` y `useNavigate`. No era alcanzable acá —todos los destinos de esta aplicación son
+literales, no hay un solo lugar donde el usuario controle a dónde se navega— pero se hizo
+ahora, con la aplicación todavía sin clientes encima y el circuito de pruebas caliente, que
+es mucho más barato que hacerlo en tres meses con gente usándola. La aplicación sólo usa
+APIs estables, así que fue cambiar la versión; se verificaron los tres redireccionamientos,
+la navegación de las dos aplicaciones y el canje del link.
