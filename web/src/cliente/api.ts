@@ -28,6 +28,12 @@ export type Cuenta = {
   porPuntoCentavos: string;
   remanenteCentavos: string;
   temporada: { nombre: string; venceEn: string };
+  /**
+   * Ahorro histórico por descuentos ya usados (D-048). `null` quiere decir que
+   * no se pudo calcular: no se muestra nada, que es distinto de mostrar $0.
+   */
+  ahorroTexto: string | null;
+  ahorroCentavos: string | null;
   movimientos: Movimiento[];
 };
 

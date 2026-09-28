@@ -108,6 +108,35 @@ def icono_recortable(cara: Image.Image, lado: int) -> Image.Image:
     return base
 
 
+# Los cuatro fondos de la app del cliente (D-047). Uno por pestaña.
+#
+# No se recortan ni se retocan: la ilustración va entera, porque el encuadre es
+# parte del dibujo. Lo único que se hace es bajarlas de peso, y eso importa: son
+# decoración que carga todo cliente, muchos por datos móviles en la puerta del
+# local. En PNG las cuatro pesan 5,4 MB; en WebP de calidad 80, 411 KB, y con
+# menos error de color que un PNG de 128 colores (1,1 contra 2,2 sobre 255).
+# Se ven al 20% de opacidad: ese error no es visible ni buscándolo.
+FONDOS = {
+    "micuenta": "fondomicuenta-original.png",
+    "movimientos": "fondoMovimientos-original.png",
+    "locales": "fondoLocales-original.png",
+    "precios": "fondoprecios-original.png",
+}
+
+
+def fondos() -> list[tuple[str, int]]:
+    """Convierte los cuatro fondos a WebP y devuelve qué escribió."""
+    destino = PUBLICO / "fondos"
+    destino.mkdir(parents=True, exist_ok=True)
+    escritos = []
+    for nombre, original in FONDOS.items():
+        im = Image.open(AQUI / original).convert("RGBA")
+        archivo = destino / f"{nombre}.webp"
+        im.save(archivo, "WEBP", quality=80, method=6)
+        escritos.append((f"fondos/{nombre}.webp", archivo.stat().st_size))
+    return escritos
+
+
 def main() -> None:
     PUBLICO.mkdir(parents=True, exist_ok=True)
 
@@ -130,6 +159,9 @@ def main() -> None:
     ]:
         imagen.save(PUBLICO / archivo, optimize=True)
         print(f"  {archivo:<25} {imagen.width}x{imagen.height}")
+
+    for archivo, peso in fondos():
+        print(f"  {archivo:<25} {peso / 1024:.0f} KB")
 
 
 if __name__ == "__main__":

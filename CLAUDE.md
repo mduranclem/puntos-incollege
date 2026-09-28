@@ -9,7 +9,7 @@ descuento en pesos.
 Leé, en este orden:
 
 1. `ROADMAP.md` — qué etapa está hecha y qué falta.
-2. `DECISIONES.md` — el por qué de cada decisión (D-000 a D-046). **Es la fuente de
+2. `DECISIONES.md` — el por qué de cada decisión (D-000 a D-048). **Es la fuente de
    verdad del proyecto.** Si vas a contradecir una decisión, leela entera primero y
    decilo explícitamente.
 3. `README.md` — cómo levantarlo y cómo se despliega.
@@ -70,8 +70,15 @@ los 88 tests antes de dar nada por hecho.
   En desarrollo `CRON_HABILITADO=false`, así que los eventos quedan encolados y no salen;
   verificá que siga así antes de probar cobros o códigos.
 - La marca está en `marca/` y los archivos que usa la web se generan con
-  `marca/generar.py` (D-037). La mascota va **sólo como ícono**, recortada a la cara: su
-  buzo dice "EGRESADOS", que no participa del programa.
+  `marca/generar.py` (D-037). Para los **íconos** la mascota va recortada a la cara. En los
+  **fondos de la app del cliente** (D-047) va entera, con el buzo de "EGRESADOS" a la
+  vista: lo pidió el dueño, sabiendo que egresados no participa del programa. Si algún día
+  hay una versión sin esa ropa, se reemplazan los cuatro archivos de `marca/` y se vuelve a
+  correr el generador; no hay que tocar CSS.
+- Los valores de cada fondo —archivo, escala, corrimiento e intensidad— están todos en
+  `web/src/cliente/fondos.ts` y en ningún otro lado. Están calculados contra la posición
+  real de la cabeza en cada dibujo, no elegidos a ojo: si cambia una ilustración, hay que
+  volver a medirla.
 
 ## Fuera de alcance (no construir sin que lo pidan)
 

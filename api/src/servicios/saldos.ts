@@ -10,6 +10,58 @@ import { cuentaVigente } from './clientes.js';
 
 export type ResumenDeCuenta = Awaited<ReturnType<typeof resumenDeCuenta>>;
 
+/**
+ * Cuánta plata se ahorró esta cuenta en toda su historia, por descuentos de
+ * puntos efectivamente aplicados (D-048).
+ *
+ * Tres cosas que la hacen menos obvia de lo que parece:
+ *
+ *  - **Sale del libro mayor, no de una cuenta aparte.** Un canje es un
+ *    `Movimiento` de tipo CANJE con los puntos en negativo, y guarda
+ *    `valorPuntoAplicadoCentavos`: cuánto valía el punto *ese día* (D-009). El
+ *    ahorro se calcula con ese valor congelado y no con el de hoy. Si mañana el
+ *    punto pasa a valer $1.500, lo que alguien ahorró el año pasado no cambia:
+ *    no lo ahorró.
+ *
+ *  - **Se suma en la base y no en el navegador.** La app recibe los últimos 50
+ *    movimientos, así que sumar del lado del cliente daría un número que va
+ *    achicándose a medida que la persona compra más, que es exactamente al
+ *    revés de lo que tiene que pasar.
+ *
+ *  - **Las anulaciones se restan una sola vez.** Hoy `revertir` sólo revierte
+ *    acreditaciones: un canje no se puede anular, así que este segundo término
+ *    nunca suma nada. Está igual porque el día que se pueda, esto ya está bien:
+ *    resta los puntos que la REVERSA devolvió, al valor del canje que revierte,
+ *    y eso cubre también una devolución parcial. No hay riesgo de restar dos
+ *    veces porque no existe un estado "anulado" además del movimiento: la
+ *    anulación *es* una fila, y `movimientoRevertidoId` es único.
+ */
+async function ahorroAcumulado(prisma: PrismaClient, cuentaId: string): Promise<bigint | null> {
+  try {
+    const filas = await prisma.$queryRaw<{ ahorro: bigint | null }[]>`
+      SELECT COALESCE(SUM(
+        CASE
+          WHEN m.tipo::text = 'CANJE'
+            THEN (-m.puntos)::bigint * COALESCE(m."valorPuntoAplicadoCentavos", 0)
+          WHEN m.tipo::text = 'REVERSA' AND o.tipo::text = 'CANJE'
+            THEN (-m.puntos)::bigint * COALESCE(o."valorPuntoAplicadoCentavos", 0)
+          ELSE 0
+        END
+      ), 0)::bigint AS ahorro
+      FROM "Movimiento" m
+      LEFT JOIN "Movimiento" o ON o.id = m."movimientoRevertidoId"
+      WHERE m."cuentaId" = ${cuentaId}
+    `;
+    const total = BigInt(filas[0]?.ahorro ?? 0);
+    return total > 0n ? total : 0n;
+  } catch {
+    // Que no se pueda calcular el ahorro no es motivo para dejar a alguien sin
+    // ver sus movimientos. Devuelve null y la pantalla no muestra el resumen,
+    // que es distinto de mostrar cero.
+    return null;
+  }
+}
+
 export async function resumenDeCuenta(
   prisma: PrismaClient,
   clienteId: string,
@@ -21,7 +73,7 @@ export async function resumenDeCuenta(
   ]);
   const cuenta = await cuentaVigente(prisma, clienteId);
 
-  const [suma, ultimo, movimientos] = await Promise.all([
+  const [suma, ultimo, movimientos, ahorroCentavos] = await Promise.all([
     prisma.movimiento.aggregate({ where: { cuentaId: cuenta.id }, _sum: { puntos: true } }),
     prisma.movimiento.findFirst({
       where: { cuentaId: cuenta.id },
@@ -34,6 +86,7 @@ export async function resumenDeCuenta(
       take: cantidadDeMovimientos,
       include: { local: { select: { nombre: true } } },
     }),
+    ahorroAcumulado(prisma, cuenta.id),
   ]);
 
   const saldoPuntos = suma._sum.puntos ?? 0;
@@ -68,6 +121,13 @@ export async function resumenDeCuenta(
     porPuntoCentavos: config.tasas.UNIFORMES ?? 0n,
     porPuntoTexto: formatearPesos(config.tasas.UNIFORMES ?? 0n),
     valorPuntoCentavos: config.valorPuntoCentavos,
+    /**
+     * Ahorro histórico por descuentos ya usados. `null` quiere decir "no se
+     * pudo calcular", que no es lo mismo que cero y la pantalla los trata
+     * distinto.
+     */
+    ahorroCentavos,
+    ahorroTexto: ahorroCentavos === null ? null : formatearPesos(ahorroCentavos),
     topeCanjeBps: config.topeCanjeBps,
     temporada: {
       nombre: config.temporada.nombre,

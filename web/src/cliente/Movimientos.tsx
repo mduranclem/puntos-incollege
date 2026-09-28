@@ -62,6 +62,18 @@ export function Movimientos() {
     <div className="cta">
       <h1 className="pantalla-titulo">Movimientos</h1>
 
+      {/* Lo que ya se ahorró de verdad (D-048). Si es cero no va: a nadie le
+          sirve que le recuerden que todavía no usó ningún descuento. Y si la
+          cuenta no se pudo calcular llega en `null`, y tampoco va: mostrar $0
+          sería afirmar algo que no sabemos. */}
+      {cuenta.ahorroTexto && cuenta.ahorroCentavos !== '0' ? (
+        <section className="ahorro">
+          <p className="ahorro-etiqueta">Ya ahorraste con InCollege</p>
+          <p className="ahorro-monto">{cuenta.ahorroTexto}</p>
+          <p className="ahorro-aclaracion">en descuentos usados</p>
+        </section>
+      ) : null}
+
       {cuenta.movimientos.length === 0 ? (
         <div className="vacio">
           <p className="vacio-titulo">Acá vas a ver tus puntos en movimiento</p>

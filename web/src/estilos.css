@@ -184,39 +184,54 @@
   .ingreso-pie { @apply max-w-sm text-center text-xs leading-relaxed text-white/70; }
 
   /* ---- Armazón ----
-     Marino de fondo, contenido en tarjetas, pestañas abajo. El contenido
-     reserva abajo la altura real de la barra más un margen: la última tarjeta
-     tiene que verse entera al llegar al final del scroll. */
-  .app-cliente { @apply flex min-h-dvh flex-col; background: var(--color-marino); }
+     Marino de fondo, contenido en tarjetas, pestañas abajo.
+
+     La app ocupa exactamente el alto visible y no se desplaza: el que se
+     desplaza es el panel de cada pestaña. Eso es lo que permite que dos vistas
+     convivan durante la transición sin compartir una única posición de scroll,
+     y que cada pestaña se acuerde de dónde había quedado (D-047). */
+  .app-cliente {
+    @apply flex flex-col overflow-hidden;
+    height: 100dvh;
+    background: var(--color-marino);
+  }
 
   /**
-   * La mascota de fondo (D-046).
+   * Los fondos de las pestañas (D-047, reemplaza el fondo único de D-046).
    *
-   * Va fija: el contenido se desplaza por encima y ella se queda quieta, como
-   * el decorado de una vidriera. Se recorta en los bordes de la pantalla a
-   * propósito —las orejas quedan afuera— y nunca genera desplazamiento
-   * horizontal porque está sacada del flujo.
+   * Tres capas y un orden que no se negocia: el marino de `.app-cliente` abajo
+   * del todo, los fondos acá en medio, y el contenido encima. Los fondos son
+   * decoración pura — no se tocan, no los leen los lectores de pantalla y no
+   * ocupan lugar en el flujo.
    *
-   * El -11,5% vertical es lo que hace que la cara caiga a la altura del saludo:
-   * está en porcentaje y no en píxeles para que acompañe al ancho, y la cara
-   * quede en el mismo lugar en un teléfono de 320 y en uno de 430.
-   *
-   * `max-width: none` no es un capricho: el preflight de Tailwind le pone
-   * `max-width: 100%` a toda imagen, y eso recortaba la mascota al ancho de la
-   * pantalla justo en el teléfono, que es donde se mira. En escritorio no se
-   * notaba nada, porque ahí el 100% del contenedor sobra.
+   * Va fija y medida en unidades del ancho, nunca del alto. Esto último es lo
+   * que hace que el oso no se agrande porque el historial tenga más renglones:
+   * su tamaño sale del ancho de la pantalla y de nada más.
    */
-  .app-fondo {
-    @apply pointer-events-none fixed left-1/2 top-0 select-none;
-    /* 113% del ancho, pero en escritorio nunca más que 31,6rem. */
-    width: min(113vw, 31.6rem);
-    max-width: none;
-    transform: translate(-50%, -11.5%);
-    opacity: 0.22;
+  .fondos {
+    @apply pointer-events-none fixed inset-0 select-none overflow-hidden;
     z-index: 0;
   }
+  .fondo-capa { @apply absolute inset-0 overflow-hidden; }
+  .fondo-imagen {
+    @apply pointer-events-none absolute left-1/2 top-0 select-none;
+    /* El ancho sale del ancho de la app; en escritorio no pasa del contenedor. */
+    width: calc(var(--escala) * min(100vw, 28rem));
+    /* El preflight de Tailwind le pone `max-width: 100%` a toda imagen, y eso
+       recortaba el fondo al ancho de la pantalla justo en el teléfono. */
+    max-width: none;
+    transform: translate(calc(-50% + var(--corrimiento-x)), var(--corrimiento-y));
+  }
+  /* Baja la intensidad sin volver transparente la ilustración: lo necesita
+     Movimientos, que ya trae su propio marino adentro. */
+  .fondo-velo {
+    @apply absolute inset-0;
+    background: var(--color-marino);
+  }
+
   .app-encabezado {
-    @apply relative z-[1] mx-auto flex w-full max-w-md items-center justify-between gap-3 px-5 pb-2;
+    @apply relative z-[1] mx-auto flex w-full max-w-md shrink-0 items-center justify-between
+           gap-3 px-5 pb-2;
     padding-top: calc(12px + env(safe-area-inset-top));
   }
   .app-salir {
@@ -225,10 +240,83 @@
     color: var(--color-apagado-claro);
   }
   .app-salir:hover { @apply text-white; }
-  .app-contenido {
-    @apply relative z-[1] mx-auto w-full max-w-md flex-1 px-5 pt-2;
+
+  /* La ventana por la que se ven las vistas. Recorta a los costados —es lo que
+     esconde a la que se está yendo— pero no recorta hacia arriba ni hacia
+     abajo, así los anillos de foco y el desplegable del QR siguen enteros. */
+  .app-visor { @apply relative z-[1] min-h-0 flex-1; }
+  .panel {
+    @apply absolute inset-0 overflow-y-auto overflow-x-hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+  .panel-contenido {
+    @apply mx-auto w-full max-w-md px-5 pt-2;
+    /* Que la barra de abajo no tape el último renglón. */
     padding-bottom: calc(var(--alto-pestanias) + 20px + env(safe-area-inset-bottom));
   }
+
+  /* ---- La transición entre pestañas (D-047) ----
+     Sólo `transform` y `opacity`: son las dos que el navegador resuelve sin
+     recalcular el layout en cada cuadro. */
+  .panel-entra, .panel-sale, .fondo-entra, .fondo-sale {
+    animation-duration: 250ms;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+    animation-fill-mode: both;
+    will-change: transform, opacity;
+  }
+  .panel-entra-izq { animation-name: entra-desde-la-derecha; }
+  .panel-entra-der { animation-name: entra-desde-la-izquierda; }
+  .panel-sale-izq  { animation-name: sale-hacia-la-izquierda; }
+  .panel-sale-der  { animation-name: sale-hacia-la-derecha; }
+
+  @keyframes entra-desde-la-derecha  { from { transform: translateX(100%); }  to { transform: translateX(0); } }
+  @keyframes entra-desde-la-izquierda{ from { transform: translateX(-100%); } to { transform: translateX(0); } }
+  @keyframes sale-hacia-la-izquierda { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+  @keyframes sale-hacia-la-derecha   { from { transform: translateX(0); } to { transform: translateX(100%); } }
+
+  /* El fondo se mueve menos que el contenido: 10,3% del ancho son 40px en un
+     teléfono de 390, y al ser porcentaje acompaña a cualquier ancho. Esa
+     diferencia de recorrido es toda la sensación de profundidad.
+
+     La opacidad va acá, en la capa, y no en la imagen: cada ilustración tiene
+     su intensidad propia —0,20 tres de ellas, 1 la de Movimientos— y si el
+     cruce le tocara ese valor, al terminar quedarían todas iguales. */
+  .fondo-entra-izq { animation-name: fondo-entra-derecha; }
+  .fondo-entra-der { animation-name: fondo-entra-izquierda; }
+  .fondo-sale-izq  { animation-name: fondo-sale-izquierda; }
+  .fondo-sale-der  { animation-name: fondo-sale-derecha; }
+
+  @keyframes fondo-entra-derecha   { from { transform: translateX(10.3%);  opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  @keyframes fondo-entra-izquierda { from { transform: translateX(-10.3%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  @keyframes fondo-sale-izquierda  { from { transform: translateX(0); opacity: 1; } to { transform: translateX(-10.3%); opacity: 0; } }
+  @keyframes fondo-sale-derecha    { from { transform: translateX(0); opacity: 1; } to { transform: translateX(10.3%);  opacity: 0; } }
+
+  /* Si el sistema pide menos movimiento, se cambia y ya. El componente además
+     no llega a montar la vista saliente; esto es el cinturón del cinturón. */
+  @media (prefers-reduced-motion: reduce) {
+    .panel-entra, .panel-sale, .fondo-entra, .fondo-sale { animation: none; }
+  }
+
+  /* ---- Ahorro acumulado (D-048) ----
+     Tarjeta crema y opaca como las demás: va encima del fondo, no mezclada con
+     él. Su alto lo decide el contenido. */
+  .ahorro {
+    @apply mb-4 rounded-[20px] p-5;
+    background: var(--color-crema);
+  }
+  .ahorro-etiqueta {
+    @apply text-sm font-semibold;
+    color: var(--color-marino);
+  }
+  .ahorro-monto {
+    @apply mt-1 text-[2rem] font-extrabold leading-none;
+    color: var(--color-verde);
+  }
+  .ahorro-aclaracion {
+    @apply mt-1 text-[0.8125rem];
+    color: var(--color-apagado);
+  }
+
   .app-pestanias {
     @apply fixed inset-x-0 bottom-0 z-10 mx-auto flex max-w-md justify-around gap-1 border-t
            border-white/10 px-3 pt-2;

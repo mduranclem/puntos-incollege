@@ -6,10 +6,14 @@
  *
  * "Salir" vive acá y no adentro de Mi cuenta: se puede salir desde cualquier
  * pestaña, y el encabezado queda igual en las cuatro.
+ *
+ * El encabezado y la barra de abajo se quedan quietos: lo que se desliza al
+ * cambiar de pestaña es el contenido y el fondo, y de eso se ocupa `Visor`.
  */
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { Logo } from '../componentes/Logo';
 import { cerrarAcceso } from './api';
+import { Visor } from './Visor';
 
 type Pestania = { a: string; texto: string; icono: JSX.Element; exacto?: boolean };
 
@@ -54,9 +58,6 @@ export function AppCliente() {
 
   return (
     <div className="app-cliente">
-      {/* Decoración y nada más: no se toca ni la leen los lectores de pantalla. */}
-      <img src="/mascota-fondo.png" alt="" aria-hidden="true" className="app-fondo" />
-
       <header className="app-encabezado">
         <Logo alto={26} alt="InCollege" />
         <button
@@ -71,9 +72,8 @@ export function AppCliente() {
         </button>
       </header>
 
-      <main className="app-contenido">
-        <Outlet />
-      </main>
+      {/* Los fondos y las cuatro vistas, con su transición (D-047). */}
+      <Visor />
 
       <nav className="app-pestanias" aria-label="Secciones">
         {PESTANIAS.map((p) => (

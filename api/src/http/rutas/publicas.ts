@@ -102,6 +102,10 @@ async function armarCuenta(clienteId: string, cantidadDeMovimientos: number) {
     porPuntoTexto: resumen.porPuntoTexto,
     topeCanjeBps: resumen.topeCanjeBps,
     valorPuntoTexto: formatearPesos(BigInt(resumen.valorPuntoCentavos)),
+    // Ahorro ya usado (D-048). `null` es "no se pudo calcular": la pantalla no
+    // muestra el resumen, que no es lo mismo que mostrar cero.
+    ahorroTexto: resumen.ahorroTexto,
+    ahorroCentavos: resumen.ahorroCentavos === null ? null : resumen.ahorroCentavos.toString(),
     temporada: resumen.temporada,
     movimientos: resumen.movimientos.map((m) => ({
       fecha: m.fecha,

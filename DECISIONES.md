@@ -1316,3 +1316,137 @@ no se justifica.
 sin que ningún dato sea más difícil de leer. Si alguna vez la mascota tiene una
 versión sin la ropa de egresados, se reemplaza el archivo y no se toca una línea
 de CSS.
+
+---
+
+## D-047 · Un fondo por pestaña, y una transición que las conecta · **reemplaza a D-046**
+
+**Contexto.** D-046 puso una sola ilustración de fondo para toda la app del cliente.
+Quedó bien, pero las cuatro pestañas se veían iguales: nada distinguía Movimientos de
+Locales salvo el texto. Aparecieron cuatro ilustraciones, una por pestaña, con el oso
+haciendo lo que esa pantalla hace —mirando un comprobante, abriendo un mapa, mostrando
+una chomba.
+
+**Decisión.** Cada pestaña tiene su fondo, y el cambio entre pestañas se acompaña con un
+desplazamiento horizontal.
+
+### Los cuatro fondos
+
+Las ilustraciones son **dibujos separados, no encuadres de uno solo**. Medido sobre los
+originales de 852×1846, con la distancia entre pupilas como referencia de tamaño:
+
+    vista         pupilas (y)   separación   centro de la cabeza (x)
+    Mi cuenta        24,3 %       20,4 %            47,2 %
+    Movimientos      29,8 %       18,1 %            46,6 %
+    Locales          23,0 %       18,6 %            50,1 %
+    Precios          22,0 %       16,6 %            58,3 %
+
+La cabeza más chica es un 23 % menor que la más grande y la más baja está casi 8 puntos
+por debajo de la más alta. Con los mismos valores para las cuatro, el oso pegaría un
+salto en cada cambio de pestaña. Por eso `cliente/fondos.ts` tiene escala y corrimiento
+**por vista**, calculados para que la cabeza caiga en el mismo lugar: la línea de los
+ojos queda en 205,3 / 205,9 / 205,9 / 205,8 px en un teléfono de 390.
+
+**Lo que no se iguala es la posición horizontal.** Centrar la cabeza de Precios exigiría
+correr el dibujo un 13 % a la izquierda y la chomba que sostiene se saldría de la
+pantalla. El pedido era misma altura y mismo tamaño; el encuadre horizontal es parte del
+dibujo.
+
+**El tamaño sale del ancho de la pantalla y de nada más.** Si saliera del alto del
+contenido, el oso se agrandaría al crecer el historial. Comprobado: 390×844 y 390×640
+dan exactamente la misma geometría.
+
+### Tres a color, una distinta
+
+Tres ilustraciones vienen a color sobre transparencia y van al 20 % de opacidad. La de
+Movimientos ya trae el marino adentro y el personaje atenuado: aplicarle ese 20 % la
+haría desaparecer. Va a opacidad entera con un **velo marino del 18 %** encima, que es
+el número que iguala su intensidad con las otras tres (percentil 95 de separación
+respecto del fondo: 117 contra 119). Además su capa lleva el marino como color de fondo,
+así nunca se le ve un borde de rectángulo pegado.
+
+**La intensidad de cada ilustración y la opacidad de la transición son dos cosas
+distintas y viven en dos elementos distintos.** La imagen lleva la suya; la capa que la
+contiene usa la propia para entrar y salir. Si fueran la misma, al terminar el cruce las
+cuatro quedarían con la misma intensidad y la de Movimientos se perdería.
+
+### Peso
+
+Las cuatro en PNG pesan 5,4 MB. En WebP de calidad 80 pesan 411 KB **y tienen menos
+error de color** que un PNG de 128 colores (1,1 contra 2,2 sobre 255). Se ven al 20 % de
+opacidad: ese error no es visible ni buscándolo. Es decoración que carga todo cliente,
+muchos por datos móviles en la puerta del local. Se genera con `marca/generar.py`
+(D-037); los originales quedan en `marca/`.
+
+Se carga primero el fondo de la pestaña que se abre y los otros tres después, en tiempo
+ocioso: que la pantalla tarde en pintar por descargar decoración que nadie pidió sería
+cambiar lo que importa por lo que adorna.
+
+### La transición, y lo que obligó a cambiar
+
+El contenido saliente se va hacia un lado y el entrante llega del opuesto, 250 ms,
+`cubic-bezier(0.22, 1, 0.36, 1)`. El fondo hace lo mismo pero recorriendo un 10,3 % del
+ancho —40 px en un teléfono de 390— y esa diferencia de recorrido es toda la sensación
+de profundidad. Sólo se animan `transform` y `opacity`.
+
+Lo que esto obligó a cambiar es el modelo de scroll. **Antes se desplazaba el documento;
+ahora se desplaza el panel de cada pestaña.** No es un capricho: durante la transición
+hay dos vistas montadas a la vez, y con un único scroll compartido, entrar a Locales
+teniendo el historial de Movimientos por la mitad mostraría Locales también por la
+mitad. Con un scroll por panel cada pestaña se acuerda del suyo, que es lo que uno
+espera de una app.
+
+La vista que sale queda con `inert` y `aria-hidden` mientras se va: por un cuarto de
+segundo sigue en el DOM, pero no se toca, no se tabula y no la leen los lectores de
+pantalla.
+
+Tocar cuatro pestañas rápido hace **una** transición, no cuatro encimadas: la que estaba
+entrando pasa a ser la que sale y la última que se tocó gana.
+
+Con `prefers-reduced-motion` no se monta siquiera la vista saliente: se cambia y ya.
+
+**Consecuencia.** La app del cliente dejó de ser cuatro pantallas con el mismo fondo.
+D-046 queda reemplazada: `mascota-fondo.png` se borró y la regla `.app-fondo` ya no
+existe. Si mañana aparece una quinta pestaña, se agrega una entrada a `fondos.ts` con su
+archivo y sus cuatro números, y no se toca nada más.
+
+---
+
+## D-048 · El ahorro acumulado sale del libro mayor
+
+**Contexto.** La app mostraba los puntos disponibles, pero no cuánta plata se ahorró
+realmente con ellos. Es el número que le da sentido al programa: "tenés 14 puntos" es
+abstracto, "ya ahorraste $7.000" no.
+
+**Decisión.** Movimientos muestra el ahorro histórico por descuentos efectivamente
+aplicados, calculado desde el libro mayor.
+
+**Con el valor del punto congelado, no el de hoy.** Cada canje es un `Movimiento` de tipo
+CANJE que guarda `valorPuntoAplicadoCentavos`: cuánto valía el punto ese día (D-009). Si
+mañana el punto pasa a valer $1.500, lo que alguien ahorró el año pasado no cambia,
+porque no lo ahorró. Recalcular el pasado con el valor de hoy sería inventar un número.
+
+**Se suma en la base, no en el navegador.** La app recibe los últimos 50 movimientos.
+Sumar del lado del cliente daría un total que *se achica a medida que la persona compra
+más*, que es exactamente al revés de lo que tiene que pasar. Comprobado con un cliente de
+64 movimientos: la app recibe 50, el canje ya no está entre ellos, y el total lo cuenta
+igual.
+
+**`null` no es cero.** Si la agregación falla, devuelve `null` y la pantalla no muestra
+el bloque. Mostrar $0 sería afirmar que no ahorró nada, que es distinto de no saberlo. Y
+que no se pueda calcular el ahorro no deja a nadie sin ver sus movimientos: es una
+consulta aparte y su error no tumba la pantalla. Si el total es cero de verdad, tampoco
+se muestra: a nadie le sirve que le recuerden que todavía no usó ningún descuento.
+
+**Las anulaciones.** Hoy `revertir` sólo revierte acreditaciones: **un canje no se puede
+anular**, así que ese término de la cuenta nunca suma nada. Está escrito igual, restando
+los puntos que la REVERSA devolvió al valor del canje que revierte, porque el día que se
+pueda esto ya queda bien —incluso para una devolución parcial— y porque no hay riesgo de
+restar dos veces: no existe un estado "anulado" además del movimiento. La anulación *es*
+una fila, y `movimientoRevertidoId` es único.
+
+El vencimiento de puntos no toca el ahorro: vencer puntos sin usar no le saca a nadie un
+descuento que ya usó.
+
+**Consecuencia.** Mi cuenta sigue mostrando el descuento *disponible*; Movimientos
+muestra el ya *usado*. Son dos números distintos y están en dos pantallas distintas.
