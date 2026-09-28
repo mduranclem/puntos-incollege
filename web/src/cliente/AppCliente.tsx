@@ -54,6 +54,9 @@ export function AppCliente() {
 
   return (
     <div className="app-cliente">
+      {/* Decoración y nada más: no se toca ni la leen los lectores de pantalla. */}
+      <img src="/mascota-fondo.png" alt="" aria-hidden="true" className="app-fondo" />
+
       <header className="app-encabezado">
         <Logo alto={26} alt="InCollege" />
         <button

@@ -1269,3 +1269,50 @@ ahora, con la aplicación todavía sin clientes encima y el circuito de pruebas 
 es mucho más barato que hacerlo en tres meses con gente usándola. La aplicación sólo usa
 APIs estables, así que fue cambiar la versión; se verificaron los tres redireccionamientos,
 la navegación de las dos aplicaciones y el canje del link.
+
+---
+
+## D-046 · La mascota de fondo en la app del cliente
+
+**Contexto.** La app del cliente era marino liso con tarjetas encima: correcta y
+anónima. La marca ya tiene una mascota —el oso— y estaba usada sólo como ícono
+recortado a la cara, porque su buzo dice "EGRESADOS" y eso no participa del
+programa (D-037).
+
+**Decisión.** La mascota entera va de fondo en la app del cliente, grande y
+centrada, con la cara a la altura del saludo. No se recorta ni se rediseña: es la
+ilustración original, sólo redimensionada.
+
+`web/public/mascota-fondo.png` sale del PNG original de 1127×1396 (2,29 MB), que
+se deja intacto: se baja a 900×1115 y a paleta de 128 colores con transparencia.
+Quedan 188 KB. Es una decoración que carga todo cliente en cada visita y viaja por
+datos móviles en la puerta de un local; 2,3 MB para un fondo al 22% de opacidad
+no se justifica.
+
+**Cómo está puesta, y por qué así:**
+
+- **`position: fixed`, fuera del flujo.** El contenido se desplaza por encima y
+  ella se queda quieta. Y —esto es lo que importa— un elemento fijo no genera
+  desplazamiento horizontal: la mascota es más ancha que la pantalla a propósito,
+  las orejas se van por los costados, y aun forzándola a 333 px más que el ancho
+  de la ventana el documento no gana un solo píxel de scroll lateral.
+- **`max-width: none`.** El preflight de Tailwind le pone `max-width: 100%` a toda
+  imagen. Eso la recortaba al ancho del contenedor **justo en el teléfono**, que es
+  el único lugar donde se mira: en escritorio no se notaba nada porque ahí el 100%
+  sobra. Es la clase de error que se despliega y nadie ve hasta que lo abre un
+  cliente.
+- **Medidas en porcentaje, no en píxeles.** `min(113vw, 31.6rem)` de ancho y
+  `translate(-50%, -11.5%)`: así la cara cae en el mismo lugar relativo en un
+  teléfono de 320 y en uno de 430, en vez de subir o bajar con la pantalla.
+- **`pointer-events: none`** y `z-index: 0` con el contenido en `z-index: 1`. Sin
+  índices negativos: un `z-index: -1` la mandaría detrás del fondo del contenedor
+  en cuanto alguien le ponga un color, y el error aparecería lejos de la causa.
+- **`alt=""` y `aria-hidden="true"`.** No dice nada; anunciarla sería ruido.
+- **Opacidad 0.22, sin desenfoque, sin animación, sin sombra.** Las tarjetas van
+  opacas por encima: el contraste del texto es el mismo que antes de existir el
+  fondo, porque ninguna letra se apoya sobre la mascota.
+
+**Consecuencia.** La app dejó de ser un fondo plano y ahora se parece a la marca
+sin que ningún dato sea más difícil de leer. Si alguna vez la mascota tiene una
+versión sin la ropa de egresados, se reemplaza el archivo y no se toca una línea
+de CSS.

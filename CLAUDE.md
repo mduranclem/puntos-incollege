@@ -9,7 +9,7 @@ descuento en pesos.
 Leé, en este orden:
 
 1. `ROADMAP.md` — qué etapa está hecha y qué falta.
-2. `DECISIONES.md` — el por qué de cada decisión (D-000 a D-044). **Es la fuente de
+2. `DECISIONES.md` — el por qué de cada decisión (D-000 a D-046). **Es la fuente de
    verdad del proyecto.** Si vas a contradecir una decisión, leela entera primero y
    decilo explícitamente.
 3. `README.md` — cómo levantarlo y cómo se despliega.

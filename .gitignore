@@ -2,6 +2,10 @@ node_modules/
 dist/
 .env
 .env.local
+# Cualquier variante: un .env.respaldo o .env.produccion tiene los mismos
+# secretos que el .env y no se sube por descuido.
+.env.*
+!.env.example
 *.log
 .DS_Store
 web/dist/
