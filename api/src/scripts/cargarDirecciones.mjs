@@ -9,7 +9,7 @@
  */
 const API = process.env.API ?? 'http://localhost:3001/api';
 const USUARIO = process.env.GERENTE_USUARIO ?? 'admin';
-const PIN = process.env.GERENTE_PIN ?? '1234';
+const PIN = process.env.GERENTE_PIN ?? '';
 
 const DIRECCIONES = {
   'Rosario Sur': { direccion: 'Deán Funes 1258', horarios: 'De 10 a 16 hs' },

@@ -10,6 +10,7 @@
  */
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
+import { COSTE_BCRYPT } from '../../dominio/secretos.js';
 import { z } from 'zod';
 import { prisma } from '../../infra/prisma/cliente.js';
 import { exigeSesion, firmarSesion, type Sesion } from '../sesion.js';
@@ -37,6 +38,7 @@ function armarSesion(usuario: {
   nombre: string;
   rol: string;
   debeCambiarContrasena: boolean;
+  sesionVersion: number;
   local: { id: string; codigo: string; nombre: string; codigoAreaPorDefecto: string };
 }): Sesion {
   return {
@@ -45,6 +47,7 @@ function armarSesion(usuario: {
     nombre: usuario.nombre,
     rol: usuario.rol as Rol,
     debeCambiarContrasena: usuario.debeCambiarContrasena,
+    sesionVersion: usuario.sesionVersion,
     localId: usuario.local.id,
     localCodigo: usuario.local.codigo,
     localNombre: usuario.local.nombre,
@@ -129,14 +132,18 @@ export function rutasDeAuth() {
       const actualizado = await prisma.usuario.update({
         where: { id: usuario.id },
         data: {
-          contrasenaHash: await bcrypt.hash(datos.contrasenaNueva, 10),
+          contrasenaHash: await bcrypt.hash(datos.contrasenaNueva, COSTE_BCRYPT),
           debeCambiarContrasena: false,
           contrasenaCambiadaEn: new Date(),
+          // Se caen las demás sesiones: si la contraseña se cambia porque se
+          // filtró, el token de quien la tenía deja de servir ya (D-044).
+          sesionVersion: { increment: 1 },
         },
         include: { local: true },
       });
 
-      // Token nuevo: el viejo lleva adentro `debeCambiarContrasena: true`.
+      // Token nuevo: el viejo lleva la marca de cambio pendiente y la versión
+      // de sesión anterior, que acaba de quedar inválida.
       const nueva = armarSesion(actualizado);
       return res.json({ cambiada: true, token: firmarSesion(nueva), sesion: nueva });
     } catch (error) {

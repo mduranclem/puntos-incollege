@@ -9,7 +9,7 @@ descuento en pesos.
 Leé, en este orden:
 
 1. `ROADMAP.md` — qué etapa está hecha y qué falta.
-2. `DECISIONES.md` — el por qué de cada decisión (D-000 a D-037). **Es la fuente de
+2. `DECISIONES.md` — el por qué de cada decisión (D-000 a D-044). **Es la fuente de
    verdad del proyecto.** Si vas a contradecir una decisión, leela entera primero y
    decilo explícitamente.
 3. `README.md` — cómo levantarlo y cómo se despliega.
@@ -42,13 +42,19 @@ acá va el resumen para que no se rompan por descuido:
 - **Nadie entra sin contraseña propia** (D-034). El personal usa usuario + contraseña; la
   que puso otro obliga a cambiarla al entrar y el servidor devuelve 403 en todo lo que
   opera hasta que eso pase.
+- **El sistema no arranca sin secretos propios** (D-044). `JWT_SECRET` y
+  `TOKEN_CLIENTE_SECRET` no tienen valor por defecto: si faltan, son los de ejemplo o son
+  cortos, el servicio se niega a levantar. Nunca les pongas un `??` con un valor.
+- **Los límites por IP van todos juntos en `app.ts`** (D-044), no repartidos por las rutas:
+  así se puede auditar de un vistazo qué está protegido. Todo endpoint público nuevo que
+  mande WhatsApp o pruebe credenciales necesita el suyo.
 - **La cuenta del cliente es su teléfono** (D-010, D-036). Desde D-036 entra con mail y
   contraseña, pero el mail es sólo un nombre de usuario: el teléfono es lo que ata los
   puntos a una persona. Por eso registrarse pide una vez el código por WhatsApp, y por eso
   recuperar la contraseña también va por ahí y no por mail.
 
 Si tocás el motor (`api/src/motor/`, `api/src/dominio/`), corré `npm test` y que pasen
-los 75 tests antes de dar nada por hecho.
+los 88 tests antes de dar nada por hecho.
 
 ## Convenciones
 

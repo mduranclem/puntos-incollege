@@ -4,7 +4,9 @@
  */
 import type { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+import { prisma } from '../infra/prisma/cliente.js';
 import type { Rol } from '../dominio/tipos.js';
+import { secretoObligatorio } from '../dominio/secretos.js';
 
 export type Sesion = {
   usuarioId: string;
@@ -13,6 +15,8 @@ export type Sesion = {
   rol: Rol;
   /** La contraseña la puso otro: no puede operar hasta cambiarla (D-034). */
   debeCambiarContrasena: boolean;
+  /** Se compara contra la base en cada pedido: así la baja corta ya (D-044). */
+  sesionVersion: number;
   localId: string;
   localCodigo: string;
   localNombre: string;
@@ -28,21 +32,60 @@ declare global {
   }
 }
 
-const SECRETO = () => process.env.JWT_SECRET ?? 'cambiar-en-produccion';
+const SECRETO = () => secretoObligatorio('JWT_SECRET');
 
 export function firmarSesion(sesion: Sesion): string {
-  return jwt.sign(sesion, SECRETO(), { expiresIn: '12h' });
+  return jwt.sign(sesion, SECRETO(), { expiresIn: '12h', algorithm: 'HS256' });
 }
 
-export function exigeSesion(req: Request, res: Response, next: NextFunction) {
+/**
+ * Verifica la sesión contra la base, no sólo contra la firma (D-044).
+ *
+ * Antes alcanzaba con que el JWT estuviera bien firmado, así que dar de baja a
+ * alguien no lo sacaba: seguía cobrando hasta que el token venciera, doce horas
+ * después. Lo mismo con bajarle el rol, o con cambiar una contraseña que se
+ * filtró — el token robado seguía sirviendo.
+ *
+ * Ahora cada pedido pregunta si la persona sigue activa y si su
+ * `sesionVersion` es la del token. Es una consulta por clave primaria; la API
+ * ya hace varias por pedido.
+ */
+export async function exigeSesion(req: Request, res: Response, next: NextFunction) {
   const cabecera = req.header('authorization') ?? '';
   const token = cabecera.startsWith('Bearer ') ? cabecera.slice(7) : null;
   if (!token) return res.status(401).json({ error: 'SIN_SESION', mensaje: 'Iniciá sesión' });
+
+  let contenido: Sesion;
   try {
-    req.sesion = jwt.verify(token, SECRETO()) as Sesion;
-    return next();
+    // Algoritmo fijo: no se acepta nada que no sea lo que firmamos.
+    contenido = jwt.verify(token, SECRETO(), { algorithms: ['HS256'] }) as Sesion;
   } catch {
     return res.status(401).json({ error: 'SESION_VENCIDA', mensaje: 'La sesión venció' });
+  }
+
+  try {
+    const usuario = await prisma.usuario.findUnique({
+      where: { id: contenido.usuarioId },
+      select: { activo: true, sesionVersion: true },
+    });
+
+    if (!usuario?.activo) {
+      return res.status(401).json({
+        error: 'SESION_REVOCADA',
+        mensaje: 'Tu usuario ya no está activo. Hablá con la gerencia.',
+      });
+    }
+    if (usuario.sesionVersion !== contenido.sesionVersion) {
+      return res.status(401).json({
+        error: 'SESION_REVOCADA',
+        mensaje: 'Tu sesión se cerró porque cambiaron tus datos. Entrá de nuevo.',
+      });
+    }
+
+    req.sesion = contenido;
+    return next();
+  } catch (error) {
+    return next(error);
   }
 }
 

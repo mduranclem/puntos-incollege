@@ -90,6 +90,10 @@ model Usuario {
   /// el reseteo de la gerencia y el seed: esas contraseñas las sabe otro.
   debeCambiarContrasena Boolean   @default(false)
   contrasenaCambiadaEn  DateTime?
+  /// Sube cada vez que hay que tirar abajo las sesiones abiertas de esta
+  /// persona: baja, cambio de rol o cambio de contraseña (D-044). El JWT la
+  /// lleva adentro y se compara contra ésta en cada pedido.
+  sesionVersion         Int       @default(1)
   rol      Rol      @default(VENDEDOR)
   activo   Boolean  @default(true)
   creadoEn DateTime @default(now())

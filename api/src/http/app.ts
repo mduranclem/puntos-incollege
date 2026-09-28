@@ -1,5 +1,6 @@
 import express, { type NextFunction, type Request, type Response } from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { ErrorDeNegocio } from '../dominio/tipos.js';
@@ -12,9 +13,70 @@ import { rutasDeAdmin } from './rutas/admin.js';
 import { rutasDePersonal } from './rutas/personal.js';
 import { rutasDeArticulos } from './rutas/articulos.js';
 import { rutasPublicas } from './rutas/publicas.js';
+import { limitePorIp } from '../servicios/limitePorIp.js';
 
 export function crearApp() {
   const app = express();
+
+  /**
+   * Detrás de Traefik. Sin esto, los límites por IP verían siempre la del proxy
+   * y bloquearían a todos los clientes juntos con el primero que abuse.
+   */
+  app.set('trust proxy', 1);
+
+  /**
+   * Cabeceras de seguridad (D-044). La que más importa acá es `frame-ancestors`:
+   * sin ella, cualquiera puede meter el mostrador en un iframe invisible sobre
+   * su página y hacer que una vendedora con la sesión abierta apriete botones
+   * que no quiso apretar. Es una pantalla que cobra plata y está abierta todo el
+   * día.
+   *
+   * La CSP está ajustada a lo que la aplicación usa de verdad, no copiada:
+   * el único origen externo son las tipografías de Google.
+   */
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          // El build de Vite no deja scripts en línea: no hace falta abrir la mano.
+          scriptSrc: ["'self'"],
+          // `'unsafe-inline'` va por los `style={{…}}` de React, que son
+          // atributos y no scripts. El riesgo real es nulo sin XSS, y no hay.
+          styleSrc: ["'self'", 'https://fonts.googleapis.com', "'unsafe-inline'"],
+          fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+          // `data:` y `blob:` por el QR, que se dibuja en un canvas.
+          imgSrc: ["'self'", 'data:', 'blob:'],
+          // El escáner del mostrador abre la cámara: eso es `media-src`.
+          mediaSrc: ["'self'", 'blob:'],
+          connectSrc: ["'self'"],
+          workerSrc: ["'self'"],
+          manifestSrc: ["'self'"],
+          objectSrc: ["'none'"],
+          baseUri: ["'self'"],
+          formAction: ["'self'"],
+          frameAncestors: ["'none'"],
+          upgradeInsecureRequests: [],
+        },
+      },
+      // Un año de HTTPS obligatorio. El dominio ya es HTTPS y no hay vuelta atrás.
+      strictTransportSecurity: { maxAge: 31_536_000, includeSubDomains: true },
+      referrerPolicy: { policy: 'no-referrer' },
+      // Estas dos rompen cosas y no aportan acá: no cargamos recursos de otros
+      // orígenes ni necesitamos aislamiento de agente.
+      crossOriginEmbedderPolicy: false,
+      crossOriginResourcePolicy: { policy: 'same-origin' },
+    }),
+  );
+
+  /**
+   * La cámara del escáner tiene que seguir andando; el resto se apaga. Helmet no
+   * escribe esta cabecera, así que va a mano.
+   */
+  app.use((_req, res, next) => {
+    res.setHeader('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()');
+    next();
+  });
 
   app.use(
     cors({
@@ -30,6 +92,54 @@ export function crearApp() {
   );
 
   app.get('/api/salud', (_req, res) => res.json({ ok: true, ahora: new Date().toISOString() }));
+
+  /**
+   * Límites por IP (D-044). Están todos juntos y no repartidos por las rutas a
+   * propósito: así se puede auditar de un vistazo qué está protegido y qué no.
+   *
+   * Los tres primeros son los que **gastan el WhatsApp de la empresa**. Un
+   * teléfono inventado puede ser de una persona real, y el número que manda es
+   * el de la casa: si se usa para spam, WhatsApp lo banea y se cae el registro
+   * de todos los clientes.
+   */
+  const MENSAJE_ESPERA = 'Hiciste esto muchas veces seguidas. Esperá un rato y probá de nuevo.';
+
+  app.use(
+    '/api/publico/cuenta/registrar',
+    limitePorIp({ nombre: 'registro', cuantos: 3, porMinutos: 60, mensaje: MENSAJE_ESPERA }),
+  );
+  app.use(
+    '/api/publico/cuenta/recuperar',
+    limitePorIp({ nombre: 'recuperar', cuantos: 5, porMinutos: 60, mensaje: MENSAJE_ESPERA }),
+  );
+  app.use(
+    '/api/publico/acceso/pedir',
+    limitePorIp({ nombre: 'codigo', cuantos: 5, porMinutos: 60, mensaje: MENSAJE_ESPERA }),
+  );
+
+  // Los que prueban credenciales. El ingreso del personal además tiene su propio
+  // freno por usuario (D-035); esto es por si alguien rota nombres de usuario.
+  for (const ruta of [
+    '/api/publico/cuenta/ingresar',
+    '/api/publico/cuenta/confirmar',
+    '/api/publico/cuenta/restablecer',
+    '/api/auth/ingresar',
+  ]) {
+    app.use(
+      ruta,
+      limitePorIp({ nombre: 'credenciales', cuantos: 20, porMinutos: 15, mensaje: MENSAJE_ESPERA }),
+    );
+  }
+
+  /**
+   * Techo general. Alto a propósito: la búsqueda del mostrador dispara un pedido
+   * por tecla, y seis locales pueden salir por la misma IP. Esto no frena a
+   * nadie trabajando; frena a quien martilla la base.
+   */
+  app.use(
+    '/api',
+    limitePorIp({ nombre: 'general', cuantos: 300, porMinutos: 1, mensaje: MENSAJE_ESPERA }),
+  );
 
   app.use('/api/auth', rutasDeAuth());
 

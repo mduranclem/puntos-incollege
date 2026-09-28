@@ -19,6 +19,7 @@
  *    puede averiguar quién es cliente probando números.
  */
 import bcrypt from 'bcryptjs';
+import { COSTE_BCRYPT } from '../dominio/secretos.js';
 import { randomInt } from 'node:crypto';
 import type { PrismaClient } from '@prisma/client';
 import { normalizarTelefono, formatearTelefono } from '../dominio/telefono.js';
@@ -90,7 +91,7 @@ export async function emitirCodigo(
   await prisma.codigoDeAcceso.create({
     data: {
       telefonoE164,
-      codigoHash: await bcrypt.hash(codigo, 10),
+      codigoHash: await bcrypt.hash(codigo, COSTE_BCRYPT),
       expiraEn: new Date(Date.now() + VIGENCIA_CODIGO_MIN * MINUTO),
     },
   });

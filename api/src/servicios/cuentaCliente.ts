@@ -20,6 +20,7 @@
  * se perjudica a sí mismo, porque no va a poder recuperar la contraseña.
  */
 import bcrypt from 'bcryptjs';
+import { COSTE_BCRYPT } from '../dominio/secretos.js';
 import type { PrismaClient } from '@prisma/client';
 import { normalizarTelefono, formatearTelefono } from '../dominio/telefono.js';
 import { ErrorDeNegocio } from '../dominio/tipos.js';
@@ -137,7 +138,7 @@ export async function confirmarRegistro(
   await verificarQueSePuedeRegistrar(prisma, email, telefonoE164);
   await consumirCodigo(prisma, telefonoE164, datos.codigo);
 
-  const contrasenaHash = await bcrypt.hash(datos.contrasena, 10);
+  const contrasenaHash = await bcrypt.hash(datos.contrasena, COSTE_BCRYPT);
   const nombre = (datos.nombre ?? '').trim();
   const existente = await prisma.cliente.findUnique({ where: { telefonoE164 } });
 
@@ -243,7 +244,7 @@ export async function restablecerContrasena(
   const actualizado = await prisma.cliente.update({
     where: { id: cliente.id },
     data: {
-      contrasenaHash: await bcrypt.hash(contrasenaNueva, 10),
+      contrasenaHash: await bcrypt.hash(contrasenaNueva, COSTE_BCRYPT),
       // Se caen los links de saldo ya emitidos: si alguien más los tenía, se
       // terminó ahí (D-011).
       tokenVersion: { increment: 1 },
@@ -282,6 +283,6 @@ export async function cambiarContrasenaDelCliente(
 
   await prisma.cliente.update({
     where: { id: cliente.id },
-    data: { contrasenaHash: await bcrypt.hash(nueva, 10) },
+    data: { contrasenaHash: await bcrypt.hash(nueva, COSTE_BCRYPT) },
   });
 }

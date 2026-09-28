@@ -10,6 +10,7 @@
  */
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
+import { COSTE_BCRYPT } from '../../dominio/secretos.js';
 import { z } from 'zod';
 import { prisma } from '../../infra/prisma/cliente.js';
 import { exigeRol, exigeSesion } from '../sesion.js';
@@ -92,7 +93,7 @@ export function rutasDePersonal() {
         data: {
           usuario,
           nombre: datos.nombre,
-          contrasenaHash: await bcrypt.hash(datos.contrasena, 10),
+          contrasenaHash: await bcrypt.hash(datos.contrasena, COSTE_BCRYPT),
           debeCambiarContrasena: true,
           rol: datos.rol,
           localId: datos.localId,
@@ -136,6 +137,19 @@ export function rutasDePersonal() {
 
       if (datos.contrasena) exigirContrasenaValida(datos.contrasena, usuario.usuario);
 
+      /**
+       * Lo que corta el acceso tiene que cortarlo **ya**, no cuando venza el
+       * token doce horas después (D-044): la baja, el cambio de rol y el
+       * reseteo de contraseña suben `sesionVersion` y las sesiones abiertas de
+       * esa persona dejan de valer en el próximo pedido.
+       *
+       * Cambiar el nombre o el local no: no son cosas que se hagan para sacarle
+       * el acceso a alguien, y echar a una vendedora de la pantalla en mitad de
+       * un cobro por corregirle el apellido sería peor que el problema.
+       */
+      const cortaElAcceso =
+        datos.activo === false || datos.rol !== undefined || datos.contrasena !== undefined;
+
       const actualizado = await prisma.usuario.update({
         where: { id },
         data: {
@@ -143,9 +157,10 @@ export function rutasDePersonal() {
           ...(datos.rol ? { rol: datos.rol } : {}),
           ...(datos.localId ? { localId: datos.localId } : {}),
           ...(datos.activo !== undefined ? { activo: datos.activo } : {}),
+          ...(cortaElAcceso ? { sesionVersion: { increment: 1 } } : {}),
           ...(datos.contrasena
             ? {
-                contrasenaHash: await bcrypt.hash(datos.contrasena, 10),
+                contrasenaHash: await bcrypt.hash(datos.contrasena, COSTE_BCRYPT),
                 // La puso la gerencia: la persona la cambia al entrar.
                 debeCambiarContrasena: true,
               }

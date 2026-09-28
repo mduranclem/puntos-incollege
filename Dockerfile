@@ -30,15 +30,30 @@ FROM node:22-alpine AS produccion
 WORKDIR /app
 ENV NODE_ENV=production
 
-# Sólo lo necesario para correr: nada de código fuente ni de dependencias de build.
-COPY --from=compilacion /app/node_modules ./node_modules
-COPY --from=compilacion /app/package.json ./package.json
-COPY --from=compilacion /app/api/package.json ./api/package.json
-COPY --from=compilacion /app/api/dist ./api/dist
+# Instalación limpia, **sin dependencias de desarrollo** (D-044).
+#
+# Antes esta etapa copiaba el `node_modules` entero de la compilación, así que
+# la imagen de producción se llevaba vitest, vite y esbuild —con sus propias
+# vulnerabilidades conocidas— para no usarlos nunca. Reinstalar desde cero es
+# unos segundos más de build y saca de producción todo lo que no corre ahí.
+COPY package.json package-lock.json ./
+COPY api/package.json api/
+COPY web/package.json web/
+RUN npm ci --omit=dev
+
+# El cliente de Prisma se genera contra este `node_modules`, que es otro.
 COPY --from=compilacion /app/api/prisma ./api/prisma
+RUN npx prisma generate --schema=api/prisma/schema.prisma
+
+COPY --from=compilacion /app/api/dist ./api/dist
 COPY --from=compilacion /app/web/dist ./web/dist
 
 WORKDIR /app/api
+
+# Nada de root: si algún día hay una ejecución remota, que no sea con todos los
+# permisos del contenedor. `node` ya existe en la imagen oficial.
+USER node
+
 EXPOSE 3001
 
 # Las migraciones corren al arrancar: un despliegue deja la base al día sola.

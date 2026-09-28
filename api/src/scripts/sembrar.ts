@@ -6,6 +6,7 @@
  * cambiar después desde el panel sin tocar nada.
  */
 import bcrypt from 'bcryptjs';
+import { COSTE_BCRYPT } from '../dominio/secretos.js';
 import { motivoContrasenaInvalida } from '../dominio/contrasenas.js';
 import { prisma } from '../infra/prisma/cliente.js';
 import { parsearImporte } from '../dominio/dinero.js';
@@ -171,7 +172,7 @@ export async function sembrar() {
     create: {
       usuario: 'admin',
       nombre: 'Gerencia',
-      contrasenaHash: await bcrypt.hash(claveAdmin, 10),
+      contrasenaHash: await bcrypt.hash(claveAdmin, COSTE_BCRYPT),
       debeCambiarContrasena: true,
       rol: 'GERENTE',
       localId: primerLocal.id,
@@ -188,7 +189,7 @@ export async function sembrar() {
       create: {
         usuario,
         nombre: `Mostrador ${local.nombre}`,
-        contrasenaHash: await bcrypt.hash(claveVendedor, 10),
+        contrasenaHash: await bcrypt.hash(claveVendedor, COSTE_BCRYPT),
         debeCambiarContrasena: true,
         rol: 'VENDEDOR',
         localId: fila.id,

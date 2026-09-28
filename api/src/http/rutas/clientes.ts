@@ -80,8 +80,18 @@ export function rutasDeClientes() {
     }
   });
 
-  /** Link firmado para mandar por WhatsApp (D-011). */
-  router.get('/:id/link', async (req, res, next) => {
+  /**
+   * Link firmado para mandar por WhatsApp (D-011). **Sólo gerencia** (D-044).
+   *
+   * El link da acceso a la cuenta de ese cliente sin login, y no se puede
+   * revocar salvo subiendo su `tokenVersion`. Con este endpoint abierto a
+   * cualquier vendedor, más la búsqueda por nombre, alguien podía llevarse un
+   * acceso permanente a la cuenta de toda la clientela.
+   *
+   * El mostrador no lo necesita: el cobro ya devuelve el link del cliente al
+   * que le acaba de cobrar, que es el único caso legítimo.
+   */
+  router.get('/:id/link', exigeRol('GERENTE'), async (req, res, next) => {
     try {
       const cliente = await prisma.cliente.findUniqueOrThrow({
         where: { id: String(req.params.id) },

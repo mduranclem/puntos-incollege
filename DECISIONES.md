@@ -1107,3 +1107,118 @@ tienen que decir lo mismo.
 va al teléfono del dueño de la cuenta; un papel se pierde, se tira y lo levanta cualquiera.
 En el papel va la dirección pelada de la app, que sola no da acceso a nada — y de paso
 sirve para que el cliente se entere de que la app existe.
+
+---
+
+## D-044 · Endurecimiento de seguridad previo a la apertura
+
+**Contexto.** Antes de abrirle el programa a los clientes se auditó el proyecto entero:
+autenticación, autorización, base de datos, endpoints, entradas, secretos, dependencias,
+configuración de producción y las integraciones. Salieron 16 hallazgos. Los que siguen son
+las decisiones que se tomaron; el resto del informe quedó en la conversación.
+
+### El sistema no arranca sin secreto propio
+
+Cada módulo hacía `process.env.JWT_SECRET ?? 'cambiar-en-produccion'`. Si la variable
+faltaba, estaba vacía o tenía una tipografía distinta, **el servicio levantaba igual** y
+firmaba las sesiones con una cadena escrita en este repositorio y en `.env.example`.
+Cualquiera que la leyera podía fabricarse un token de gerente: cobrar, canjear, ver toda la
+facturación.
+
+Lo grave no era el agujero —las variables estaban bien cargadas— sino que **no había
+ninguna señal**. Todo funcionaba igual.
+
+Ahora `dominio/secretos.ts` tira si el secreto falta, es el de ejemplo o mide menos de 24
+caracteres. Es el mismo criterio de D-029 con los PIN del seed: que el despliegue se caiga
+una vez es molesto; que la caja quede abierta es un problema todos los días.
+
+### Nadie usa el WhatsApp de la casa para spam
+
+`POST /publico/cuenta/registrar` no pide autenticación y hace que el WhatsApp de la empresa
+le mande un código a cualquier número. El único freno era de 5 por hora **por teléfono**,
+así que un script que recorriera números podía mandar miles de mensajes.
+
+El costo no es el mensaje: es que **WhatsApp banea el número** por envío masivo, y de ese
+número dependen registrarse y recuperar la contraseña de todos los clientes. Y de paso el
+número de la casa queda usado como herramienta de phishing.
+
+`servicios/limitePorIp.ts` pone techo por IP: 3 registros por hora, 5 recuperaciones, 5
+códigos, 20 intentos de credenciales cada 15 minutos y un techo general de 300 por minuto.
+Los límites están **todos juntos en `app.ts`** y no repartidos por las rutas: así se puede
+auditar de un vistazo qué está protegido y qué no.
+
+### Dar de baja a alguien ahora lo saca de verdad
+
+`exigeSesion` sólo verificaba la firma del JWT. Desactivar a una vendedora era una
+intención, no un efecto: **seguía cobrando hasta doce horas**. Lo mismo bajarle el rol, y lo
+mismo cambiar una contraseña que se había filtrado — el token robado seguía sirviendo.
+
+Se agrega `Usuario.sesionVersion`, que sube con la baja, el cambio de rol y el cambio de
+contraseña. Cada pedido la compara contra la base. Es una consulta por clave primaria y la
+API ya hace varias por pedido.
+
+**Cambiar el nombre o el local no corta la sesión**: no son cosas que se hagan para sacarle
+el acceso a alguien, y echar a una vendedora de la pantalla en mitad de un cobro por
+corregirle el apellido sería peor que el problema.
+
+### Cabeceras de seguridad
+
+No había ninguna. La que más importa es `frame-ancestors`: sin ella, cualquiera puede meter
+el mostrador en un iframe invisible sobre su página y hacer que una vendedora con la sesión
+abierta apriete botones que no quiso apretar. Es una pantalla que cobra plata y está
+abierta todo el día.
+
+La CSP está ajustada a lo que la aplicación usa de verdad —el único origen externo son las
+tipografías de Google— y no copiada de un ejemplo. `Permissions-Policy` deja la cámara
+habilitada porque el escáner del mostrador la necesita, y apaga el resto.
+
+### El link de acceso a una cuenta es cosa de gerencia
+
+`GET /clientes/:id/link` emite un link que entra a la cuenta de ese cliente sin login, y
+estaba abierto a cualquier vendedor. Con la búsqueda por nombre al lado, alguien podía
+llevarse un acceso permanente a la cuenta de toda la clientela. Pasa a exigir GERENTE; el
+mostrador no lo necesita, porque el cobro ya devuelve el link del cliente al que le acaba
+de cobrar.
+
+La vida del token de cliente baja de 180 a 30 días: viaja por WhatsApp, queda en el
+historial de n8n y va en la URL del link de saldo, así que cuanto más corta la ventana,
+mejor. Con mail y contraseña (D-036), volver a entrar es un trámite.
+
+### Producción deja de llevar herramientas de desarrollo
+
+La imagen copiaba el `node_modules` entero de la compilación, así que se llevaba vitest,
+vite y esbuild —con sus vulnerabilidades conocidas— para no usarlos nunca. Ahora la etapa
+de producción reinstala con `--omit=dev`. De 12 vulnerabilidades reportadas quedan 5 en lo
+que realmente se despliega. Además el contenedor deja de correr como root.
+
+`prisma` pasa a ser dependencia de producción y no de desarrollo, porque las migraciones se
+aplican al arrancar el contenedor: siempre fue una dependencia de ejecución, estaba mal
+declarada.
+
+### Lo que se decidió NO hacer, y por qué
+
+**No se unifica la respuesta del registro.** Devolver "ese teléfono ya tiene cuenta" permite
+averiguar quién le compra a la casa. Pero la alternativa no arregla nada: si la respuesta
+fuera igual, el código llegaría igual y el error aparecería un paso después, con la persona
+ya confundida. La enumeración masiva queda frenada por el límite por IP, que es el freno
+que corresponde.
+
+**No se saca el link firmado del aviso a n8n.** El workflow arma el mensaje con ese campo:
+cambiarlo rompe los avisos de WhatsApp, que hoy funcionan. Queda pendiente para cuando se
+pueda editar el workflow; mientras tanto, la vida más corta del token acota la ventana.
+
+**No se baja Prisma a 6.12.** El aviso de `deepmerge-ts` afecta de 6.13 en adelante,
+incluida la última: no hay versión hacia adelante que lo corrija. Se dispara al mezclar un
+`prisma.config` recursivo y este proyecto no usa ninguno, así que el código vulnerable no
+se ejecuta. Bajar la herramienta de la base de datos entera, en la semana de la apertura,
+por una vulnerabilidad inalcanzable, es peor negocio que la vulnerabilidad.
+
+**No se sube react-router a la 7.** El aviso es un redireccionamiento abierto vía `<Link>` y
+`useNavigate`, y **todos los destinos de esta aplicación son literales**: no hay un solo
+lugar donde el usuario controle a dónde se navega. Es un salto de versión mayor en la
+semana de apertura para arreglar algo que no es alcanzable acá. Queda anotado.
+
+**El coste de bcrypt sube de 10 a 12.** Son 280 ms por hash en escritorio y medio segundo
+en el servidor, que para algo que pasa una vez por turno no se nota, y cuadruplica lo que
+le cuesta a alguien probar contraseñas contra un volcado. Los hashes viejos siguen
+sirviendo: bcrypt guarda el coste adentro.
