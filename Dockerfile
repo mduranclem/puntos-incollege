@@ -58,4 +58,15 @@ EXPOSE 3001
 
 # Las migraciones corren al arrancar: un despliegue deja la base al día sola.
 # Si fallan, el contenedor no levanta, que es lo que corresponde.
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
+# Al arrancar: migraciones, después la lista de precios si nunca se cargó, y
+# después la API.
+#
+# Dos detalles que importan. `--si-falta` hace que la carga sea una sola vez en
+# la vida del servicio: sin eso, cada despliegue pisaría los precios que la
+# gerencia cambió desde el panel (D-049).
+#
+# Y la carga va con `|| true` a propósito: es el catálogo, no el motor de
+# puntos. Si fallara, la caja tiene que abrir igual — con los precios que haya.
+# Un servicio que no levanta porque no pudo cargar una lista de precios es peor
+# que un servicio con la lista incompleta.
+CMD ["sh", "-c", "npx prisma migrate deploy && (node dist/scripts/cargarPrecios.js --si-falta || true) && node dist/main.js"]

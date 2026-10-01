@@ -12,6 +12,16 @@
  *
  * Correrlo dos veces deja la base igual que correrlo una.
  *
+ * **Con `--si-falta` no hace nada si la lista ya se cargó alguna vez.** Así lo
+ * corre el contenedor al arrancar: la primera vez carga el catálogo, y de ahí en
+ * adelante se calla. Esto último no es un detalle — si corriera siempre,
+ * cada despliegue pisaría los precios que la gerencia hubiera cambiado desde el
+ * panel, que es justo lo que D-049 quiere evitar. Un precio editado a mano gana
+ * sobre el que está escrito acá, siempre.
+ *
+ * Para recargar la lista a propósito —porque cambió de verdad— se corre sin el
+ * flag, a mano, sabiendo que pisa lo editado.
+ *
  * **La línea de negocio va escrita por prenda y no deducida del nombre.** Hoy
  * las dos tasas valen lo mismo ($10.000 = 1 punto), así que la distinción no
  * cambia ningún punto; el día que se separen, sí. Un `if (nombre.includes
@@ -99,6 +109,13 @@ const ALIAS: Record<string, string> = {
 
 async function main() {
   const existentes = await prisma.articulo.findMany();
+
+  // `codigo` lo pone sólo este script: si hay alguno, la lista ya se cargó.
+  if (process.argv.includes('--si-falta') && existentes.some((a) => a.codigo)) {
+    console.log('La lista de precios ya estaba cargada; no se toca.');
+    return;
+  }
+
   const porCodigo = new Map(existentes.filter((a) => a.codigo).map((a) => [a.codigo!, a]));
   const porNombre = new Map(existentes.map((a) => [plano(a.nombre), a]));
 
