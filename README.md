@@ -186,6 +186,17 @@ cd /app/api && node dist/scripts/sembrar.js
 Eso crea los seis locales, la temporada, la configuración y los usuarios. Sin
 `SEED_CONTRASENA_ADMIN` y `SEED_CONTRASENA_VENDEDOR` se niega a correr.
 
+**4 bis. Cargar la lista de precios.** Una sola vez, desde la consola del servicio:
+
+```bash
+npm run precios:prod --workspace=api
+```
+
+Va con `node` y no con `tsx`: la imagen de producción se instala con `--omit=dev`, así
+que las herramientas de desarrollo no están. Es idempotente y no borra nada, así que
+volver a correrlo después de cambiar la lista es la forma de actualizarla (D-049). Las
+migraciones no hace falta correrlas a mano: el contenedor las aplica al arrancar.
+
 **5. Después del despliegue.** La primera vez que entre cada uno, el sistema le va a
 pedir que ponga una contraseña propia: las del seed las sabe cualquiera que tenga acceso
 al panel de infraestructura (D-034). Después, correr la prueba de
