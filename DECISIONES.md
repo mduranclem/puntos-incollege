@@ -1450,3 +1450,103 @@ descuento que ya usó.
 
 **Consecuencia.** Mi cuenta sigue mostrando el descuento *disponible*; Movimientos
 muestra el ya *usado*. Son dos números distintos y están en dos pantallas distintas.
+
+---
+
+## D-049 · La lista de precios cotiza por talle
+
+**Contexto.** El catálogo tenía un precio por artículo. La lista real de InCollege
+cotiza cada prenda en cuatro talles —4-10, 12-16, S-XL y ESP— y la diferencia entre el
+más chico y el más grande llega a $7.700 en una campera. Con un solo precio, o se cobra
+de menos o se cobra de más, y de ese importe salen los puntos.
+
+**Decisión.** Una tabla `PrecioPorTalle` con una fila por talle, y `Articulo.categoria`
+para agrupar la lista.
+
+### Por qué una tabla y no cuatro columnas
+
+Agregar un talle mañana es insertar filas, no migrar la tabla. Y por qué no artículos
+separados —"Chomba bordada 4-10", "Chomba bordada 12-16"—: porque es **una** prenda.
+Duplicarla por talle ensuciaría el buscador del mostrador, el catálogo de la app y
+cualquier informe por artículo.
+
+`Articulo.precioCentavos` **no se borró**: queda como precio del talle base. Es lo que
+usa todo lo que todavía no pregunta talle, y hace imposible que esta migración deje un
+artículo sin precio.
+
+### El mostrador pregunta el talle
+
+Tocar un artículo abre sus cuatro talles con el precio de cada uno. Es un paso más para
+la vendedora, y va en contra de lo que buscaba D-043 —sacarle pasos—, así que se decidió
+a propósito y no por descuido: es el único paso que agrega, no hay que tipear nada, y la
+alternativa es cobrar mal. Cobrar mal no es un problema de interfaz, es un problema de
+plata.
+
+Un artículo sin talles cargados se agrega directo con su precio base, como antes.
+
+**El precio nunca viaja desde el navegador.** La pantalla manda el artículo y el talle;
+el servidor resuelve cuánto cuesta. Si falta el precio de ese talle, el cobro se corta:
+cobrar el precio de otro talle porque falta una fila sería cobrar mal en silencio.
+
+Dos talles distintos de la misma prenda son dos renglones del carrito, no una cantidad:
+no valen lo mismo.
+
+### Quién puede cambiar un precio
+
+Sólo gerencia, y la cerradura está en el servidor: `PUT /articulos/:id/precios` lleva
+`exigeRol('GERENTE')` y devuelve 403 aunque el pedido llegue por curl. Esconder el botón
+del panel es cortesía, no seguridad.
+
+Los cuatro precios se escriben en una transacción —o entran todos o ninguno— y antes de
+mandarlos el panel muestra qué cambia y de cuánto a cuánto. Los interruptores de
+"mostrador" y "app" siguen guardándose solos porque se deshacen de un toque; un precio
+mal puesto queda cobrando mal hasta que alguien lo note.
+
+Cada precio guarda **quién** lo tocó y **cuándo**.
+
+**Editar un precio no reescribe el pasado:** `ItemDeVenta` guarda el precio del momento
+de la venta. Corregir la lista no cambia lo que alguien pagó ni los puntos que sumó.
+
+### Un precio de lista es un entero de pesos
+
+`parsearPrecioDeLista` es más estricto que `parsearImporte` a propósito. Un importe
+cobrado puede tener centavos porque sale de una cuenta; un precio de lista lo tipea una
+persona, y "26950,5" no es un precio, es un dedazo.
+
+Acá apareció el error que más caro salía: borrar los puntos como separador de miles sin
+mirar dónde están convertía **"26950.50" en $2.695.050**, cien veces el precio, guardado
+en silencio hasta que alguien lo cobrara. Ahora el punto sólo vale si agrupa de a tres.
+Lo encontró un test que escribí esperando que pasara.
+
+### La app del cliente agrupa por prenda, no por línea
+
+Chombas, Remeras, Buzos. La línea de negocio —uniformes o ropa lisa— sigue estando como
+etiqueta, porque es la que decide la tasa de puntos; pero a quien mira precios le importa
+si busca un buzo o una chomba.
+
+### La línea de negocio va escrita prenda por prenda
+
+Bordado es `UNIFORMES`; liso y estampado, `ROPA_LISA`. Es la convención que ya usaba el
+seed. Hoy las dos tasas valen lo mismo ($10.000 = 1 punto), así que la distinción no
+cambia ningún punto; el día que se separen, sí. Por eso está escrita a mano en
+`cargarPrecios.ts` y no deducida del nombre con un `if`: lo que decide cuántos puntos
+suma un cliente se tiene que poder leer de un vistazo y corregir sin entender una regla.
+
+### Cargar la lista no borra nada
+
+`npm run precios --workspace=api` es idempotente: busca por `codigo`, después por nombre
+normalizado —así reconoció las cinco de muestra, incluso las dos escritas con una coma de
+más, y las actualizó en lugar de duplicarlas— y recién entonces crea. Lo que no está en
+la lista se desactiva, no se borra: puede haber ventas apuntando ahí y el registro diario
+tiene que poder reconstruir qué se vendió (D-004).
+
+### De paso: los datos malformados ya no son error del servidor
+
+Cualquier `ZodError` caía al 500. Quien llamaba leía "Algo salió mal" cuando lo que
+pasaba era que había mandado un talle inexistente, y el error quedaba en los logs del
+servidor mezclado con los que sí son nuestros. Ahora devuelve 400 con qué campo y por
+qué —nunca el valor recibido, que puede ser una contraseña.
+
+**Consecuencia.** El catálogo real está cargado: 15 prendas, 5 categorías, 60 precios.
+Los cinco de muestra dejaron de serlo. Si cambian los precios, los cambia la gerencia
+desde el panel sin tocar código ni desplegar (D-009).

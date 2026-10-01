@@ -17,7 +17,7 @@ import { parsearImporte, formatearPesos } from '../../dominio/dinero.js';
 import { resumenDeCuenta } from '../../servicios/saldos.js';
 import { linkDeSaldo } from '../../servicios/tokenCliente.js';
 import { encolarAvisoDeAcreditacion } from '../../servicios/avisos.js';
-import { MEDIOS_DE_PAGO, LINEAS_HABILITADAS, ErrorDeNegocio } from '../../dominio/tipos.js';
+import { MEDIOS_DE_PAGO, LINEAS_HABILITADAS, ErrorDeNegocio, TALLES } from '../../dominio/tipos.js';
 import { guardarItems, resolverItems, resumirItems } from '../../servicios/ventas.js';
 
 const motor = new MotorDePuntos(new RepositorioPrisma(prisma));
@@ -26,6 +26,8 @@ const ingestor = new IngestorDePagos(prisma, motor);
 const Item = z.object({
   articuloId: z.string().uuid().optional(),
   descripcion: z.string().trim().max(120).optional(),
+  /** Qué talle se vendió. El precio sale de la lista de ese talle (D-049). */
+  talle: z.enum(TALLES).optional(),
   cantidad: z.number().int().min(1).max(999).default(1),
   precioUnitario: z.string().max(20).optional(),
 });

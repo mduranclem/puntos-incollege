@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
+import { ZodError } from 'zod';
 import { ErrorDeNegocio } from '../dominio/tipos.js';
 import { exigeContrasenaPropia, exigeSesion } from './sesion.js';
 import { rutasDeAuth } from './rutas/auth.js';
@@ -196,6 +197,27 @@ export function crearApp() {
         detalle: error.detalle ?? null,
       });
     }
+    /**
+     * Un cuerpo malformado es culpa de quien llama, no del servidor (D-049).
+     *
+     * Hasta acá cualquier `ZodError` caía al 500 de abajo: el que llamaba leía
+     * "Algo salió mal" cuando lo que pasaba era que había mandado un talle que
+     * no existe, y el error quedaba en los logs del servidor mezclado con los
+     * que sí son nuestros. Dos problemas: no se puede corregir lo que no se
+     * sabe, y las fallas reales quedan escondidas entre las ajenas.
+     */
+    if (error instanceof ZodError) {
+      return res.status(400).json({
+        error: 'DATOS_INVALIDOS',
+        mensaje: 'Revisá los datos: hay algo que no tiene el formato esperado.',
+        // Qué campo y por qué. Nunca el valor recibido: puede ser una contraseña.
+        detalle: error.issues.map((i) => ({
+          campo: i.path.join('.') || '(cuerpo)',
+          problema: i.message,
+        })),
+      });
+    }
+
     const conCodigo = error as { code?: string; message?: string };
     if (conCodigo?.code === 'P2002') {
       return res.status(409).json({ error: 'DUPLICADO', mensaje: 'La operación ya fue registrada' });

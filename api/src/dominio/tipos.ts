@@ -10,6 +10,21 @@ export type LineaDeNegocio = (typeof LINEAS_DE_NEGOCIO)[number];
 /** Líneas habilitadas en esta entrega. Egresados se integra más adelante (D-003). */
 export const LINEAS_HABILITADAS: LineaDeNegocio[] = ['UNIFORMES', 'ROPA_LISA'];
 
+/**
+ * Los talles de la lista de precios colegial (D-049).
+ *
+ * Son del dominio y no de la base: el orden importa —de más chico a más
+ * grande— y es el orden en que se muestran y se editan. "ESP" es especial, que
+ * va último porque es el que se pide aparte.
+ *
+ * El primero, `4-10`, es el **talle base**: su precio es el que queda en
+ * `Articulo.precioCentavos`, que es lo que ve quien todavía no elige talle.
+ */
+export const TALLES = ['4-10', '12-16', 'S-XL', 'ESP'] as const;
+export type Talle = (typeof TALLES)[number];
+
+export const TALLE_BASE: Talle = '4-10';
+
 export const MEDIOS_DE_PAGO = [
   'EFECTIVO',
   'TRANSFERENCIA',

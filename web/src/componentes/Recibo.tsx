@@ -96,6 +96,8 @@ export function Recibo({
                 <td className="recibo-cant">{i.cantidad}</td>
                 <td className="recibo-que">
                   {i.descripcion}
+                  {/* El talle va en el recibo: es lo primero que se mira para un cambio. */}
+                  {i.talle ? ` (${i.talle})` : ''}
                   {i.cantidad > 1 && (
                     <small> · {formatearPesos(i.precioUnitarioCentavos)} c/u</small>
                   )}

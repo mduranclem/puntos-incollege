@@ -24,6 +24,7 @@ import {
 } from '../../servicios/cuentaCliente.js';
 import { esperaPendiente, registrarExito, registrarFallo } from '../../servicios/intentosDeIngreso.js';
 import { formatearPesos } from '../../dominio/dinero.js';
+import { TALLES } from '../../dominio/tipos.js';
 
 const Pedido = z.object({ telefono: z.string().min(3).max(30) });
 
@@ -325,14 +326,22 @@ export function rutasPublicas() {
         where: { visibleEnApp: true },
         orderBy: [{ orden: 'asc' }, { nombre: 'asc' }],
         take: 60,
+        include: { precios: true },
       });
       return res.json({
+        // Los talles van en el orden del dominio, de más chico a más grande, y
+        // no en el que los devuelva la base (D-049).
         novedades: articulos.map((a) => ({
           id: a.id,
           titulo: a.nombre,
           detalle: a.detalle,
+          categoria: a.categoria,
           precioTexto: formatearPesos(a.precioCentavos),
           lineaDeNegocio: a.lineaDeNegocio,
+          precios: TALLES.map((talle) => {
+            const p = a.precios.find((x) => x.talle === talle);
+            return p ? { talle, precioTexto: formatearPesos(p.precioCentavos) } : null;
+          }).filter((p) => p !== null),
         })),
       });
     } catch (error) {

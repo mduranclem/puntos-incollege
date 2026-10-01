@@ -10,7 +10,7 @@
  */
 import type { PrismaClient, Prisma } from '@prisma/client';
 import { parsearImporte, formatearPesos } from '../dominio/dinero.js';
-import { ErrorDeNegocio } from '../dominio/tipos.js';
+import { ErrorDeNegocio, type Talle } from '../dominio/tipos.js';
 
 export type ItemPedido = {
   /** Del catálogo, o vacío si es un artículo suelto cargado a mano. */
@@ -18,6 +18,11 @@ export type ItemPedido = {
   /** Obligatorio cuando no viene del catálogo. */
   descripcion?: string;
   cantidad: number;
+  /**
+   * Qué talle se vendió. Cuando viene, el precio sale de la lista de ese talle
+   * y no del precio base del artículo (D-049).
+   */
+  talle?: Talle;
   /** Precio unitario tipeado. Si viene del catálogo y no se manda, se usa el de lista. */
   precioUnitario?: string;
 };
@@ -26,6 +31,7 @@ export type ItemResuelto = {
   articuloId: string | null;
   descripcion: string;
   cantidad: number;
+  talle: string | null;
   precioUnitarioCentavos: bigint;
   subtotalCentavos: bigint;
 };
@@ -42,7 +48,10 @@ export async function resolverItems(
 
   const idsDelCatalogo = pedidos.map((p) => p.articuloId).filter((id): id is string => !!id);
   const delCatalogo = idsDelCatalogo.length
-    ? await prisma.articulo.findMany({ where: { id: { in: idsDelCatalogo } } })
+    ? await prisma.articulo.findMany({
+        where: { id: { in: idsDelCatalogo } },
+        include: { precios: true },
+      })
     : [];
   const porId = new Map(delCatalogo.map((a) => [a.id, a]));
 
@@ -62,10 +71,25 @@ export async function resolverItems(
       throw new ErrorDeNegocio('ITEM_INVALIDO', 'Cada artículo necesita un nombre');
     }
 
+    // Si se eligió talle, el precio es el de ese talle. Si el artículo no lo
+    // tiene cargado, se corta: cobrar el precio de otro talle porque falta una
+    // fila sería cobrar mal, y de ese importe dependen los puntos (D-049).
+    let deLaLista: bigint | null = articulo?.precioCentavos ?? null;
+    if (articulo && pedido.talle) {
+      const delTalle = articulo.precios.find((p) => p.talle === pedido.talle);
+      if (!delTalle) {
+        throw new ErrorDeNegocio(
+          'TALLE_SIN_PRECIO',
+          `"${articulo.nombre}" no tiene precio cargado para el talle ${pedido.talle}`,
+        );
+      }
+      deLaLista = delTalle.precioCentavos;
+    }
+
     // El precio de lista manda salvo que el vendedor lo pise a propósito.
     const precioUnitarioCentavos = pedido.precioUnitario
       ? parsearImporte(pedido.precioUnitario)
-      : (articulo?.precioCentavos ?? null);
+      : deLaLista;
     if (precioUnitarioCentavos === null) {
       throw new ErrorDeNegocio('ITEM_INVALIDO', `Falta el precio de "${descripcion}"`);
     }
@@ -77,6 +101,7 @@ export async function resolverItems(
       articuloId: articulo?.id ?? null,
       descripcion: descripcion.slice(0, 120),
       cantidad: pedido.cantidad,
+      talle: pedido.talle ?? null,
       precioUnitarioCentavos,
       subtotalCentavos: precioUnitarioCentavos * BigInt(pedido.cantidad),
     });
@@ -97,6 +122,7 @@ export async function guardarItems(
     data: items.map((i) => ({
       descripcion: i.descripcion,
       cantidad: i.cantidad,
+      talle: i.talle,
       precioUnitarioCentavos: i.precioUnitarioCentavos,
       subtotalCentavos: i.subtotalCentavos,
       articuloId: i.articuloId,

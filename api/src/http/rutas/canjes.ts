@@ -16,7 +16,7 @@ import { puntosMaximosCanjeables } from '../../dominio/reglas.js';
 import { buscarClientePorTelefono, cuentaVigente } from '../../servicios/clientes.js';
 import { configuracionVigente } from '../../servicios/configuracion.js';
 import { resumenDeCuenta } from '../../servicios/saldos.js';
-import { BENEFICIOS_COMERCIALES, ErrorDeNegocio } from '../../dominio/tipos.js';
+import { BENEFICIOS_COMERCIALES, ErrorDeNegocio, TALLES } from '../../dominio/tipos.js';
 import { guardarItems, resolverItems, resumirItems } from '../../servicios/ventas.js';
 
 const motor = new MotorDePuntos(new RepositorioPrisma(prisma));
@@ -24,6 +24,8 @@ const motor = new MotorDePuntos(new RepositorioPrisma(prisma));
 const ItemCanje = z.object({
   articuloId: z.string().uuid().optional(),
   descripcion: z.string().trim().max(120).optional(),
+  /** Qué talle se vendió. El precio sale de la lista de ese talle (D-049). */
+  talle: z.enum(TALLES).optional(),
   cantidad: z.number().int().min(1).max(999).default(1),
   precioUnitario: z.string().max(20).optional(),
 });

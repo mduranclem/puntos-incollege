@@ -114,12 +114,29 @@ export function formatearPesos(centavos: number | string): string {
   return `${negativo ? '-' : ''}$${conMiles}${resto === 0 ? '' : `,${String(resto).padStart(2, '0')}`}`;
 }
 
-export type Articulo = {
-  id: string;
-  nombre: string;
-  detalle: string | null;
+export const TALLES = ['4-10', '12-16', 'S-XL', 'ESP'] as const;
+export type Talle = (typeof TALLES)[number];
+
+/** El precio de una prenda en un talle (D-049). */
+export type PrecioDeTalle = {
+  talle: Talle;
   precioCentavos: string;
   precioTexto: string;
+  actualizadoEn: string;
+  /** Quién lo tocó por última vez. `null` si nunca se editó desde el panel. */
+  actualizadoPor: string | null;
+};
+
+export type Articulo = {
+  id: string;
+  codigo: string | null;
+  nombre: string;
+  categoria: string | null;
+  detalle: string | null;
+  /** El precio del talle base. Es el de entrada, cuando no se eligió talle. */
+  precioCentavos: string;
+  precioTexto: string;
+  precios: PrecioDeTalle[];
   lineaDeNegocio: 'UNIFORMES' | 'ROPA_LISA' | 'EGRESADOS' | null;
   orden: number;
   activo: boolean;
@@ -132,6 +149,8 @@ export type ItemElegido = {
   articuloId?: string;
   descripcion: string;
   cantidad: number;
+  /** Qué talle se eligió. Vacío en lo cargado a mano con "Otro". */
+  talle?: Talle;
   precioUnitarioCentavos: number;
   /**
    * De qué línea es el artículo, cuando salió del catálogo. Con esto la
@@ -149,5 +168,8 @@ export const itemsParaLaApi = (items: ItemElegido[]) =>
   items.map((i) => ({
     ...(i.articuloId ? { articuloId: i.articuloId } : { descripcion: i.descripcion }),
     cantidad: i.cantidad,
+    ...(i.talle ? { talle: i.talle } : {}),
+    // De lo que sale del catálogo no se manda precio: lo resuelve el servidor,
+    // que es el único que decide cuánto cuesta algo.
     ...(i.articuloId ? {} : { precioUnitario: String(i.precioUnitarioCentavos / 100) }),
   }));

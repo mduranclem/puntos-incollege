@@ -74,18 +74,18 @@ model Local {
   activo               Boolean  @default(true)
   creadoEn             DateTime @default(now())
 
-  usuarios     Usuario[]
-  clientes     Cliente[]
-  pagos        Pago[]
-  movimientos  Movimiento[]
+  usuarios    Usuario[]
+  clientes    Cliente[]
+  pagos       Pago[]
+  movimientos Movimiento[]
 }
 
 model Usuario {
-  id       String   @id @default(uuid())
-  usuario  String   @unique
-  nombre   String
+  id                    String    @id @default(uuid())
+  usuario               String    @unique
+  nombre                String
   /// bcrypt de la contraseña. Antes era un PIN de 4 a 8 números (D-034).
-  contrasenaHash String
+  contrasenaHash        String
   /// Obliga a poner una propia antes de hacer nada. La pone en true el alta,
   /// el reseteo de la gerencia y el seed: esas contraseñas las sabe otro.
   debeCambiarContrasena Boolean   @default(false)
@@ -94,16 +94,17 @@ model Usuario {
   /// persona: baja, cambio de rol o cambio de contraseña (D-044). El JWT la
   /// lleva adentro y se compara contra ésta en cada pedido.
   sesionVersion         Int       @default(1)
-  rol      Rol      @default(VENDEDOR)
-  activo   Boolean  @default(true)
-  creadoEn DateTime @default(now())
+  rol                   Rol       @default(VENDEDOR)
+  activo                Boolean   @default(true)
+  creadoEn              DateTime  @default(now())
 
   localId String
   local   Local  @relation(fields: [localId], references: [id])
 
-  pagos          Pago[]
-  movimientos    Movimiento[]
+  pagos           Pago[]
+  movimientos     Movimiento[]
   configuraciones Configuracion[]
+  preciosEditados PrecioPorTalle[]
 }
 
 model Cliente {
@@ -124,7 +125,7 @@ model Cliente {
   contrasenaHash String?
   registradoEn   DateTime?
   /// Se sube para invalidar los links de saldo ya emitidos (D-011).
-  tokenVersion  Int      @default(1)
+  tokenVersion   Int       @default(1)
 
   localOrigenId String?
   localOrigen   Local?  @relation(fields: [localOrigenId], references: [id])
@@ -155,18 +156,18 @@ model Temporada {
 }
 
 model CuentaPuntos {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   clienteId   String
-  cliente     Cliente  @relation(fields: [clienteId], references: [id])
+  cliente     Cliente   @relation(fields: [clienteId], references: [id])
   temporadaId String
   temporada   Temporada @relation(fields: [temporadaId], references: [id])
-  creadoEn    DateTime @default(now())
+  creadoEn    DateTime  @default(now())
 
   /// CACHÉ. La verdad son los movimientos. Se recalcula, nunca se incrementa (D-004).
-  saldoCacheado       Int      @default(0)
+  saldoCacheado      Int      @default(0)
   /// CACHÉ del remanente en centavos que no completó un punto (D-005).
-  remanenteCentavos   BigInt   @default(0)
-  cacheActualizadoEn  DateTime @default(now())
+  remanenteCentavos  BigInt   @default(0)
+  cacheActualizadoEn DateTime @default(now())
 
   movimientos Movimiento[]
 
@@ -175,18 +176,18 @@ model CuentaPuntos {
 
 /// Libro mayor. Inmutable: no se actualiza ni se borra (D-004).
 model Movimiento {
-  id       String           @id @default(uuid())
+  id        String           @id @default(uuid())
   /// Orden total del libro mayor. Define cuál es el último movimiento sin ambigüedad.
-  secuencia BigInt          @unique @default(autoincrement())
-  cuentaId String
-  cuenta   CuentaPuntos     @relation(fields: [cuentaId], references: [id])
-  tipo     TipoDeMovimiento
+  secuencia BigInt           @unique @default(autoincrement())
+  cuentaId  String
+  cuenta    CuentaPuntos     @relation(fields: [cuentaId], references: [id])
+  tipo      TipoDeMovimiento
   /// Puntos con signo: positivo acredita, negativo descuenta.
-  puntos   Int
+  puntos    Int
 
-  montoOrigenCentavos          BigInt?
+  montoOrigenCentavos         BigInt?
   /// Remanente de la cuenta después de este movimiento (D-005).
-  remanenteResultanteCentavos  BigInt  @default(0)
+  remanenteResultanteCentavos BigInt  @default(0)
 
   /// Idempotencia: referencia del pago o de la operación de origen (D-006).
   referenciaExterna String?
@@ -233,9 +234,9 @@ model Pago {
   procesadoEn DateTime?
 
   clienteId String
-  cliente   Cliente @relation(fields: [clienteId], references: [id])
+  cliente   Cliente  @relation(fields: [clienteId], references: [id])
   localId   String
-  local     Local   @relation(fields: [localId], references: [id])
+  local     Local    @relation(fields: [localId], references: [id])
   usuarioId String?
   usuario   Usuario? @relation(fields: [usuarioId], references: [id])
 
@@ -262,11 +263,11 @@ model Configuracion {
   creadoEn     DateTime @default(now())
 
   /// Cuánto vale un punto al canjear, en centavos.
-  valorPuntoCentavos BigInt
+  valorPuntoCentavos   BigInt
   /// Tope del canje sobre el total de la venta, en puntos básicos (1000 = 10%).
-  topeCanjeBps       Int
+  topeCanjeBps         Int
   /// Días de anticipación del aviso de vencimiento por WhatsApp.
-  diasAvisoVencimiento Int @default(30)
+  diasAvisoVencimiento Int    @default(30)
 
   temporadaId String?
   temporada   Temporada? @relation(fields: [temporadaId], references: [id])
@@ -279,10 +280,10 @@ model Configuracion {
 }
 
 model TasaAcumulacion {
-  id              String         @id @default(uuid())
-  configuracionId String
-  configuracion   Configuracion  @relation(fields: [configuracionId], references: [id], onDelete: Cascade)
-  lineaDeNegocio  LineaDeNegocio
+  id               String         @id @default(uuid())
+  configuracionId  String
+  configuracion    Configuracion  @relation(fields: [configuracionId], references: [id], onDelete: Cascade)
+  lineaDeNegocio   LineaDeNegocio
   /// Centavos que hay que pagar en efectivo para sumar un punto.
   centavosPorPunto BigInt
 
@@ -291,17 +292,17 @@ model TasaAcumulacion {
 
 /// Cola de avisos hacia n8n. Si n8n está caído, el cobro no falla (D-014).
 model EventoSaliente {
-  id              String         @id @default(uuid())
-  tipo            String
-  payload         Json
-  estado          EstadoDeEvento @default(PENDIENTE)
-  intentos        Int            @default(0)
-  proximoIntentoEn DateTime      @default(now())
-  ultimoError     String?
-  creadoEn        DateTime       @default(now())
-  enviadoEn       DateTime?
+  id               String         @id @default(uuid())
+  tipo             String
+  payload          Json
+  estado           EstadoDeEvento @default(PENDIENTE)
+  intentos         Int            @default(0)
+  proximoIntentoEn DateTime       @default(now())
+  ultimoError      String?
+  creadoEn         DateTime       @default(now())
+  enviadoEn        DateTime?
   /// Evita mandar dos veces el mismo aviso.
-  claveUnica      String?        @unique
+  claveUnica       String?        @unique
 
   @@index([estado, proximoIntentoEn])
 }
@@ -326,7 +327,12 @@ model CodigoDeAcceso {
 /// Novedades que ve el cliente en su app. La mantiene la gerencia.
 model Articulo {
   id             String          @id @default(uuid())
+  /// Clave estable de la lista de precios ("chomba-bordada"). Permite recargar
+  /// la lista sin duplicar artículos ni perder las ventas que los referencian.
+  codigo         String?         @unique
   nombre         String
+  /// Agrupador de la lista de precios: Chombas, Remeras, Buzos… (D-049).
+  categoria      String?
   detalle        String?
   /// Precio de lista en centavos (D-002).
   precioCentavos BigInt
@@ -339,10 +345,40 @@ model Articulo {
   creadoEn       DateTime        @default(now())
   actualizadoEn  DateTime        @updatedAt
 
-  items ItemDeVenta[]
+  items   ItemDeVenta[]
+  precios PrecioPorTalle[]
 
   @@index([activo, orden])
   @@index([visibleEnApp, orden])
+  @@index([categoria, orden])
+}
+
+/**
+ * El precio de un artículo en un talle (D-049).
+ * Una fila por talle y no cuatro columnas: agregar un talle mañana es insertar
+ * filas, no migrar la tabla. Y no son artículos separados porque "Chomba
+ * bordada" es una sola prenda: duplicarla por talle ensuciaría el buscador del
+ * mostrador y el catálogo de la app.
+ * Se edita en su lugar. El pasado no se toca igual, porque `ItemDeVenta` guarda
+ * el precio con el que se cobró: corregir la lista no cambia lo que alguien
+ * pagó ni los puntos que sumó.
+ */
+model PrecioPorTalle {
+  id             String   @id @default(uuid())
+  articuloId     String
+  articulo       Articulo @relation(fields: [articuloId], references: [id])
+  talle          String
+  /// En centavos (D-002).
+  precioCentavos BigInt
+
+  /// Quién lo tocó por última vez y cuándo. Un precio es plata: tiene que
+  /// poder preguntarse quién lo puso.
+  actualizadoEn    DateTime @updatedAt
+  actualizadoPorId String?
+  actualizadoPor   Usuario? @relation(fields: [actualizadoPorId], references: [id])
+
+  @@unique([articuloId, talle])
+  @@index([articuloId])
 }
 
 /// Qué se vendió en cada operación (D-027).
@@ -355,6 +391,8 @@ model ItemDeVenta {
   cantidad               Int      @default(1)
   precioUnitarioCentavos BigInt
   subtotalCentavos       BigInt
+  /// Qué talle se vendió, cuando salió de la lista de precios (D-049).
+  talle                  String?
   creadoEn               DateTime @default(now())
 
   articuloId String?

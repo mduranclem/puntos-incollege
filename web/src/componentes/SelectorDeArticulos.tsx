@@ -11,9 +11,27 @@
  * La grilla completa sigue estando, plegada, para cuando se quiere mirar todo.
  *
  * Para lo que no está en la lista está "Otro", que sí pide nombre y precio.
+ *
+ * **Los talles** (D-049). La lista cotiza cada prenda en cuatro talles y la
+ * diferencia entre el más chico y el más grande llega a $7.700: cobrar siempre
+ * el talle base sería cobrar mal, y de ese importe salen los puntos. Así que
+ * tocar un artículo abre sus talles y se elige uno. Es un toque más que antes,
+ * y es el único que agrega: no hay que tipear ni buscar en otro lado, y el
+ * precio que aparece en cada botón es el que se va a cobrar.
+ *
+ * El precio nunca viaja desde acá: la pantalla manda el artículo y el talle, y
+ * el servidor resuelve cuánto cuesta. Lo que se muestra es para que la
+ * vendedora vea lo mismo que va a cobrar, no para decidirlo.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { api, formatearPesos, totalDeItems, type Articulo, type ItemElegido } from '../api';
+import {
+  api,
+  formatearPesos,
+  totalDeItems,
+  type Articulo,
+  type ItemElegido,
+  type PrecioDeTalle,
+} from '../api';
 
 const NOMBRE_LINEA: Record<string, string> = {
   UNIFORMES: 'Uniformes',
@@ -45,6 +63,8 @@ export function SelectorDeArticulos({
   const [articulos, setArticulos] = useState<Articulo[]>([]);
   const [busqueda, setBusqueda] = useState('');
   const [verTodos, setVerTodos] = useState(false);
+  // Qué artículo está mostrando sus talles. Uno por vez.
+  const [eligiendoTalle, setEligiendoTalle] = useState<Articulo | null>(null);
   const [otroAbierto, setOtroAbierto] = useState(false);
   const [otroNombre, setOtroNombre] = useState('');
   const [otroPrecio, setOtroPrecio] = useState('');
@@ -64,8 +84,25 @@ export function SelectorDeArticulos({
     );
   }, [articulos, busqueda]);
 
-  function agregar(articulo: Articulo) {
-    const yaEsta = items.find((i) => i.articuloId === articulo.id);
+  /**
+   * Tocar un artículo. Si tiene talles cargados, abre los talles; si no —un
+   * artículo viejo o recién creado desde el panel—, lo agrega derecho con su
+   * precio base, que es lo que hacía antes de que existieran los talles.
+   */
+  function tocar(articulo: Articulo) {
+    if (articulo.precios.length > 0) {
+      setEligiendoTalle(articulo);
+      return;
+    }
+    agregar(articulo, null);
+  }
+
+  function agregar(articulo: Articulo, precio: PrecioDeTalle | null) {
+    // Dos talles distintos de la misma prenda son dos renglones distintos: no
+    // se pueden sumar en una cantidad porque no valen lo mismo.
+    const yaEsta = items.find(
+      (i) => i.articuloId === articulo.id && (i.talle ?? null) === (precio?.talle ?? null),
+    );
     if (yaEsta) {
       alCambiar(
         items.map((i) => (i.clave === yaEsta.clave ? { ...i, cantidad: i.cantidad + 1 } : i)),
@@ -78,13 +115,15 @@ export function SelectorDeArticulos({
           articuloId: articulo.id,
           descripcion: articulo.nombre,
           cantidad: 1,
-          precioUnitarioCentavos: Number(articulo.precioCentavos),
+          talle: precio?.talle,
+          precioUnitarioCentavos: Number(precio?.precioCentavos ?? articulo.precioCentavos),
           // Se guarda para poder deducir la línea de la venta sin preguntarla.
           lineaDeNegocio: articulo.lineaDeNegocio ?? undefined,
         },
       ]);
     }
     // Listo para el siguiente: se limpia la búsqueda y el foco se queda acá.
+    setEligiendoTalle(null);
     setBusqueda('');
     campoBusqueda.current?.focus();
   }
@@ -123,9 +162,11 @@ export function SelectorDeArticulos({
   }
 
   const Boton = ({ a }: { a: Articulo }) => (
-    <button type="button" className="art-boton" onClick={() => agregar(a)}>
+    <button type="button" className="art-boton" onClick={() => tocar(a)}>
       <span className="art-boton-nombre">{a.nombre}</span>
-      <span className="art-boton-precio">{a.precioTexto}</span>
+      <span className="art-boton-precio">
+        {a.precios.length > 0 ? `desde ${a.precios[0]!.precioTexto}` : a.precioTexto}
+      </span>
     </button>
   );
 
@@ -146,7 +187,7 @@ export function SelectorDeArticulos({
             // alcanza, sin sacar la mano del teclado.
             if (e.key === 'Enter') {
               e.preventDefault();
-              if (encontrados[0]) agregar(encontrados[0]);
+              if (encontrados[0]) tocar(encontrados[0]);
             }
             if (e.key === 'Escape') setBusqueda('');
           }}
@@ -160,6 +201,38 @@ export function SelectorDeArticulos({
           {verTodos ? 'Ocultar lista' : `Ver todos (${articulos.length})`}
         </button>
       </div>
+
+      {eligiendoTalle && (
+        <div className="art-talles" role="group" aria-label={`Talle de ${eligiendoTalle.nombre}`}>
+          <p className="art-talles-titulo">
+            {eligiendoTalle.nombre}
+            <button
+              type="button"
+              className="art-cancelar"
+              onClick={() => {
+                setEligiendoTalle(null);
+                campoBusqueda.current?.focus();
+              }}
+            >
+              Cancelar
+            </button>
+          </p>
+          <div className="art-botones">
+            {eligiendoTalle.precios.map((p) => (
+              <button
+                key={p.talle}
+                type="button"
+                className="art-boton art-boton-talle"
+                autoFocus={p.talle === eligiendoTalle.precios[0]!.talle}
+                onClick={() => agregar(eligiendoTalle, p)}
+              >
+                <span className="art-boton-nombre">{p.talle}</span>
+                <span className="art-boton-precio">{p.precioTexto}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {busqueda.trim() !== '' && (
         <div className="art-botones art-resultados">
@@ -231,13 +304,14 @@ export function SelectorDeArticulos({
             <li key={i.clave}>
               <span className="art-carrito-que">
                 {i.descripcion}
+                {i.talle ? <em className="art-talle-chip">{i.talle}</em> : null}
                 <small>{formatearPesos(i.precioUnitarioCentavos)} c/u</small>
               </span>
               <span className="art-cantidad">
                 <button
                   type="button"
                   onClick={() => cambiarCantidad(i.clave, -1)}
-                  aria-label={`Quitar uno de ${i.descripcion}`}
+                  aria-label={`Quitar uno de ${i.descripcion}${i.talle ? ` talle ${i.talle}` : ''}`}
                 >
                   −
                 </button>
@@ -245,7 +319,7 @@ export function SelectorDeArticulos({
                 <button
                   type="button"
                   onClick={() => cambiarCantidad(i.clave, 1)}
-                  aria-label={`Agregar uno de ${i.descripcion}`}
+                  aria-label={`Agregar uno de ${i.descripcion}${i.talle ? ` talle ${i.talle}` : ''}`}
                 >
                   +
                 </button>

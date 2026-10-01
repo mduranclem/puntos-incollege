@@ -49,7 +49,12 @@ export type Novedad = {
   id: string;
   titulo: string;
   detalle: string | null;
+  /** Agrupador de la lista: Chombas, Remeras, Buzos… (D-049). */
+  categoria: string | null;
+  /** El precio del talle base, para lo que no tenga talles cargados. */
   precioTexto: string | null;
+  /** Un precio por talle, en orden de más chico a más grande. */
+  precios: { talle: string; precioTexto: string }[];
   lineaDeNegocio: 'UNIFORMES' | 'ROPA_LISA' | 'EGRESADOS' | null;
 };
 

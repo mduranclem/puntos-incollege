@@ -14,6 +14,7 @@
     "prisma:migrate": "prisma migrate deploy",
     "prisma:migrate:dev": "prisma migrate dev",
     "seed": "tsx src/scripts/sembrar.ts",
+    "precios": "tsx src/scripts/cargarPrecios.ts",
     "tareas": "tsx src/tareas.ts",
     "tareas:prod": "node dist/tareas.js",
     "pg:local": "tsx src/scripts/pgliteServidor.ts",

@@ -104,3 +104,41 @@ export function aplicarBps(centavos: bigint, bps: number): bigint {
   }
   return (centavos * BigInt(bps)) / 10_000n;
 }
+
+/**
+ * Un precio de lista: número entero de pesos, mayor a cero (D-049).
+ *
+ * Es más estricto que `parsearImporte` a propósito. Un importe cobrado puede
+ * tener centavos —sale de una cuenta—, pero un precio de lista lo tipea una
+ * persona, y "26950,5" no es un precio: es un error de tipeo que después la
+ * caja no puede cobrar. Los puntos de miles sí se aceptan, porque es como se
+ * escribe un precio.
+ */
+export function parsearPrecioDeLista(valor: string | number): bigint {
+  const limpio = String(valor).trim().replace(/[\s$]/g, '');
+
+  // La coma siempre es decimal acá. "26950,5" es un dedazo, no un precio.
+  if (limpio.includes(',')) {
+    throw new ErrorDeNegocio('PRECIO_INVALIDO', `"${valor}" no es un precio entero en pesos`);
+  }
+
+  // El punto sólo vale como separador de miles, y sólo si agrupa de a tres.
+  // Sin esta comprobación "26950.50" quedaría en 2.695.050: cien veces el
+  // precio, guardado sin que nadie se entere hasta que alguien lo cobre.
+  let texto = limpio;
+  if (limpio.includes('.')) {
+    if (!/^\d{1,3}(\.\d{3})+$/.test(limpio)) {
+      throw new ErrorDeNegocio('PRECIO_INVALIDO', `"${valor}" no es un precio entero en pesos`);
+    }
+    texto = limpio.replace(/\./g, '');
+  }
+
+  if (!/^\d{1,9}$/.test(texto)) {
+    throw new ErrorDeNegocio('PRECIO_INVALIDO', `"${valor}" no es un precio entero en pesos`);
+  }
+  const pesos = BigInt(texto);
+  if (pesos <= 0n) {
+    throw new ErrorDeNegocio('PRECIO_INVALIDO', 'El precio tiene que ser mayor a cero');
+  }
+  return pesos * CENTAVOS_POR_PESO;
+}

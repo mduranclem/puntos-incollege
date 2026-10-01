@@ -317,6 +317,54 @@
     color: var(--color-apagado);
   }
 
+  /* ---- Talles (D-049) ---- */
+
+  /* El panel que se abre al tocar un artículo en el mostrador. Se destaca del
+     resto porque es un paso que interrumpe: hay que elegir para seguir. */
+  .art-talles {
+    @apply mt-2 rounded-xl border p-3;
+    border-color: var(--color-punto);
+    background: var(--color-punto-suave);
+  }
+  .art-talles-titulo {
+    @apply mb-2 flex items-center justify-between gap-3 text-sm font-semibold;
+  }
+  .art-boton-talle .art-boton-nombre { @apply tabular-nums; }
+
+  /* El talle en el renglón del carrito. Sin esto dos renglones de la misma
+     prenda en talles distintos se verían idénticos. */
+  .art-talle-chip {
+    @apply ml-2 rounded-md px-1.5 py-0.5 text-xs font-semibold not-italic;
+    background: var(--color-punto-suave);
+    color: var(--color-tinta);
+  }
+
+  /* Un precio tocado y todavía sin confirmar, en el panel de gerencia. */
+  .campo-tocado {
+    border-color: var(--color-punto);
+    background: var(--color-punto-suave);
+  }
+  .precios-confirmar { @apply space-y-2; }
+  .precios-confirmar p { @apply text-xs leading-relaxed text-slate-600; }
+  .precios-confirmar span { @apply mr-2 block whitespace-nowrap tabular-nums; }
+
+  /* ---- La lista de precios del cliente (D-049) ---- */
+  .novedad-linea {
+    @apply mt-1 inline-block rounded-md px-1.5 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wide;
+    background: var(--color-verde-suave);
+    color: var(--color-verde);
+  }
+  /* Los cuatro talles en columna: cada renglón es talle a la izquierda y precio
+     a la derecha, alineados con cifras tabulares para que se puedan comparar
+     de un vistazo. */
+  .novedad-talles { @apply mt-1 w-full space-y-0.5; }
+  .novedad-talles li { @apply flex items-baseline justify-between gap-3; }
+  .novedad-talle {
+    @apply text-xs font-semibold tabular-nums;
+    color: var(--color-apagado);
+  }
+  .novedad-talles .novedad-precio { @apply text-sm tabular-nums; }
+
   .app-pestanias {
     @apply fixed inset-x-0 bottom-0 z-10 mx-auto flex max-w-md justify-around gap-1 border-t
            border-white/10 px-3 pt-2;

@@ -8,6 +8,14 @@
  *
  * Lo carga la administración desde el panel. Si no hay nada cargado, la pantalla
  * lo dice y no finge contenido.
+ *
+ * **Agrupa por categoría de prenda** —Chombas, Remeras, Buzos— y no por línea de
+ * negocio (D-049). La línea sirve para los puntos; a quien mira precios le
+ * importa si busca un buzo o una chomba, no de qué lista sale. La línea sigue
+ * estando, como etiqueta de cada prenda.
+ *
+ * Cada prenda muestra sus cuatro talles con su precio. La diferencia entre el
+ * más chico y el más grande llega a $7.700: un precio solo sería engañoso.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { apiCliente, type Novedad } from './api';
@@ -45,10 +53,11 @@ export function Novedades() {
     return <ErrorDePantalla mensaje="No pudimos cargar los precios" alReintentar={cargar} />;
   }
 
-  const porLinea = new Map<string, Novedad[]>();
+  // El orden de las categorías es el que trae la API, que es el de la lista.
+  const porCategoria = new Map<string, Novedad[]>();
   for (const n of novedades) {
-    const clave = n.lineaDeNegocio ?? 'OTRAS';
-    porLinea.set(clave, [...(porLinea.get(clave) ?? []), n]);
+    const clave = n.categoria ?? 'Otros';
+    porCategoria.set(clave, [...(porCategoria.get(clave) ?? []), n]);
   }
 
   return (
@@ -61,17 +70,32 @@ export function Novedades() {
           <p>Cuando la lista esté disponible, la vas a ver acá.</p>
         </div>
       ) : (
-        [...porLinea.entries()].map(([linea, items]) => (
-          <section key={linea} className="nov-grupo">
-            <h2 className="nov-grupo-titulo">{NOMBRE_LINEA[linea] ?? 'Otras'}</h2>
+        [...porCategoria.entries()].map(([categoria, items]) => (
+          <section key={categoria} className="nov-grupo">
+            <h2 className="nov-grupo-titulo">{categoria}</h2>
             <ul className="novedades">
               {items.map((n) => (
                 <li key={n.id} className="novedad">
                   <div className="novedad-texto">
                     <h3>{n.titulo}</h3>
                     {n.detalle && <p>{n.detalle}</p>}
+                    {n.lineaDeNegocio && (
+                      <span className="novedad-linea">{NOMBRE_LINEA[n.lineaDeNegocio]}</span>
+                    )}
                   </div>
-                  {n.precioTexto && <span className="novedad-precio">{n.precioTexto}</span>}
+
+                  {n.precios.length > 0 ? (
+                    <ul className="novedad-talles">
+                      {n.precios.map((p) => (
+                        <li key={p.talle}>
+                          <span className="novedad-talle">{p.talle}</span>
+                          <span className="novedad-precio">{p.precioTexto}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    n.precioTexto && <span className="novedad-precio">{n.precioTexto}</span>
+                  )}
                 </li>
               ))}
             </ul>

@@ -51,6 +51,7 @@ Y después:
 ```bash
 npm run prisma:migrate --workspace=api
 npm run seed --workspace=api       # locales, temporada, configuración y usuarios
+npm run precios --workspace=api    # la lista real: 15 prendas en 4 talles (D-049)
 npm run dev                        # API en :3001, web en :5173
 ```
 
