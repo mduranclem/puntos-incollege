@@ -118,6 +118,74 @@ su cuenta desde el celular, las dos cosas por HTTPS y contra la misma base.
 
 ---
 
+## Etapa 11 — Antes de abrirlo a los clientes
+
+Auditoría de seguridad completa y lo que salió de ella (D-044).
+
+- [x] El servicio no arranca sin `JWT_SECRET` y `TOKEN_CLIENTE_SECRET` propios
+- [x] Límites por IP en todo lo público que manda WhatsApp o prueba credenciales
+- [x] Dar de baja a alguien corta su sesión en el acto (`sesionVersion`)
+- [x] Cabeceras de seguridad, con CSP ajustada a lo que la app usa de verdad
+- [x] El link de acceso a una cuenta pasa a ser de gerencia
+- [x] La imagen de producción deja de llevar herramientas de desarrollo
+- [x] El link que sale por WhatsApp dura 7 días y se canjea al entrar (D-045)
+- [x] Respaldo diario de la base configurado y probado
+
+**Listo cuando:** ✅ Hecho, salvo mover el respaldo fuera del servidor (ver abajo).
+
+---
+
+## Etapa 12 — La app del cliente, terminada
+
+- [x] Un fondo por pestaña, con la cabeza del oso alineada entre las cuatro (D-047)
+- [x] Transición horizontal entre pestañas, con scroll propio por pestaña (D-047)
+- [x] Ahorro acumulado real en Movimientos, calculado desde el libro mayor (D-048)
+
+**Listo cuando:** ✅ Hecho y desplegado.
+
+---
+
+## Etapa 13 — La lista de precios real
+
+- [x] Precios por talle: 4-10, 12-16, S-XL y ESP (D-049)
+- [x] Las 15 prendas de la lista colegial, en 5 categorías
+- [x] El mostrador pregunta el talle y el servidor resuelve el precio
+- [x] Sólo gerencia edita precios, con 403 en el servidor y confirmación en el panel
+- [x] Cada precio guarda quién lo cambió y cuándo
+- [x] La lista se carga sola en el primer arranque, sin pisar lo editado a mano
+
+**Listo cuando:** el mostrador cobra el precio del talle correcto en producción.
+⚠️ **Está en GitHub pero NO en producción.** Falta apretar Deploy en EasyPanel.
+
+---
+
+## Lo que falta ahora
+
+Esto es lo primero que hay que mirar al retomar, en este orden.
+
+**Del código, nada.** Todo lo hecho está en `main` y pasa los 99 tests.
+
+**Lo que depende de una acción en un panel o en un teléfono:**
+
+- [ ] **Desplegar.** EasyPanel → proyecto `n8n` → servicio de puntos → Deployments →
+      Deploy. Hay tres commits esperando desde el 1/10. EasyPanel **no despliega solo**
+      con el push: siempre hay que apretar el botón. Se verifica mirando que
+      `/api/publico/novedades` devuelva 15 prendas con categoría.
+- [ ] **El número de WhatsApp real.** Vincular la instancia de Evolution API al número
+      y apuntar ahí el nodo del workflow de n8n. Pide escanear un QR con ese celular.
+- [ ] **Sacar el link firmado del payload a n8n**, aprovechando esa misma edición.
+- [ ] **Las seis contraseñas del mostrador.** Las seis comparten la misma y tienen
+      cambio forzado: hasta que cada persona entre y ponga la suya, no puede operar.
+- [ ] **El respaldo, fuera del servidor.** Hoy guarda en el mismo disco. Moverlo a
+      Google Drive necesita autorizar la cuenta en EasyPanel (Ajustes → Proveedores de
+      almacenamiento). Es un OAuth: lo tiene que hacer el dueño.
+- [ ] **Probar el QR con un celular real** sobre HTTPS. Nunca se probó con cámara.
+- [ ] **El dominio propio.** Si InCollege ya tiene uno, `puntos.<dominio>` sale gratis:
+      un registro A a `76.13.233.240` y agregarlo en EasyPanel.
+- [ ] Una versión de la mascota sin la ropa de egresados, si se la quiere usar en grande.
+
+---
+
 ## Después de esta entrega (no incluido)
 - Fuente de pagos de egresados (SIRO): implementar `FuenteDePagos` contra su base
   o su exportación a Excel. Ver `DECISIONES.md` § Fuente de pagos.
