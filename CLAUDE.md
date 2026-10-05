@@ -105,8 +105,15 @@ Ver `README.md`. Dos caminos según la máquina:
 
 ## Estado
 
-Desplegado y funcionando en `https://n8n-puntos-incollege.fbf9ni.easypanel.host`
-(EasyPanel, adentro del proyecto `n8n`; la base es el servicio `puntos-db`).
+Desplegado y funcionando en **`https://puntos.tiendadeuniformes.store`** (EasyPanel,
+adentro del proyecto `n8n`; la base es el servicio `puntos-db`). La dirección vieja
+`https://n8n-puntos-incollege.fbf9ni.easypanel.host` sigue respondiendo, para no romper
+los links que ya se repartieron: las dos están en `CORS_ORIGEN`, que acepta lista
+separada por comas. El link que sale por WhatsApp usa `URL_PUBLICA_WEB`, que apunta al
+dominio propio.
+
+**EasyPanel no despliega solo con el push.** Siempre hay que apretar Implementar en el
+servicio; pasó tres veces de dar por desplegado algo que seguía en GitHub.
 
 La dirección pelada es **la del cliente**; el mostrador y el panel cuelgan de
 `/mostrador` (D-038).
@@ -117,5 +124,4 @@ el esquema `pruebas`, nunca contra `public`. Era la única regla del pedido sin 
 
 Lo que queda pendiente, y es del dueño, no del código:
 
-- Probar el escaneo del QR con un celular de verdad sobre HTTPS.
 - Una versión de la mascota sin la ropa de egresados, si se la quiere usar en grande.

@@ -155,7 +155,7 @@ Auditoría de seguridad completa y lo que salió de ella (D-044).
 - [x] La lista se carga sola en el primer arranque, sin pisar lo editado a mano
 
 **Listo cuando:** el mostrador cobra el precio del talle correcto en producción.
-⚠️ **Está en GitHub pero NO en producción.** Falta apretar Deploy en EasyPanel.
+✅ Desplegado el 5/10. Verificado: 5 categorías, 15 prendas, 60 precios.
 
 ---
 
@@ -165,24 +165,29 @@ Esto es lo primero que hay que mirar al retomar, en este orden.
 
 **Del código, nada.** Todo lo hecho está en `main` y pasa los 99 tests.
 
-**Lo que depende de una acción en un panel o en un teléfono:**
+**Hecho el 5/10:**
 
-- [ ] **Desplegar.** EasyPanel → proyecto `n8n` → servicio de puntos → Deployments →
-      Deploy. Hay tres commits esperando desde el 1/10. EasyPanel **no despliega solo**
-      con el push: siempre hay que apretar el botón. Se verifica mirando que
-      `/api/publico/novedades` devuelva 15 prendas con categoría.
-- [ ] **El número de WhatsApp real.** Vincular la instancia de Evolution API al número
-      y apuntar ahí el nodo del workflow de n8n. Pide escanear un QR con ese celular.
+- [x] Desplegada la lista de precios en producción
+- [x] Dominio propio: `https://puntos.tiendadeuniformes.store`, con HTTPS y las dos
+      variables (`URL_PUBLICA_WEB`, `CORS_ORIGEN`) apuntadas ahí. La dirección vieja de
+      easypanel sigue funcionando, así que ningún link repartido se rompe.
+- [x] Respaldo de la base fuera del servidor, en Google Drive
+- [x] Escaneo del QR probado con un celular real sobre HTTPS
+
+**Lo que queda, todo depende de una acción en un panel o en un teléfono:**
+
+- [ ] **El número de WhatsApp.** Hay un chip nuevo para el programa, aparte del personal.
+      Vincular la instancia de Evolution API escaneando el QR desde ese celular, ponerle
+      la foto de la tienda y apuntar ahí el nodo del workflow de n8n.
 - [ ] **Sacar el link firmado del payload a n8n**, aprovechando esa misma edición.
-- [ ] **Las seis contraseñas del mostrador.** Las seis comparten la misma y tienen
-      cambio forzado: hasta que cada persona entre y ponga la suya, no puede operar.
-- [ ] **El respaldo, fuera del servidor.** Hoy guarda en el mismo disco. Moverlo a
-      Google Drive necesita autorizar la cuenta en EasyPanel (Ajustes → Proveedores de
-      almacenamiento). Es un OAuth: lo tiene que hacer el dueño.
-- [ ] **Probar el QR con un celular real** sobre HTTPS. Nunca se probó con cámara.
-- [ ] **El dominio propio.** Si InCollege ya tiene uno, `puntos.<dominio>` sale gratis:
-      un registro A a `76.13.233.240` y agregarlo en EasyPanel.
+- [ ] **Las siete cuentas de personal**, una por persona (D-034): pocho (Sur, que también
+      cubre Fábrica), fernanda (Norte), gaby (Fisherton), clara (Santa Fe), jere (San
+      Nicolás), y dos de gerencia. Cada uno entra una vez y pone su contraseña.
+- [ ] **Después de eso, y sólo después**, desactivar las seis cuentas `mostrador-*`:
+      comparten una contraseña que varias personas vieron. No se borran, se desactivan.
 - [ ] Una versión de la mascota sin la ropa de egresados, si se la quiere usar en grande.
+
+**Para salir hace falta:** el número de WhatsApp y las cuentas. Lo demás puede esperar.
 
 ---
 
