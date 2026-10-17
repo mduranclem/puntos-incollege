@@ -23,6 +23,7 @@
     "preparar:local": "tsx src/scripts/prepararLocal.ts",
     "probar:acceso": "tsx src/scripts/probarAccesoLocal.ts",
     "limpiar:avisos": "tsx src/scripts/limpiarAvisosDePrueba.ts",
+    "limpiar:avisos:prod": "node dist/scripts/limpiarAvisosDePrueba.js",
     "probar:concurrencia": "tsx src/scripts/probarConcurrencia.ts"
   },
   "prisma": {
