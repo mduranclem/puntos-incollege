@@ -118,6 +118,12 @@ servicio; pasó tres veces de dar por desplegado algo que seguía en GitHub.
 La dirección pelada es **la del cliente**; el mostrador y el panel cuelgan de
 `/mostrador` (D-038).
 
+Los avisos salen del número propio del programa, **5493416484934** ("Tienda De
+Uniformes"), por la instancia `puntos-incollege` de Evolution API
+(`https://n8n-evolution-api.fbf9ni.easypanel.host`, Manager en `/manager`). El workflow
+de n8n es `gtmorX19HxCUTeaX`. **Crear una credencial en n8n no la cablea**: hay que
+elegirla en el nodo y guardar el workflow, o Evolution contesta 401 (D-050).
+
 Los tests de concurrencia del canje ya corrieron contra el PostgreSQL real y pasan
 (D-033): `api/src/scripts/probarConcurrencia.ts`, desde la consola del servicio y contra
 el esquema `pruebas`, nunca contra `public`. Era la única regla del pedido sin evidencia.

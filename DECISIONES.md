@@ -1550,3 +1550,44 @@ qué —nunca el valor recibido, que puede ser una contraseña.
 **Consecuencia.** El catálogo real está cargado: 15 prendas, 5 categorías, 60 precios.
 Los cinco de muestra dejaron de serlo. Si cambian los precios, los cambia la gerencia
 desde el panel sin tocar código ni desplegar (D-009).
+
+---
+
+## D-050 · El programa tiene su propia instancia de Evolution, y su propio número
+
+**Contexto.** Hasta el 17/10/2026 los avisos salían por la instancia `practican8nWhatsApp`,
+que es de práctica y está atada a otro número. Mandarle mensajes a clientes desde ahí
+mezcla el programa con pruebas ajenas, y cualquiera que desloguee esa instancia para otra
+cosa corta los avisos sin enterarse.
+
+**Decisión.** El programa tiene chip propio, instancia propia y credencial propia:
+
+| | |
+|---|---|
+| Instancia | `puntos-incollege` |
+| Número | `5493416484934` |
+| Perfil | Tienda De Uniformes, con foto |
+| Evolution | `https://n8n-evolution-api.fbf9ni.easypanel.host` (v2.3.7, proyecto `n8n` de EasyPanel) |
+| Manager | el mismo host, en `/manager` |
+| Workflow | `gtmorX19HxCUTeaX`, nodo "Enviar por WhatsApp" |
+
+**Por qué una instancia nueva y no re-escanear la de práctica.** Una instancia de Evolution
+está atada a una cuenta de WhatsApp: cambiarle el número obliga a desloguear la que estaba,
+y se cae lo que la use. Creando una al lado, la de práctica sigue intacta.
+
+**El webhook de entrada va apagado.** Nuestro nodo sólo **envía**. Si se le configura a la
+instancia un webhook de entrada con `MESSAGES_UPSERT` apuntando al webhook de avisos, cada
+mensaje que reciba el número pega ahí y muere en el guard del token: no se manda nada
+—falla cerrado— pero llena el log de ejecuciones fallidas. En `puntos-incollege` queda con
+`Enabled` en off y todos los eventos destildados.
+
+**Lo que cuesta una hora si no está escrito.** Crear la credencial en n8n **no la cablea**.
+Hay que abrir el nodo, elegirla en "Credential to connect with" y **guardar el workflow**;
+si no, el nodo sigue usando la vieja y Evolution contesta `401 Unauthorized`. Las
+credenciales se llaman todas `Evolution account N`, así que la nueva es la del número más
+alto. La API pública de n8n **no permite listarlas** (405): el ID se saca de la URL al
+abrirla en la interfaz.
+
+**Consecuencia.** El aviso llega del número de la tienda, con el link al dominio propio.
+Verificado de punta a punta el 17/10/2026: Evolution devolvió `success: true` y el mensaje
+llegó al teléfono.
