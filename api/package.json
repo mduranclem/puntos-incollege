@@ -24,6 +24,8 @@
     "probar:acceso": "tsx src/scripts/probarAccesoLocal.ts",
     "limpiar:avisos": "tsx src/scripts/limpiarAvisosDePrueba.ts",
     "limpiar:avisos:prod": "node dist/scripts/limpiarAvisosDePrueba.js",
+    "cuentas:cero": "tsx src/scripts/cuentasDeCero.ts",
+    "cuentas:cero:prod": "node dist/scripts/cuentasDeCero.js",
     "probar:concurrencia": "tsx src/scripts/probarConcurrencia.ts"
   },
   "prisma": {

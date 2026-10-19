@@ -189,11 +189,18 @@ Esto es lo primero que hay que mirar al retomar, en este orden.
 - [ ] **Sacar el token hardcodeado del nodo "Armar el mensaje".** Está a la vista de
       cualquiera que abra el workflow. Cambiarlo implica tocar también
       `N8N_WEBHOOK_TOKEN` en EasyPanel, así que se hace en una pasada y se reprueba.
-- [ ] **Las siete cuentas de personal**, una por persona (D-034): pocho (Sur, que también
-      cubre Fábrica), fernanda (Norte), gaby (Fisherton), clara (Santa Fe), jere (San
-      Nicolás), y dos de gerencia. Cada uno entra una vez y pone su contraseña.
-- [ ] **Después de eso, y sólo después**, desactivar las seis cuentas `mostrador-*`:
-      comparten una contraseña que varias personas vieron. No se borran, se desactivan.
+- [ ] **Arrancar de cero con las cuentas** (D-051). En este orden:
+      1. Con el `admin`, crear la cuenta de gerencia desde el panel (Personal → Agregar,
+         rol GERENTE).
+      2. Que entre una vez y ponga su contraseña. Hasta que lo haga el servidor le
+         devuelve 403 en todo lo que opera (D-034).
+      3. `npm run cuentas:cero:prod -- --dejar=<usuario>` para ver el informe, y con
+         `--confirmar` para borrar todas las demás, `admin` y las seis `mostrador-*`
+         incluidas. La herramienta se niega si la cuenta elegida no puede operar.
+- [ ] **Las cuentas del resto del personal**, una por persona (D-034), dadas de alta por
+      la gerencia: pocho (Sur, que también cubre Fábrica), fernanda (Norte), gaby
+      (Fisherton), clara (Santa Fe), jere (San Nicolás). Cada uno entra una vez y pone su
+      contraseña.
 - [ ] Una versión de la mascota sin la ropa de egresados, si se la quiere usar en grande.
 
 **Para salir hace falta:** las cuentas del personal. El número de WhatsApp ya está

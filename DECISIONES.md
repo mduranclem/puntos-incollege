@@ -1591,3 +1591,50 @@ abrirla en la interfaz.
 **Consecuencia.** El aviso llega del número de la tienda, con el link al dominio propio.
 Verificado de punta a punta el 17/10/2026: Evolution devolvió `success: true` y el mensaje
 llegó al teléfono.
+
+## D-051 · Se arranca con una sola gerencia, y las cuentas de prueba se borran
+
+**Contexto.** La base de producción venía con las cuentas del seed: `admin` y seis
+`mostrador-*`, todas con contraseñas que varias personas vieron, más lo que dejaron las
+pruebas. El dueño pidió empezar de cero: una sola cuenta de gerencia, creada por él, y
+que desde ahí se den de alta los demás. Preguntó primero si no convenía repartir un link
+de alta para que cada uno se creara su cuenta.
+
+**No hay link de alta abierto.** La app vive en una dirección pública de internet, y un
+link de "creá tu cuenta de personal" no tiene con qué saber quién está del otro lado. Si
+se reenvía, queda en una captura o lo ve alguien en un celular prestado, un desconocido
+se da de alta y tiene el mostrador: cobrar y canjear, o sea plata. Con el cliente esto no
+pasa porque el código por WhatsApp prueba que el teléfono es suyo (D-010); con el personal
+no hay nada contra qué verificar. Hacerlo seguro pedía invitaciones con token de un solo
+uso y vencimiento, que es el alta del admin con más piezas que se pueden romper.
+
+**Y la autogestión que importaba ya estaba.** Por D-034 toda cuenta que crea la gerencia
+nace con `debeCambiarContrasena`, y el servidor devuelve 403 en todo lo que opera hasta
+que la persona ponga una propia. La gerencia pone una inicial y no termina sabiendo con
+qué contraseña trabaja nadie. Eso era el objetivo real del pedido.
+
+**Decisión.** `api/src/scripts/cuentasDeCero.ts`. Se nombra a mano la cuenta que se queda
+(`--dejar=<usuario>`) y se borra todo lo demás. Por defecto sólo informa.
+
+**Por qué se nombra a mano.** La primera versión usaba una regla: sobrevive quien puso su
+propia contraseña. Sonaba elegante y estaba mal — si alguien ya le había cambiado la
+contraseña al `admin` del seed, la regla lo dejaba en pie, justo la cuenta que había que
+sacar. Lo mostró el informe corriéndolo contra la base local.
+
+**Acá sí se borra, y es la excepción.** `Usuario` tiene pagos, movimientos,
+configuraciones y precios colgados, pero las cuatro referencias son opcionales
+(`usuarioId String?`): al borrar quedan en `null`. Las filas del libro mayor **no se
+van** —D-004 sigue en pie— sólo dejan de decir quién las hizo. El dueño lo decidió
+sabiéndolo, porque esas cuentas y esos movimientos eran todos de prueba. Para dar de baja
+a una persona real que cobró de verdad esto **no** es el camino: es `activo: false` desde
+el panel, que además sube `sesionVersion` y corta las sesiones abiertas (D-044).
+
+**Los frenos.** La cuenta elegida tiene que existir, ser `GERENTE`, estar activa y haber
+puesto ya su propia contraseña. Si no, se niega y no toca nada: bajar todo cuando no queda
+ninguna cuenta capaz de operar deja al dueño afuera de su propio sistema. El informe
+avisa además cuántas filas quedarían sin autor antes de confirmar.
+
+**Consecuencia.** El orden es: crear la gerencia nueva desde el panel con el `admin`, que
+entre una vez y ponga su contraseña, y recién entonces correr el script nombrándola.
+Probado contra la base local: borró 10 cuentas, quedó 1, y los 178 movimientos siguen
+enteros.
