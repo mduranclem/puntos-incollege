@@ -113,7 +113,11 @@ separada por comas. El link que sale por WhatsApp usa `URL_PUBLICA_WEB`, que apu
 dominio propio.
 
 **EasyPanel no despliega solo con el push.** Siempre hay que apretar Implementar en el
-servicio; pasó tres veces de dar por desplegado algo que seguía en GitHub.
+servicio; pasó tres veces de dar por desplegado algo que seguía en GitHub. Y para saber
+si el contenedor tiene un cambio, **no mires si el archivo existe en `dist/`**: el nombre
+es el mismo antes y después de reescribirlo. Mirá `package.json`, o corré el script y que
+falle. La consola del servicio es Alpine: se abre con **`Sh`**, no con `Bash`
+(`/bin/bash: not found`), y arranca en `/app/api`, que es donde viven los scripts.
 
 La dirección pelada es **la del cliente**; el mostrador y el panel cuelgan de
 `/mostrador` (D-038).

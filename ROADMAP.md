@@ -179,10 +179,13 @@ Esto es lo primero que hay que mirar al retomar, en este orden.
 - [x] **El número de WhatsApp.** Hecho el 17/10: instancia `puntos-incollege`, número
       5493416484934, perfil "Tienda De Uniformes" con foto, credencial propia y nodo
       apuntado. Probado de punta a punta: el mensaje llegó (D-050).
-- [ ] **Contar los `EventoSaliente` en `PENDIENTE` y descartar la basura de prueba.**
-      Va **antes** de poner `CRON_HABILITADO=true` en producción: ahora que la cadena
-      funciona, lo que esté encolado sale de verdad, y un teléfono inventado puede ser
-      de una persona real. Es lo único que queda con riesgo de molestar a alguien.
+- [x] **Contar los `EventoSaliente` en `PENDIENTE` y descartar la basura de prueba.**
+      Verificado el 19/10 contra la base de producción con `npm run limpiar:avisos:prod`
+      desde la consola del servicio: 10 `ENVIADO`, **0 `PENDIENTE`, 0 `FALLIDO`**. No
+      había nada encolado, así que no hubo nada que borrar. `CRON_HABILITADO` ya estaba
+      en `true`, y era el riesgo real: un teléfono inventado puede ser de una persona
+      real. Los dos clientes de la base son reales (los dos teléfonos son de la familia),
+      con un movimiento cada uno; por D-004 no se borran.
 - [ ] **Sacar el token hardcodeado del nodo "Armar el mensaje".** Está a la vista de
       cualquiera que abra el workflow. Cambiarlo implica tocar también
       `N8N_WEBHOOK_TOKEN` en EasyPanel, así que se hace en una pasada y se reprueba.
@@ -193,8 +196,8 @@ Esto es lo primero que hay que mirar al retomar, en este orden.
       comparten una contraseña que varias personas vieron. No se borran, se desactivan.
 - [ ] Una versión de la mascota sin la ropa de egresados, si se la quiere usar en grande.
 
-**Para salir hace falta:** las cuentas del personal, y limpiar la cola antes de
-prender el cron. El número de WhatsApp ya está.
+**Para salir hace falta:** las cuentas del personal. El número de WhatsApp ya está
+y la cola está limpia.
 
 ---
 
