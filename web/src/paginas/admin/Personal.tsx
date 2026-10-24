@@ -215,7 +215,7 @@ export function PanelPersonal() {
                 </td>
                 <td className="px-4 py-3">
                   <select
-                    className="campo py-1.5 text-sm"
+                    className="campo campo-tabla"
                     value={p.local.id}
                     onChange={(e) => void cambiar(p.id, { localId: e.target.value })}
                   >
@@ -228,7 +228,7 @@ export function PanelPersonal() {
                 </td>
                 <td className="px-4 py-3">
                   <select
-                    className="campo py-1.5 text-sm"
+                    className="campo campo-tabla"
                     value={p.rol}
                     onChange={(e) => void cambiar(p.id, { rol: e.target.value })}
                   >
@@ -237,21 +237,23 @@ export function PanelPersonal() {
                   </select>
                 </td>
                 <td className="px-4 py-3">
-                  {p.activo ? (
-                    <span className="chip bg-green-50 text-[var(--color-ok)]">Activo</span>
-                  ) : (
-                    <span className="chip bg-slate-100 text-slate-500">Inactivo</span>
-                  )}
-                  {/* Sirve para saber quién sigue entrando con la contraseña
-                      que le dictaron y todavía no puso una propia. */}
-                  {p.activo && p.debeCambiarContrasena && (
-                    <span
-                      className="chip ml-1 bg-amber-50 text-amber-700"
-                      title="Todavía usa la contraseña que le puso la gerencia"
-                    >
-                      Sin contraseña propia
-                    </span>
-                  )}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {p.activo ? (
+                      <span className="chip-estado bg-green-50 text-[var(--color-ok)]">Activo</span>
+                    ) : (
+                      <span className="chip-estado bg-slate-100 text-slate-500">Inactivo</span>
+                    )}
+                    {/* Sirve para saber quién sigue entrando con la contraseña
+                        que le dictaron y todavía no puso una propia. */}
+                    {p.activo && p.debeCambiarContrasena && (
+                      <span
+                        className="chip-estado bg-amber-50 text-amber-700"
+                        title="Todavía usa la contraseña que le puso la gerencia"
+                      >
+                        Sin contraseña propia
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td className="px-4 py-3 text-right">
                   {cambiandoContrasena === p.id ? (

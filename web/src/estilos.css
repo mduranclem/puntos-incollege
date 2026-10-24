@@ -111,6 +111,20 @@
   .chip {
     @apply rounded-lg px-3 py-2 text-sm font-semibold transition;
   }
+
+  /* El `.chip` grande es para botones. Como etiqueta de estado adentro de una
+     celda angosta no entra: dos seguidas se pisan. Esta es la misma idea en
+     chico, y la celda que las contiene las acomoda con flex-wrap. */
+  .chip-estado {
+    @apply inline-block whitespace-nowrap rounded-md px-2 py-0.5 text-xs font-semibold;
+  }
+
+  /* Un campo adentro de una tabla no puede ser `w-full`: con cinco columnas la
+     celda queda angosta y el texto del desplegable se corta a la mitad
+     ("Rosario F", "Gere"). Se achica el relleno y se deja crecer al contenido. */
+  .campo-tabla {
+    @apply w-auto min-w-fit px-2 py-1.5 text-sm;
+  }
 }
 
 /* =========================================================================
