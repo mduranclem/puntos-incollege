@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ErrorApi, api, guardarSesion, type Sesion } from '../api';
+import { ErrorApi, api, guardarSesion, inicioSegunRol, type Sesion } from '../api';
 import { Logo } from '../componentes/Logo';
 
 export function Ingreso() {
@@ -32,9 +32,12 @@ export function Ingreso() {
         cuerpo: { usuario: usuario.trim().toLowerCase(), contrasena },
       });
       guardarSesion(datos.token, datos.sesion);
-      navegar(datos.sesion.debeCambiarContrasena ? '/mostrador/contrasena' : '/mostrador', {
-        replace: true,
-      });
+      navegar(
+        datos.sesion.debeCambiarContrasena
+          ? '/mostrador/contrasena'
+          : inicioSegunRol(datos.sesion),
+        { replace: true },
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo ingresar');
       const segundos =

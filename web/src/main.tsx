@@ -33,6 +33,15 @@ function SoloPersonal({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/**
+ * El panel es de la gerencia. El servidor ya lo exige y devuelve 403 (D-034), pero
+ * sin esto un vendedor que escribe la dirección a mano ve la pantalla dibujarse y
+ * llenarse de errores. Se lo manda a cobrar, que es lo suyo.
+ */
+function SoloGerencia({ children }: { children: React.ReactNode }) {
+  return leerSesion()?.rol === 'GERENTE' ? <>{children}</> : <Navigate to="/mostrador" replace />;
+}
+
 /** Con sesión alcanza: es la única pantalla que se ve con el cambio pendiente. */
 function ConSesion({ children }: { children: React.ReactNode }) {
   return leerSesion() ? <>{children}</> : <Navigate to="/mostrador/ingresar" replace />;
@@ -88,7 +97,14 @@ createRoot(document.getElementById('raiz')!).render(
         >
           <Route index element={<Cobro />} />
           <Route path="canje" element={<Canje />} />
-          <Route path="admin" element={<Admin />} />
+          <Route
+            path="admin"
+            element={
+              <SoloGerencia>
+                <Admin />
+              </SoloGerencia>
+            }
+          />
         </Route>
 
         {/* La dirección pelada la escribe un cliente, no un vendedor (D-038). */}

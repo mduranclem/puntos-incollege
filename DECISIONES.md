@@ -1638,3 +1638,29 @@ avisa además cuántas filas quedarían sin autor antes de confirmar.
 entre una vez y ponga su contraseña, y recién entonces correr el script nombrándola.
 Probado contra la base local: borró 10 cuentas, quedó 1, y los 178 movimientos siguen
 enteros.
+
+## D-052 · Un solo link para el personal, y cada uno cae donde trabaja
+
+**Contexto.** El dueño entró como `admin` y se quejó: "me manda como si fuese una cuenta
+de un vendedor en mostrador". Tenía razón. El rol **ya** filtraba la barra de arriba —la
+pestaña "Panel" sólo le aparece a `GERENTE`— pero el aterrizaje después de entrar era
+`/mostrador` para todos, que es la pantalla de Cobrar. La gerencia entraba a la caja y
+tenía que buscar el panel a mano.
+
+**Decisión.** El link sigue siendo uno solo (`/mostrador`, D-038): lo que cambia es dónde
+cae cada uno. `inicioSegunRol()` en `web/src/api.ts` manda a `GERENTE` al panel y a
+`VENDEDOR` a cobrar. Lo usan el ingreso y el cambio de contraseña, que son las dos
+puertas de entrada.
+
+**Por qué no dos direcciones.** Porque se reparten a mano y se escriben mal. Una sola
+dirección para todo el personal es una sola cosa que explicar y una sola que recordar;
+que la pantalla cambie según quién entra es trabajo del sistema, no de la persona.
+
+**Y el panel ahora también se filtra en la ruta.** El servidor ya exigía `GERENTE` y
+devolvía 403 (D-034), pero un vendedor que escribía `/mostrador/admin` a mano veía la
+pantalla dibujarse y llenarse de errores: parecía un sistema roto en vez de una puerta
+cerrada. `SoloGerencia` lo manda a cobrar. La defensa real sigue siendo la del servidor;
+esto es para que se entienda.
+
+**Consecuencia.** Entrar es siempre por `/mostrador/ingresar`, y después cada uno ve lo
+suyo sin elegir nada.

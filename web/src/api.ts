@@ -64,6 +64,14 @@ export const leerSesion = (): Sesion | null => {
   }
 };
 
+/**
+ * Dónde cae cada uno al entrar. Un vendedor viene a cobrar; la gerencia viene al
+ * panel. El link es el mismo para todos (`/mostrador`, D-038): lo que cambia es
+ * la pantalla, no la dirección que se reparte.
+ */
+export const inicioSegunRol = (sesion: Sesion | null): string =>
+  sesion?.rol === 'GERENTE' ? '/mostrador/admin' : '/mostrador';
+
 export const cerrarSesion = () => {
   localStorage.removeItem(CLAVE_TOKEN);
   localStorage.removeItem(CLAVE_SESION);

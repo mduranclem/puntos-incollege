@@ -8,7 +8,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, guardarSesion, leerSesion, cerrarSesion, type Sesion } from '../api';
+import { api, cerrarSesion, guardarSesion, inicioSegunRol, leerSesion, type Sesion } from '../api';
 
 /** Las mismas reglas que el servidor, para avisar mientras se escribe. */
 const LARGO_MINIMO = 8;
@@ -58,7 +58,7 @@ export function CambiarContrasena() {
       // El token viejo lleva adentro la marca de cambio pendiente: hay que
       // reemplazarlo, si no el servidor sigue sin dejar operar.
       guardarSesion(datos.token, datos.sesion);
-      navegar('/mostrador', { replace: true });
+      navegar(inicioSegunRol(datos.sesion), { replace: true });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo cambiar la contraseña');
       setActual('');
@@ -157,7 +157,7 @@ export function CambiarContrasena() {
           <button
             type="button"
             className="mt-3 w-full text-center text-xs text-slate-500 hover:text-slate-800"
-            onClick={() => navegar('/mostrador', { replace: true })}
+            onClick={() => navegar(inicioSegunRol(leerSesion()), { replace: true })}
           >
             Volver
           </button>
