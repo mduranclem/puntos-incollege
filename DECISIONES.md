@@ -1809,3 +1809,42 @@ puestos, no se toca.
 **Consecuencia.** Verificado contra la base: 25 activos, 2 desactivados, **ninguno activo
 sin precio**, 100 precios escritos. Los precios se siguen editando desde el panel y lo
 editado gana sobre el script, que en producción sólo corre con `--si-falta`.
+
+## D-058 · Los puntos no vencen
+
+**Contexto.** El pedido original decía que los puntos vencían al cerrar la temporada, y
+así se construyó: fecha de cierre editable desde el panel (D-020), tarea programada que
+vencía los saldos y abría la temporada siguiente (D-019), aviso anticipado por WhatsApp
+(D-016), movimiento `VENCIMIENTO` que llevaba saldo y remanente a cero (D-013). Antes de
+abrirlo a clientes reales el dueño lo definió al revés: **los puntos no vencen.**
+
+**Decisión.** Se saca el vencimiento entero, no se apaga con una bandera. Una fecha de
+corte que no se usa es peor que ninguna: alguien la va a leer en la base, o la va a
+cambiar desde el panel, y va a creer que significa algo.
+
+Qué se fue: el servicio `vencimientos.ts`, el reloj de la tarea programada, el método
+`motor.vencer()` con sus tres tests (96 en vez de 99), los eventos `puntos.por_vencer` y
+`puntos.vencidos`, el campo "Aviso de vencimiento" y el "Cierre de temporada" del panel, y
+el "Vencen el …" de la app del cliente, la pantalla de saldo, el mostrador y el recibo.
+
+**Qué queda, a propósito:**
+
+- **El tipo de movimiento `VENCIMIENTO` y sus textos en la interfaz.** El libro mayor es
+  append-only (D-004): si alguna cuenta tiene un vencimiento viejo, tiene que seguir
+  leyéndose y sumando bien. El total del panel lo sigue restando del pasivo; la tarjeta
+  "Vencidos" ahora aparece sólo si hay alguno, porque un cero fijo es ruido.
+- **La `Temporada`.** Ya no es un período que cierra: es lo que agrupa las cuentas
+  (`CuentaPuntos` es única por cliente y temporada). Queda abierta para siempre.
+- **Las columnas `cierreEn`, `cerrada` y `diasAvisoVencimiento`.** Nadie las lee ni las
+  escribe, y están anotadas así en el esquema. No se migran: borrar columnas de una base
+  en producción para ganar prolijidad no se paga.
+
+**Consecuencia.** El pasivo del programa ya no se extingue solo. Es una decisión de
+negocio, no un descuido: los puntos acumulados son plata que la empresa va a descontar
+alguna vez, y ahora sin fecha de vencimiento. El tope de canje por venta (D-008) sigue
+siendo el único límite.
+
+**En n8n quedan dos ramas muertas** en el nodo "Armar el mensaje", las de los dos eventos
+que ya no se emiten. Son inalcanzables —el nodo corta con "Tipo de aviso desconocido" y la
+API nunca manda esos tipos—, y se sacan cuando se toque ese nodo para quitarle el token
+escrito a mano.

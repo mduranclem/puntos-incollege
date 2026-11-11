@@ -1,16 +1,15 @@
 /**
- * Tareas programadas: despacho de avisos y vencimiento de temporada.
+ * Tareas programadas: despacho de avisos.
  *
  * Se puede correr como proceso aparte (`npm run tareas`) o dentro de la API con
  * CRON_HABILITADO=true. Todas las tareas son idempotentes, así que correrlas de
  * más no rompe nada.
+ *
+ * Acá vivía también el vencimiento de temporada. Los puntos no vencen (D-058):
+ * no hay nada que correr.
  */
 import { prisma } from './infra/prisma/cliente.js';
 import { despacharPendientes } from './servicios/despachador.js';
-import {
-  avisarProximosVencimientos,
-  vencerTemporadasCerradas,
-} from './servicios/vencimientos.js';
 
 const MINUTO = 60_000;
 
@@ -28,29 +27,11 @@ export function arrancarTareas() {
     }
   };
 
-  const vencer = async () => {
-    try {
-      const aviso = await avisarProximosVencimientos(prisma);
-      if (aviso.avisados) registro(`avisos de vencimiento encolados: ${aviso.avisados}`);
-      const vencimiento = await vencerTemporadasCerradas(prisma);
-      if (vencimiento.cuentasVencidas) {
-        registro(
-          `temporadas vencidas: ${vencimiento.temporadas}, cuentas: ${vencimiento.cuentasVencidas}`,
-        );
-      }
-    } catch (error) {
-      console.error('[tareas] error en el vencimiento', error);
-    }
-  };
-
   void despachar();
-  void vencer();
   const relojAvisos = setInterval(despachar, MINUTO);
-  const relojVencimiento = setInterval(vencer, 60 * MINUTO);
 
   return () => {
     clearInterval(relojAvisos);
-    clearInterval(relojVencimiento);
   };
 }
 

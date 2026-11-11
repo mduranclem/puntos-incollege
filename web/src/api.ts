@@ -32,7 +32,7 @@ export type ResumenDeCuenta = {
   faltaParaElProximoTexto: string;
   valorPuntoCentavos: string;
   topeCanjeBps: number;
-  temporada: { nombre: string; venceEn: string };
+  temporada: { nombre: string };
   movimientos: Movimiento[];
 };
 

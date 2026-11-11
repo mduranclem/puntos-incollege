@@ -305,48 +305,6 @@ describe('reversa de pago', () => {
   });
 });
 
-describe('vencimiento de temporada', () => {
-  it('lleva el saldo y el remanente a cero con un movimiento de vencimiento', async () => {
-    await acreditar('manual:1', parsearImporte('25000'));
-    const r = await motor.vencer({
-      cuentaId: CUENTA,
-      temporadaId: 'temporada-2026',
-      contexto: { usuarioId: null, localId: null },
-    });
-
-    expect(r.movimiento?.tipo).toBe('VENCIMIENTO');
-    expect(r.movimiento?.puntos).toBe(-2);
-    expect(r.estado.saldoPuntos).toBe(0);
-    expect(r.estado.remanenteCentavos).toBe(0n);
-    expect(repo.movimientosDe(CUENTA)).toHaveLength(2);
-  });
-
-  it('es idempotente por temporada', async () => {
-    await acreditar('manual:1', parsearImporte('25000'));
-    await motor.vencer({
-      cuentaId: CUENTA,
-      temporadaId: 'temporada-2026',
-      contexto: { usuarioId: null, localId: null },
-    });
-    const segunda = await motor.vencer({
-      cuentaId: CUENTA,
-      temporadaId: 'temporada-2026',
-      contexto: { usuarioId: null, localId: null },
-    });
-    expect(segunda.yaAplicado).toBe(true);
-    expect(repo.movimientosDe(CUENTA)).toHaveLength(2);
-  });
-
-  it('no genera movimiento si la cuenta está vacía', async () => {
-    const r = await motor.vencer({
-      cuentaId: CUENTA,
-      temporadaId: 'temporada-2026',
-      contexto: { usuarioId: null, localId: null },
-    });
-    expect(r.movimiento).toBeNull();
-    expect(repo.movimientosDe(CUENTA)).toHaveLength(0);
-  });
-});
 
 describe('invariantes del libro mayor', () => {
   it('la caché coincide siempre con la suma de los movimientos (D-004)', async () => {

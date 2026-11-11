@@ -54,7 +54,6 @@ export async function encolarAvisoDeAcreditacion(
         puntos: aviso.puntos,
         saldoPuntos: aviso.saldoPuntos,
         equivalenteTexto: formatearPesos(equivalente),
-        venceEn: config.temporada.cierreEn.toISOString(),
         link: linkDeSaldo(cliente.id, cliente.tokenVersion),
       },
       `acreditacion:${aviso.pagoId}`,

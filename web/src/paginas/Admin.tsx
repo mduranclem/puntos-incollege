@@ -12,15 +12,12 @@ import { PanelLocales } from './admin/Locales';
 type Configuracion = {
   valorPuntoTexto: string;
   topeCanjePorcentaje: number;
-  diasAvisoVencimiento: number;
-  temporada: { id: string; nombre: string; cierreEn: string };
-  /** Fecha de cierre como calendario argentino (AAAA-MM-DD). La manda la API (D-020). */
-  cierreFecha: string;
+  temporada: { id: string; nombre: string };
   tasas: Array<{ lineaDeNegocio: string; texto: string | null }>;
 };
 
 type Totales = {
-  temporada: { nombre: string; cierreEn: string };
+  temporada: { nombre: string };
   emitidos: number;
   canjeados: number;
   vencidos: number;
@@ -145,7 +142,9 @@ function PanelTotales() {
   const tarjetas = [
     { texto: 'Puntos emitidos', valor: datos.emitidos },
     { texto: 'Canjeados', valor: datos.canjeados },
-    { texto: 'Vencidos', valor: datos.vencidos },
+    // Los puntos no vencen (D-058). La tarjeta aparece sólo si el libro mayor
+    // tiene vencimientos viejos: mostrar un cero fijo sería ruido.
+    ...(datos.vencidos > 0 ? [{ texto: 'Vencidos', valor: datos.vencidos }] : []),
     { texto: 'Anulados', valor: datos.revertidos },
   ];
 
@@ -423,8 +422,6 @@ function PanelConfiguracion() {
   const [formulario, setFormulario] = useState({
     valorPunto: '',
     topeCanjePorcentaje: '',
-    diasAvisoVencimiento: '',
-    cierreTemporada: '',
     tasas: {} as Record<string, string>,
   });
   const [mensaje, setMensaje] = useState<string | null>(null);
@@ -437,8 +434,6 @@ function PanelConfiguracion() {
     setFormulario({
       valorPunto: soloNumero(datos.valorPuntoTexto),
       topeCanjePorcentaje: String(datos.topeCanjePorcentaje),
-      diasAvisoVencimiento: String(datos.diasAvisoVencimiento),
-      cierreTemporada: datos.cierreFecha,
       tasas: Object.fromEntries(
         datos.tasas.map((t) => [t.lineaDeNegocio, soloNumero(t.texto ?? '')]),
       ),
@@ -462,9 +457,6 @@ function PanelConfiguracion() {
         cuerpo: {
           valorPunto: formulario.valorPunto,
           topeCanjePorcentaje: Number(formulario.topeCanjePorcentaje.replace(',', '.')),
-          diasAvisoVencimiento: Number(formulario.diasAvisoVencimiento),
-          // Va como fecha de calendario; la API la convierte al final del día argentino (D-020).
-          cierreTemporada: formulario.cierreTemporada,
           tasas: Object.entries(formulario.tasas)
             .filter(([, valor]) => valor.trim() !== '')
             .map(([lineaDeNegocio, pesosPorPunto]) => ({ lineaDeNegocio, pesosPorPunto })),
@@ -512,7 +504,7 @@ function PanelConfiguracion() {
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <label className="etiqueta">Valor del punto (pesos)</label>
           <input
@@ -533,34 +525,6 @@ function PanelConfiguracion() {
             }
           />
         </div>
-        <div>
-          <label className="etiqueta">Aviso de vencimiento (días antes)</label>
-          <input
-            className="campo tabular"
-            inputMode="numeric"
-            value={formulario.diasAvisoVencimiento}
-            onChange={(e) =>
-              setFormulario({
-                ...formulario,
-                diasAvisoVencimiento: e.target.value.replace(/\D/g, ''),
-              })
-            }
-          />
-        </div>
-      </div>
-
-      <div>
-        <label className="etiqueta">Cierre de temporada ({config.temporada.nombre})</label>
-        <input
-          className="campo"
-          type="date"
-          value={formulario.cierreTemporada}
-          onChange={(e) => setFormulario({ ...formulario, cierreTemporada: e.target.value })}
-        />
-        <p className="mt-1.5 text-xs text-slate-500">
-          Ese día vencen los puntos de la temporada. El vencimiento queda registrado como
-          movimiento; el historial no se borra.
-        </p>
       </div>
 
       {mensaje && (

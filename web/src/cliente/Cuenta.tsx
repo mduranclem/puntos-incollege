@@ -14,7 +14,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import { Link, useNavigate } from 'react-router-dom';
 import { Desplegable } from './Desplegable';
-import { apiCliente, cerrarAcceso, fechaLarga, type Cuenta as DatosCuenta } from './api';
+import { apiCliente, cerrarAcceso, type Cuenta as DatosCuenta } from './api';
 
 /** Los últimos cuatro del teléfono, que es con lo que lo buscan en el mostrador. */
 const ultimosCuatro = (telefonoE164: string) => telefonoE164.replace(/\D/g, '').slice(-4);
@@ -151,7 +151,6 @@ export function Cuenta() {
             Los puntos de una compra se suman cuando terminás de pagarla, así que no se
             pueden usar en esa misma compra.
           </p>
-          <p>Tus puntos vencen el {fechaLarga(cuenta.temporada.venceEn)}.</p>
         </div>
       </Desplegable>
 
@@ -195,7 +194,6 @@ function TarjetaDeSaldo({
           <p className="saldo-puntos">
             Tenés {cuenta.saldoPuntos} {cuenta.saldoPuntos === 1 ? 'punto' : 'puntos'}
           </p>
-          <p className="saldo-vence">Vencen el {fechaLarga(cuenta.temporada.venceEn)}</p>
         </>
       ) : (
         <>

@@ -33,7 +33,6 @@ type Props = {
   puntosAcreditados: number;
   saldoPuntos: number;
   equivalenteTexto: string;
-  venceEn: string;
 };
 
 const dosDigitos = (n: number) => String(n).padStart(2, '0');
@@ -61,9 +60,7 @@ export function Recibo({
   puntosAcreditados,
   saldoPuntos,
   equivalenteTexto,
-  venceEn,
 }: Props) {
-  const vence = new Date(venceEn);
 
   return (
     <div className="recibo" aria-hidden="true">
@@ -132,9 +129,6 @@ export function Recibo({
           <p className="recibo-meta">
             Saldo: {saldoPuntos} {saldoPuntos === 1 ? 'punto' : 'puntos'} · equivalen a{' '}
             {equivalenteTexto} de descuento
-            <br />
-            Vencen el {dosDigitos(vence.getDate())}/{dosDigitos(vence.getMonth() + 1)}/
-            {vence.getFullYear()}
           </p>
         </>
       ) : (

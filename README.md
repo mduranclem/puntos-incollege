@@ -21,7 +21,7 @@ api/    Node + Express + Prisma + PostgreSQL (TypeScript)
   src/dominio/     reglas puras: dinero en centavos, teléfonos, cálculo de puntos
   src/motor/       motor de puntos, puerto FuenteDePagos, ingestor
   src/infra/       adaptadores: Prisma, memoria (tests), fuentes de pago
-  src/servicios/   clientes, configuración, saldos, avisos, vencimientos
+  src/servicios/   clientes, configuración, saldos, avisos
   src/http/        rutas HTTP y sesión
   tests/           tests del motor (sin base) + integración contra PostgreSQL
 web/    React + Vite + Tailwind v4 (TypeScript)
@@ -137,8 +137,8 @@ las dos historias. No borres nada: pedile a Claude que resuelva el conflicto.
 |---|---|
 | `npm test` | Tests del motor de puntos. No necesitan base de datos. |
 | `npm run simular` | Ciclo completo del motor por consola, sin base de datos. |
-| `npm run probar:local --workspace=api` | Ciclo completo contra la base local, incluido el vencimiento. |
-| `npm run tareas --workspace=api` | Despacho de avisos y vencimiento de temporada. |
+| `npm run probar:local --workspace=api` | Un cobro en efectivo contra la base local, con el libro mayor y los avisos que deja. |
+| `npm run tareas --workspace=api` | Despacho de avisos. |
 | `npm run probar:concurrencia --workspace=api` | Canjes simultáneos contra un PostgreSQL real (D-007). Necesita `DATABASE_URL_TEST` con `schema=pruebas`. |
 | `npm run build` | Compila API y web. |
 
@@ -171,7 +171,7 @@ conexión interna.
 | `CORS_ORIGEN` | `https://<tu-dominio>` |
 | `N8N_WEBHOOK_URL` | La *Production URL* del nodo Webhook del workflow de avisos |
 | `N8N_WEBHOOK_TOKEN` | El mismo token que figura en el nodo "Armar el mensaje" |
-| `CRON_HABILITADO` | `true` — avisos y vencimiento automático |
+| `CRON_HABILITADO` | `true` — despacho automático de avisos |
 | `SEED_CONTRASENA_ADMIN` | Contraseña del primer gerente, mínimo 8 caracteres (D-029, D-034) |
 | `SEED_CONTRASENA_VENDEDOR` | Contraseña inicial de los usuarios de mostrador |
 
@@ -239,8 +239,10 @@ La API no habla con Evolution API: publica eventos en el webhook de n8n
 | Evento | Cuándo | Campos principales |
 |---|---|---|
 | `puntos.acreditados` | al acreditar un cobro en efectivo | `telefono`, `nombre`, `puntos`, `saldoPuntos`, `equivalenteTexto`, `link` |
-| `puntos.por_vencer` | N días antes del cierre (configurable) | `telefono`, `saldoPuntos`, `venceEn`, `diasQueFaltan`, `link` |
-| `puntos.vencidos` | al cerrar la temporada | `telefono`, `puntosVencidos`, `temporada` |
+
+Los puntos no vencen (D-058), así que `puntos.por_vencer` y `puntos.vencidos` ya no
+existen. El nodo "Armar el mensaje" de n8n todavía tiene las dos ramas, inalcanzables:
+se sacan cuando se toque ese nodo para quitarle el token escrito a mano.
 
 El `link` es la pantalla pública de saldo, firmada y sin login.
 

@@ -11,15 +11,15 @@ Estado: `[ ]` pendiente · `[~]` en curso · `[x]` hecho.
 ---
 
 ## Etapa 1 — Motor de puntos
-Modelo de datos, migraciones y la lógica de acreditar, canjear, revertir y vencer,
-con sus tests. Sin interfaz.
+Modelo de datos, migraciones y la lógica de acreditar, canjear y revertir, con sus
+tests. Sin interfaz.
 
 - [x] Esquema Prisma + migración inicial
 - [x] Aritmética de dinero en centavos (enteros, sin float)
 - [x] Motor: acreditación con remanente
 - [x] Motor: canje con tope y bloqueo de acumulación de beneficios
 - [x] Motor: reversa de pago (movimiento inverso, nada se borra)
-- [x] Motor: vencimiento de temporada
+- [x] ~~Motor: vencimiento de temporada~~ · sacado: los puntos no vencen (D-058)
 - [x] Idempotencia por referencia externa del pago
 - [x] Puerto `FuenteDePagos` + implementación `FuenteManual`
 - [x] Tests unitarios del motor
@@ -48,7 +48,7 @@ Enter → importe → Enter, sin tocar el mouse, y el saldo queda a la vista.
 
 ## Etapa 4 — Pantalla de saldo del cliente
 - [x] Vista pública por token firmado (sin login)
-- [x] Saldo en puntos, equivalente en pesos, últimos movimientos, vencimiento
+- [x] Saldo en puntos, equivalente en pesos, últimos movimientos
 - [x] Mobile primero, se abre desde un link de WhatsApp
 
 **Listo cuando:** se ve bien en un celular y no expone datos de otros clientes.
@@ -62,7 +62,7 @@ Enter → importe → Enter, sin tocar el mouse, y el saldo queda a la vista.
 **Listo cuando:** dos sesiones simultáneas no pueden gastar el mismo saldo.
 
 ## Etapa 6 — Panel de administración
-- [x] Configuración de tasas por línea, valor del punto, tope y fecha de vencimiento
+- [x] Configuración de tasas por línea, valor del punto y tope de canje
 - [x] Listado de movimientos con filtros por local, fecha y cliente
 - [x] Totales de puntos emitidos, canjeados y vigentes (pasivo del programa)
 
@@ -71,15 +71,15 @@ Enter → importe → Enter, sin tocar el mouse, y el saldo queda a la vista.
 ## Etapa 7 — Avisos por WhatsApp
 - [x] Integración con n8n + Evolution API (webhook saliente)
 - [x] Aviso al acreditar puntos, con link a la pantalla de saldo
-- [x] Aviso previo al vencimiento
+- [x] ~~Aviso previo al vencimiento~~ · sacado con el vencimiento (D-058)
 
 **Listo cuando:** se dispara solo, sin intervención manual. ✅ Conectado al n8n de la
 empresa: workflow "Puntos InCollege - Avisos de WhatsApp", instancia `practican8nWhatsApp`.
 Probado de punta a punta con un número real.
 
-## Etapa 8 — Vencimiento automático
-- [x] Tarea programada que vence los saldos al cerrar la temporada
-- [x] Aviso anticipado configurable
+## Etapa 8 — Vencimiento automático · **sacada**
+Estuvo hecha y se quitó: el dueño definió que los puntos no vencen (D-058). No hay
+tarea de vencimiento, ni fecha de cierre, ni aviso previo.
 
 ## Etapa 9 — App del cliente (web instalable)
 
@@ -90,7 +90,7 @@ invasiva**. La cuenta es el centro; lo demás va en segundo plano.
 
 - [x] Cuenta propia con mail y contraseña, y recuperación por WhatsApp (D-036)
 - [x] Acceso con teléfono + código de un solo uso por WhatsApp (D-022)
-- [x] Pantalla de cuenta: saldo, equivalente, cuánto falta para el próximo, vencimiento
+- [x] Pantalla de cuenta: saldo, equivalente y cuánto falta para el próximo punto
 - [x] Historial completo de movimientos
 - [x] Su número en grande para mostrar en el mostrador
 - [x] Los 6 locales con dirección y horarios
@@ -163,7 +163,7 @@ Auditoría de seguridad completa y lo que salió de ella (D-044).
 
 Esto es lo primero que hay que mirar al retomar, en este orden.
 
-**Del código, nada.** Todo lo hecho está en `main` y pasa los 99 tests.
+**Del código, nada.** Todo lo hecho está en `main` y pasa los 96 tests.
 
 **Hecho el 5/10:**
 

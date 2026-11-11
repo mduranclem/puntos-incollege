@@ -58,7 +58,7 @@ acá va el resumen para que no se rompan por descuido:
   recuperar la contraseña también va por ahí y no por mail.
 
 Si tocás el motor (`api/src/motor/`, `api/src/dominio/`), corré `npm test` y que pasen
-los 99 tests antes de dar nada por hecho.
+los 96 tests antes de dar nada por hecho.
 
 ## Convenciones
 

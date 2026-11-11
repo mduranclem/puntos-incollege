@@ -129,10 +129,8 @@ export async function resumenDeCuenta(
     ahorroCentavos,
     ahorroTexto: ahorroCentavos === null ? null : formatearPesos(ahorroCentavos),
     topeCanjeBps: config.topeCanjeBps,
-    temporada: {
-      nombre: config.temporada.nombre,
-      venceEn: config.temporada.cierreEn,
-    },
+    /** Agrupa las cuentas; no es una fecha de corte: los puntos no vencen (D-058). */
+    temporada: { nombre: config.temporada.nombre },
     movimientos: movimientos.map((m) => ({
       id: m.id,
       fecha: m.creadoEn,

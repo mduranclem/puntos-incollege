@@ -14,12 +14,10 @@ import { configuracionVigente } from '../../servicios/configuracion.js';
 import { LINEAS_DE_NEGOCIO, TIPOS_DE_MOVIMIENTO } from '../../dominio/tipos.js';
 import { despacharPendientes } from '../../servicios/despachador.js';
 import { registroDelDia } from '../../servicios/registroDiario.js';
-import { esFechaSimple, fechaArgentina, finDelDiaArgentina } from '../../dominio/fechas.js';
 
 const NuevaConfiguracion = z.object({
   valorPunto: z.string().min(1),
   topeCanjePorcentaje: z.number().min(0).max(100),
-  diasAvisoVencimiento: z.number().int().min(0).max(365),
   tasas: z
     .array(
       z.object({
@@ -28,11 +26,6 @@ const NuevaConfiguracion = z.object({
       }),
     )
     .min(1),
-  /** Fecha de cierre de la temporada abierta, como fecha de calendario AAAA-MM-DD (D-020). */
-  cierreTemporada: z
-    .string()
-    .refine(esFechaSimple, 'La fecha de cierre debe tener el formato AAAA-MM-DD')
-    .optional(),
 });
 
 export function rutasDeAdmin() {
@@ -47,10 +40,7 @@ export function rutasDeAdmin() {
         valorPuntoTexto: formatearPesos(config.valorPuntoCentavos),
         topeCanjeBps: config.topeCanjeBps,
         topeCanjePorcentaje: config.topeCanjeBps / 100,
-        diasAvisoVencimiento: config.diasAvisoVencimiento,
-        temporada: config.temporada,
-        /// La fecha tal como se muestra y se edita: calendario argentino (D-020).
-        cierreFecha: fechaArgentina(config.temporada.cierreEn),
+        temporada: { id: config.temporada.id, nombre: config.temporada.nombre },
         tasas: LINEAS_DE_NEGOCIO.map((linea) => ({
           lineaDeNegocio: linea,
           centavosPorPunto: config.tasas[linea] ?? null,
@@ -73,7 +63,6 @@ export function rutasDeAdmin() {
           vigenteDesde: new Date(),
           valorPuntoCentavos: parsearImporte(datos.valorPunto),
           topeCanjeBps: Math.round(datos.topeCanjePorcentaje * 100),
-          diasAvisoVencimiento: datos.diasAvisoVencimiento,
           temporadaId: actual.temporada.id,
           creadoPorId: req.sesion!.usuarioId,
           tasas: {
@@ -85,13 +74,6 @@ export function rutasDeAdmin() {
         },
         include: { tasas: true },
       });
-
-      if (datos.cierreTemporada) {
-        await prisma.temporada.update({
-          where: { id: actual.temporada.id },
-          data: { cierreEn: finDelDiaArgentina(datos.cierreTemporada) },
-        });
-      }
 
       return res.json({ id: creada.id, vigenteDesde: creada.vigenteDesde });
     } catch (error) {
@@ -244,6 +226,8 @@ export function rutasDeAdmin() {
 
       const emitidos = suma('ACREDITACION');
       const canjeados = -suma('CANJE');
+      // Los puntos no vencen (D-058), pero el libro mayor puede tener
+      // vencimientos viejos y el pasivo tiene que seguir dando bien.
       const vencidos = -suma('VENCIMIENTO');
       const revertidos = -suma('REVERSA');
       const ajustes = suma('AJUSTE');
@@ -258,7 +242,7 @@ export function rutasDeAdmin() {
       ]);
 
       return res.json({
-        temporada: config.temporada,
+        temporada: { nombre: config.temporada.nombre },
         emitidos,
         canjeados,
         vencidos,

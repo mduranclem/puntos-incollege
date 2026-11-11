@@ -11,7 +11,7 @@ type SaldoPublico = {
   equivalenteTexto: string;
   faltaParaElProximoTexto: string;
   topeCanjeBps: number;
-  temporada: { nombre: string; venceEn: string };
+  temporada: { nombre: string };
   movimientos: Array<{
     fecha: string;
     tipo: string;
@@ -31,9 +31,6 @@ const TEXTO_TIPO: Record<string, string> = {
 
 const fecha = (iso: string) =>
   new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' });
-
-const fechaLarga = (iso: string) =>
-  new Date(iso).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
 
 export function Saldo() {
   const { token } = useParams();
@@ -95,10 +92,6 @@ export function Saldo() {
               próximo punto.
             </p>
           )}
-
-          <p className="mt-4 text-xs text-slate-500">
-            Vencen el {fechaLarga(datos.temporada.venceEn)}
-          </p>
         </section>
 
         <section className="mt-4 rounded-3xl bg-white p-5 shadow-xl">

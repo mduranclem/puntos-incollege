@@ -650,15 +650,6 @@ function Comprobante({
             Le faltan {resultado.faltaParaElProximoTexto} en efectivo para el próximo punto.
           </p>
         )}
-
-        <p className="mt-4 text-xs text-slate-500">
-          Vencen el{' '}
-          {new Date(resultado.temporada.venceEn).toLocaleDateString('es-AR', {
-            day: '2-digit',
-            month: 'long',
-            year: 'numeric',
-          })}
-        </p>
       </div>
 
       <div className="grid gap-2 sm:grid-cols-3">
@@ -726,7 +717,6 @@ function Comprobante({
         puntosAcreditados={resultado.puntosAcreditados}
         saldoPuntos={resultado.saldoPuntos}
         equivalenteTexto={resultado.equivalenteTexto}
-        venceEn={resultado.temporada.venceEn}
       />
     </div>
   );

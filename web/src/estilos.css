@@ -464,7 +464,6 @@
     background: var(--color-verde-suave);
     color: var(--color-verde);
   }
-  .saldo-vence { @apply mt-4 text-[13px]; color: var(--color-apagado); }
 
   /* Barra de avance: sólo se dibuja cuando hay datos reales para dibujarla. */
   .avance { @apply mt-5; }

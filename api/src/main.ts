@@ -11,7 +11,7 @@ const servidor = crearApp().listen(puerto, () => {
 // Las tareas pueden ir adentro de la API o como proceso aparte (`npm run tareas`).
 if (process.env.CRON_HABILITADO === 'true') {
   arrancarTareas();
-  console.log('Tareas programadas activas: avisos y vencimiento de temporada.');
+  console.log('Tareas programadas activas: despacho de avisos.');
 }
 
 for (const senal of ['SIGINT', 'SIGTERM'] as const) {

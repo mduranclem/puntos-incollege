@@ -27,7 +27,7 @@ export type Cuenta = {
   /** Los dos en centavos, como string: con ellos se dibuja el avance real. */
   porPuntoCentavos: string;
   remanenteCentavos: string;
-  temporada: { nombre: string; venceEn: string };
+  temporada: { nombre: string };
   /**
    * Ahorro histórico por descuentos ya usados (D-048). `null` quiere decir que
    * no se pudo calcular: no se muestra nada, que es distinto de mostrar $0.
@@ -102,10 +102,6 @@ export async function apiCliente<T>(
 /** Fechas cortas para las listas: "14/03". */
 export const fechaCorta = (iso: string) =>
   new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
-
-/** "14 de marzo de 2026" para los textos. */
-export const fechaLarga = (iso: string) =>
-  new Date(iso).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
 
 export const TEXTO_MOVIMIENTO: Record<Movimiento['tipo'], string> = {
   ACREDITACION: 'Puntos sumados',

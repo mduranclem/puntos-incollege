@@ -146,8 +146,10 @@ model Temporada {
   id       String   @id @default(uuid())
   nombre   String   @unique
   inicioEn DateTime
-  /// Fecha de cierre: los puntos vencen acá. Configurable (D-009).
+  /// Sin uso desde D-058: los puntos no vencen. La columna queda —es obligatoria
+  /// y hay temporadas escritas— pero nadie la lee ni la escribe.
   cierreEn DateTime
+  /// Idem: ninguna temporada se cierra más. Queda en false para siempre.
   cerrada  Boolean  @default(false)
   creadoEn DateTime @default(now())
 
@@ -266,7 +268,8 @@ model Configuracion {
   valorPuntoCentavos   BigInt
   /// Tope del canje sobre el total de la venta, en puntos básicos (1000 = 10%).
   topeCanjeBps         Int
-  /// Días de anticipación del aviso de vencimiento por WhatsApp.
+  /// Sin uso desde D-058: no hay aviso de vencimiento porque no hay vencimiento.
+  /// Queda con su default para no migrar las configuraciones ya escritas.
   diasAvisoVencimiento Int    @default(30)
 
   temporadaId String?

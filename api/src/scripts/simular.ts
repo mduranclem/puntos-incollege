@@ -1,7 +1,6 @@
 /**
  * Simulación del ciclo completo del motor de puntos, por consola y sin base de
- * datos: acreditar (con remanente), canjear (con tope), anular un pago y vencer
- * la temporada.
+ * datos: acreditar (con remanente), canjear (con tope) y anular un pago.
  *
  *   npm run simular
  */
@@ -114,14 +113,6 @@ async function main() {
     contexto: CONTEXTO,
   });
   linea(`REVERSA ${reversa.movimiento?.puntos} punto(s) · ${await estado()}`);
-
-  titulo('6. Cierre de temporada');
-  const vencimiento = await motor.vencer({
-    cuentaId: CUENTA,
-    temporadaId: 'temporada-2026',
-    contexto: { usuarioId: null, localId: null },
-  });
-  linea(`VENCIMIENTO ${vencimiento.movimiento?.puntos ?? 0} punto(s) · ${await estado()}`);
 
   titulo('Libro mayor');
   for (const m of repo.movimientosDe(CUENTA)) {

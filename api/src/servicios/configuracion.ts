@@ -16,7 +16,6 @@ export type ConfiguracionVigente = {
   id: string;
   valorPuntoCentavos: bigint;
   topeCanjeBps: number;
-  diasAvisoVencimiento: number;
   /** Centavos que hay que pagar en efectivo para sumar un punto, por línea. */
   tasas: Record<LineaDeNegocio, bigint | undefined>;
   temporada: TemporadaVigente;
@@ -58,7 +57,6 @@ export async function configuracionVigente(
     id: config.id,
     valorPuntoCentavos: config.valorPuntoCentavos,
     topeCanjeBps: config.topeCanjeBps,
-    diasAvisoVencimiento: config.diasAvisoVencimiento,
     tasas,
     temporada: await temporadaVigente(prisma),
   };

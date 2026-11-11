@@ -363,7 +363,6 @@ export function rutasPublicas() {
             lineaDeNegocio: linea,
             porPuntoTexto: centavos ? formatearPesos(centavos) : null,
           })),
-        venceEn: config.temporada.cierreEn,
       });
     } catch (error) {
       return next(error);

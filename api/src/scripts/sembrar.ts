@@ -10,7 +10,7 @@ import { COSTE_BCRYPT } from '../dominio/secretos.js';
 import { motivoContrasenaInvalida } from '../dominio/contrasenas.js';
 import { prisma } from '../infra/prisma/cliente.js';
 import { parsearImporte } from '../dominio/dinero.js';
-import { fechaArgentina, finDelDiaArgentina } from '../dominio/fechas.js';
+import { finDelDiaArgentina } from '../dominio/fechas.js';
 
 /**
  * Los seis locales con sus direcciones reales. Se pueden editar desde el panel:
@@ -86,11 +86,12 @@ export async function sembrar() {
     create: {
       nombre: `Temporada ${anio}`,
       inicioEn: new Date(`${anio}-01-01T00:00:00-03:00`),
-      // Fecha de cierre editable desde el panel. Fin del día argentino (D-020).
+      // La columna es obligatoria y queda por historia: nadie la lee, porque
+      // los puntos no vencen (D-058). La temporada sólo agrupa las cuentas.
       cierreEn: finDelDiaArgentina(`${anio}-12-31`),
     },
   });
-  console.log(`Temporada: ${temporada.nombre} (cierra ${fechaArgentina(temporada.cierreEn)})`);
+  console.log(`Temporada: ${temporada.nombre}`);
 
   const yaHayConfig = await prisma.configuracion.findFirst();
   if (!yaHayConfig) {
@@ -99,7 +100,6 @@ export async function sembrar() {
         valorPuntoCentavos: parsearImporte('1000'), // 1 punto = $1.000
         // Sin tope: se puede pagar la prenda entera con puntos (D-025).
         topeCanjeBps: 10_000,
-        diasAvisoVencimiento: 30,
         temporadaId: temporada.id,
         tasas: {
           create: [

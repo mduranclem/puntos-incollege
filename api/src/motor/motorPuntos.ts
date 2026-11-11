@@ -59,12 +59,6 @@ export type EntradaReversa = {
   contexto: Contexto;
 };
 
-export type EntradaVencimiento = {
-  cuentaId: string;
-  temporadaId: string;
-  contexto: Contexto;
-};
-
 export type EntradaAjuste = {
   cuentaId: string;
   puntos: number;
@@ -223,53 +217,6 @@ export class MotorDePuntos {
         usuarioId: contexto.usuarioId,
         creadoEn: contexto.ocurridoEn ?? new Date(),
         metadata: null,
-      });
-
-      return this.cerrar(tx, cuentaId, movimiento);
-    });
-  }
-
-  /**
-   * Vence el saldo de la cuenta al cerrar la temporada. El remanente también
-   * vence (D-013). Idempotente por temporada.
-   */
-  async vencer(entrada: EntradaVencimiento): Promise<ResultadoOperacion> {
-    const { cuentaId, temporadaId, contexto } = entrada;
-    const referencia = `vencimiento:${temporadaId}:${cuentaId}`;
-
-    return this.repo.conCuentaBloqueada(cuentaId, async (tx) => {
-      const yaVencido = await tx.buscarMovimiento('VENCIMIENTO', referencia);
-      if (yaVencido) {
-        return {
-          movimiento: yaVencido,
-          estado: await tx.estadoDeCuenta(cuentaId),
-          yaAplicado: true,
-        };
-      }
-
-      const estado = await tx.estadoDeCuenta(cuentaId);
-      if (estado.saldoPuntos <= 0 && estado.remanenteCentavos === 0n) {
-        return { movimiento: null, estado, yaAplicado: false };
-      }
-
-      const movimiento = await tx.insertarMovimiento({
-        cuentaId,
-        tipo: 'VENCIMIENTO',
-        puntos: -Math.max(0, estado.saldoPuntos),
-        montoOrigenCentavos: null,
-        remanenteResultanteCentavos: 0n,
-        referenciaExterna: referencia,
-        centavosPorPuntoAplicado: null,
-        valorPuntoAplicadoCentavos: null,
-        movimientoRevertidoId: null,
-        motivo: `Cierre de temporada ${temporadaId}`,
-        localId: contexto.localId,
-        usuarioId: contexto.usuarioId,
-        creadoEn: contexto.ocurridoEn ?? new Date(),
-        metadata: {
-          saldoVencido: Math.max(0, estado.saldoPuntos),
-          remanenteVencidoCentavos: estado.remanenteCentavos.toString(),
-        },
       });
 
       return this.cerrar(tx, cuentaId, movimiento);
