@@ -19,6 +19,7 @@ import {
 import { Escaner, useHayCamara } from '../componentes/Escaner';
 import { SelectorDeArticulos } from '../componentes/SelectorDeArticulos';
 import { Recibo } from '../componentes/Recibo';
+import { AnularCobro } from '../componentes/AnularCobro';
 
 type Linea = 'UNIFORMES' | 'ROPA_LISA';
 type Medio =
@@ -596,29 +597,8 @@ function Comprobante({
   // el importe de más, el cliente equivocado de la lista. El motor lo resuelve
   // con un movimiento REVERSA, sin borrar nada (D-004, D-054).
   const [anulando, setAnulando] = useState(false);
-  const [motivo, setMotivo] = useState('');
   const [anulado, setAnulado] = useState(false);
-  const [errorAnular, setErrorAnular] = useState<string | null>(null);
-  const [guardandoAnular, setGuardandoAnular] = useState(false);
-  const campoMotivo = useRef<HTMLInputElement>(null);
   useEffect(() => boton.current?.focus(), []);
-  useEffect(() => {
-    if (anulando) campoMotivo.current?.focus();
-  }, [anulando]);
-
-  async function anular() {
-    if (motivo.trim().length < 3 || guardandoAnular) return;
-    setGuardandoAnular(true);
-    setErrorAnular(null);
-    try {
-      await api(`/cobros/${resultado.pagoId}/anular`, { cuerpo: { motivo: motivo.trim() } });
-      setAnulado(true);
-    } catch (e) {
-      setErrorAnular(e instanceof ErrorApi ? e.message : 'No se pudo anular el cobro');
-    } finally {
-      setGuardandoAnular(false);
-    }
-  }
 
   if (anulado) {
     return (
@@ -720,46 +700,14 @@ function Comprobante({
           </button>
         </div>
       ) : (
-        <div className="tarjeta space-y-3">
-          <p className="text-sm font-semibold">Anular el cobro de {resultado.importeTexto}</p>
-          <p className="text-xs text-slate-500">
-            Se le descuentan a {resultado.cliente.nombre} los puntos que acaba de sumar. El
-            cobro queda registrado como anulado, con el motivo: no se borra nada.
-          </p>
-          <input
-            ref={campoMotivo}
-            className="campo"
-            value={motivo}
-            onChange={(e) => setMotivo(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') void anular();
-              if (e.key === 'Escape') setAnulando(false);
-            }}
-            placeholder="Motivo: importe mal tipeado, cliente equivocado…"
-            maxLength={200}
+        <div className="tarjeta">
+          <AnularCobro
+            pagoId={resultado.pagoId}
+            importeTexto={resultado.importeTexto}
+            nombre={resultado.cliente.nombre}
+            alAnular={() => setAnulado(true)}
+            alCancelar={() => setAnulando(false)}
           />
-          {errorAnular && <p className="aviso-error">{errorAnular}</p>}
-          <div className="grid gap-2 sm:grid-cols-2">
-            <button
-              type="button"
-              className="boton-peligro py-3"
-              disabled={motivo.trim().length < 3 || guardandoAnular}
-              onClick={() => void anular()}
-            >
-              {guardandoAnular ? 'Anulando…' : 'Confirmar anulación'}
-            </button>
-            <button
-              type="button"
-              className="boton-secundario py-3"
-              onClick={() => {
-                setAnulando(false);
-                setMotivo('');
-                setErrorAnular(null);
-              }}
-            >
-              Cancelar
-            </button>
-          </div>
         </div>
       )}
 

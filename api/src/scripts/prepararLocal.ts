@@ -15,28 +15,52 @@ if (!/@(127\.0\.0\.1|localhost)[:/]/.test(url)) {
   process.exit(1);
 }
 
-const archivo = path.resolve('prisma/migrations/20260101000000_inicial/migration.sql');
-const sentencias = fs
-  .readFileSync(archivo, 'utf8')
-  // Las líneas de comentario van adentro de cada sentencia: se sacan primero.
-  .split(/\r?\n/)
-  .filter((linea) => !linea.trim().startsWith('--'))
-  .join('\n')
-  .split(';')
-  .map((sentencia) => sentencia.trim())
-  .filter((sentencia) => sentencia.length > 0);
+const carpeta = path.resolve('prisma/migrations');
+/** En orden: los nombres empiezan con la fecha, así que alfabético alcanza. */
+const migraciones = fs
+  .readdirSync(carpeta, { withFileTypes: true })
+  .filter((e) => e.isDirectory() && fs.existsSync(path.join(carpeta, e.name, 'migration.sql')))
+  .map((e) => e.name)
+  .sort();
+
+if (migraciones.length === 0) {
+  console.error('No hay migraciones en prisma/migrations.');
+  process.exit(1);
+}
+
+const sentenciasDe = (sql: string) =>
+  sql
+    // Las líneas de comentario van adentro de cada sentencia: se sacan primero.
+    .split(/\r?\n/)
+    .filter((linea) => !linea.trim().startsWith('--'))
+    .join('\n')
+    .split(';')
+    .map((sentencia) => sentencia.trim())
+    .filter((sentencia) => sentencia.length > 0);
 
 let aplicadas = 0;
-for (const sentencia of sentencias) {
-  try {
-    await prisma.$executeRawUnsafe(sentencia);
-    aplicadas++;
-  } catch (error) {
-    const mensaje = error instanceof Error ? error.message : String(error);
-    if (!/already exists|ya existe/i.test(mensaje)) throw error;
+let salteadas = 0;
+for (const migracion of migraciones) {
+  const sql = fs.readFileSync(path.join(carpeta, migracion, 'migration.sql'), 'utf8');
+  for (const sentencia of sentenciasDe(sql)) {
+    try {
+      await prisma.$executeRawUnsafe(sentencia);
+      aplicadas++;
+    } catch (error) {
+      const mensaje = error instanceof Error ? error.message : String(error);
+      // Correrlo de nuevo sobre una base ya armada no es un error.
+      if (!/already exists|ya existe|duplicate|does not exist/i.test(mensaje)) {
+        console.error(`\nFalló en ${migracion}:\n${sentencia}\n`);
+        throw error;
+      }
+      salteadas++;
+    }
   }
 }
-console.log(`migración: ${aplicadas} sentencias aplicadas`);
+console.log(
+  `migraciones: ${migraciones.length} · sentencias aplicadas: ${aplicadas}` +
+    (salteadas > 0 ? ` · ya estaban: ${salteadas}` : ''),
+);
 
 // El seed va en la misma conexión.
 const { sembrar } = await import('./sembrar.js');

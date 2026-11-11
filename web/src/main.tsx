@@ -8,6 +8,7 @@ import { Ingreso } from './paginas/Ingreso';
 import { CambiarContrasena } from './paginas/CambiarContrasena';
 import { Cobro } from './paginas/Cobro';
 import { Canje } from './paginas/Canje';
+import { Recientes } from './paginas/Recientes';
 import { Admin } from './paginas/Admin';
 import { Estructura } from './componentes/Estructura';
 import { leerSesion } from './api';
@@ -97,6 +98,7 @@ createRoot(document.getElementById('raiz')!).render(
         >
           <Route index element={<Cobro />} />
           <Route path="canje" element={<Canje />} />
+          <Route path="recientes" element={<Recientes />} />
           <Route
             path="admin"
             element={

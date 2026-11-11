@@ -56,10 +56,34 @@ export function Admin() {
   const [pestania, setPestania] = useState<
     'hoy' | 'totales' | 'movimientos' | 'articulos' | 'personal' | 'locales' | 'config'
   >('hoy');
+  /**
+   * Un aviso que no salió no se queja: el cliente simplemente no se entera y no
+   * vuelve. Por eso el número no vive sólo adentro de la pestaña Programa, que
+   * hay que acordarse de abrir, sino arriba de todo el panel (D-056).
+   */
+  const [fallidos, setFallidos] = useState(0);
+  useEffect(() => {
+    api<{ porEstado: Record<string, number> }>('/admin/avisos')
+      .then((d) => setFallidos(d.porEstado.FALLIDO ?? 0))
+      .catch(() => setFallidos(0));
+  }, [pestania]);
 
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-bold tracking-tight">Panel</h1>
+
+      {fallidos > 0 && pestania !== 'totales' && (
+        <button
+          type="button"
+          className="flex w-full items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-left"
+          onClick={() => setPestania('totales')}
+        >
+          <span className="text-sm font-semibold text-[var(--color-error)]">
+            {fallidos} aviso{fallidos === 1 ? '' : 's'} de WhatsApp sin entregar
+          </span>
+          <span className="ml-auto text-xs text-slate-600 underline">Ver y reintentar</span>
+        </button>
+      )}
 
       <div className="flex flex-wrap gap-2">
         {(
@@ -160,10 +184,36 @@ function PanelAvisos() {
     porEstado: Record<string, number>;
     ultimos: Array<{ id: string; tipo: string; estado: string; intentos: number; ultimoError: string | null }>;
   } | null>(null);
+  const [reintentando, setReintentando] = useState(false);
+  const [resultado, setResultado] = useState<string | null>(null);
+
+  const cargar = () =>
+    api<never>('/admin/avisos').then(setDatos).catch(() => setDatos(null));
 
   useEffect(() => {
-    api<never>('/admin/avisos').then(setDatos).catch(() => setDatos(null));
+    void cargar();
   }, []);
+
+  async function reintentar() {
+    setReintentando(true);
+    setResultado(null);
+    try {
+      const r = await api<{ reencolados: number; resultado: { enviados: number } | null }>(
+        '/admin/avisos/reintentar',
+        { cuerpo: {} },
+      );
+      setResultado(
+        r.reencolados === 0
+          ? 'No había avisos fallidos.'
+          : `Se volvieron a encolar ${r.reencolados}. Entregados ahora: ${r.resultado?.enviados ?? 0}.`,
+      );
+      await cargar();
+    } catch (e) {
+      setResultado(e instanceof ErrorApi ? e.message : 'No se pudo reintentar');
+    } finally {
+      setReintentando(false);
+    }
+  }
 
   if (!datos) return null;
 
@@ -188,10 +238,32 @@ function PanelAvisos() {
         encarga n8n, y ahí se mira si el WhatsApp llegó (D-031).
       </p>
       {(datos.porEstado.FALLIDO ?? 0) > 0 && (
-        <p className="mt-2 text-sm text-[var(--color-error)]">
-          Hay avisos que no se pudieron entregar. Revisá el webhook de n8n.
-        </p>
+        <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3">
+          <p className="text-sm font-semibold text-[var(--color-error)]">
+            {datos.porEstado.FALLIDO} aviso{datos.porEstado.FALLIDO === 1 ? '' : 's'} que no se
+            pudieron entregar.
+          </p>
+          <p className="mt-1 text-xs text-slate-600">
+            Agotaron sus seis reintentos y la cola ya no los vuelve a mirar. Arreglá primero
+            la causa —casi siempre el webhook de n8n— y después volvé a encolarlos: si el
+            problema sigue, van a fallar de nuevo.
+          </p>
+          {datos.ultimos.find((u) => u.estado === 'FALLIDO')?.ultimoError && (
+            <p className="mt-2 break-words text-xs text-slate-500">
+              Último error: {datos.ultimos.find((u) => u.estado === 'FALLIDO')!.ultimoError}
+            </p>
+          )}
+          <button
+            type="button"
+            className="boton-secundario mt-3 py-2 text-sm"
+            disabled={reintentando}
+            onClick={() => void reintentar()}
+          >
+            {reintentando ? 'Reintentando…' : 'Volver a encolarlos'}
+          </button>
+        </div>
       )}
+      {resultado && <p className="mt-2 text-sm text-slate-600">{resultado}</p>}
     </div>
   );
 }

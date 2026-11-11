@@ -5,6 +5,7 @@ import { Logo } from './Logo';
 const enlaces = [
   { a: '/mostrador', texto: 'Cobrar', exacto: true },
   { a: '/mostrador/canje', texto: 'Canjear' },
+  { a: '/mostrador/recientes', texto: 'Últimos cobros' },
   { a: '/mostrador/admin', texto: 'Panel', soloAdmin: true },
 ];
 

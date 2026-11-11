@@ -309,6 +309,30 @@ export function rutasDeAdmin() {
     }
   });
 
+  /**
+   * Devuelve a la cola los avisos que agotaron sus reintentos (D-056).
+   *
+   * El despachador reintenta seis veces con backoff y después marca `FALLIDO`,
+   * y un `FALLIDO` no se vuelve a mirar nunca. Eso está bien mientras la causa
+   * siga rota —no tiene sentido golpear una puerta cerrada— pero cuando se
+   * arregla el webhook hace falta decirle a la cola que vuelva a intentar.
+   * Sin esto, el único camino era la consola del servidor.
+   */
+  router.post('/avisos/reintentar', async (_req, res, next) => {
+    try {
+      const { count } = await prisma.eventoSaliente.updateMany({
+        where: { estado: 'FALLIDO' },
+        data: { estado: 'PENDIENTE', intentos: 0, proximoIntentoEn: new Date() },
+      });
+      // Se despacha en el acto: quien aprieta el botón quiere ver si anduvo,
+      // no esperar al próximo minuto del reloj.
+      const resultado = count > 0 ? await despacharPendientes(prisma) : null;
+      return res.json({ reencolados: count, resultado });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
   /** Control de la caché: tiene que coincidir con la suma de los movimientos (D-004). */
   router.get('/control-caches', async (_req, res, next) => {
     try {

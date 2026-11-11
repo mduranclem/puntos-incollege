@@ -1720,3 +1720,51 @@ anulación es una fila más, no un borrado.
 **Consecuencia.** Queda pendiente la otra mitad: anular un cobro de hace un rato, cuando
 el comprobante ya no está en pantalla. El servidor también lo tiene resuelto
 (`GET /cobros/recientes`, los últimos 20 del local) y tampoco tiene pantalla.
+
+## D-055 · Los últimos cobros del local, para arreglar lo que ya no está en pantalla
+
+**Contexto.** D-054 puso el botón de anular en el comprobante, que cubre el error que se
+nota al instante. Falta el otro: el que se descubre cuando el cliente ya se fue y la
+pantalla pasó a otro cobro. El servidor tenía `GET /cobros/recientes` —los últimos 20 del
+local, "para controlar la caja"— y tampoco tenía pantalla.
+
+**Decisión.** Una pestaña "Últimos cobros" en el mostrador, al lado de Cobrar y Canjear.
+Lista los 20 últimos con importe, cliente, hora y medio de pago, y cada uno se puede
+anular con el mismo formulario del comprobante.
+
+**Por local, y lo decide el servidor.** El endpoint filtra por el local de la sesión, no
+por un parámetro que mande la pantalla. Un vendedor no ve ni anula la caja de otro local,
+y eso no depende de que la pantalla se porte bien.
+
+**Los anulados quedan a la vista**, en gris y con su motivo. Esconderlos sería tentador y
+estaría mal: la lista sirve para controlar la caja, y un cobro anulado es parte de lo que
+pasó en el día.
+
+**Consecuencia.** El formulario de anulación vive en `componentes/AnularCobro.tsx`, uno
+solo para las dos pantallas: la decisión se toma igual en los dos lados, y el día que
+cambie el texto cambia en los dos.
+
+## D-056 · Un aviso que no salió tiene que poder reintentarse, y tiene que verse
+
+**Contexto.** El despachador reintenta seis veces con backoff y después marca `FALLIDO`.
+Un `FALLIDO` **no se vuelve a mirar nunca**. Eso está bien mientras la causa siga rota
+—no tiene sentido golpear una puerta cerrada— pero cuando se arregla el webhook no había
+forma de decirle a la cola que volviera a intentar salvo entrar a la consola del servidor.
+
+**Y el problema peor: nadie se entera.** Un cliente que no recibió su aviso no se queja:
+simplemente no vuelve. El contador existía, pero adentro de la pestaña "Programa", que
+hay que acordarse de abrir.
+
+**Decisión.** Dos cosas. `POST /admin/avisos/reintentar` devuelve los `FALLIDO` a
+`PENDIENTE` con los intentos en cero y despacha en el acto —quien aprieta el botón quiere
+ver si anduvo, no esperar al próximo minuto del reloj—. Y el número de fallidos se muestra
+**arriba de todo el panel**, en cualquier pestaña, con un enlace para ir a verlos.
+
+**Se conserva el último error.** Al reencolar no se borra `ultimoError`: es lo único que
+dice por qué había fallado, y se necesita justo cuando se está por reintentar.
+
+**El texto avisa el orden correcto:** arreglar primero la causa, reintentar después. Si no,
+los seis intentos se gastan de nuevo contra el mismo problema.
+
+**Consecuencia.** Probado contra Postgres real: un evento `FALLIDO` con seis intentos
+vuelve a `PENDIENTE` con cero, conserva su error, y la condición del despachador lo toma.

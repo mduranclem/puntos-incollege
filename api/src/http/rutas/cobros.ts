@@ -174,6 +174,7 @@ export function rutasDeCobros() {
           medioDePago: p.medioDePago,
           lineaDeNegocio: p.lineaDeNegocio,
           estado: p.estado,
+          motivoAnulado: p.motivoAnulado,
           cliente: p.cliente.nombre,
           telefono: p.cliente.telefonoE164,
         })),
