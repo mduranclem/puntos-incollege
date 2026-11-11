@@ -592,7 +592,53 @@ function Comprobante({
 }) {
   const boton = useRef<HTMLButtonElement>(null);
   const [copiado, setCopiado] = useState(false);
+  // Anular lo que se acaba de cobrar. Es el momento en que el error se nota:
+  // el importe de más, el cliente equivocado de la lista. El motor lo resuelve
+  // con un movimiento REVERSA, sin borrar nada (D-004, D-054).
+  const [anulando, setAnulando] = useState(false);
+  const [motivo, setMotivo] = useState('');
+  const [anulado, setAnulado] = useState(false);
+  const [errorAnular, setErrorAnular] = useState<string | null>(null);
+  const [guardandoAnular, setGuardandoAnular] = useState(false);
+  const campoMotivo = useRef<HTMLInputElement>(null);
   useEffect(() => boton.current?.focus(), []);
+  useEffect(() => {
+    if (anulando) campoMotivo.current?.focus();
+  }, [anulando]);
+
+  async function anular() {
+    if (motivo.trim().length < 3 || guardandoAnular) return;
+    setGuardandoAnular(true);
+    setErrorAnular(null);
+    try {
+      await api(`/cobros/${resultado.pagoId}/anular`, { cuerpo: { motivo: motivo.trim() } });
+      setAnulado(true);
+    } catch (e) {
+      setErrorAnular(e instanceof ErrorApi ? e.message : 'No se pudo anular el cobro');
+    } finally {
+      setGuardandoAnular(false);
+    }
+  }
+
+  if (anulado) {
+    return (
+      <div className="space-y-4">
+        <div className="tarjeta text-center">
+          <p className="text-lg font-semibold">Cobro anulado</p>
+          <p className="mt-2 text-sm text-slate-600">
+            {resultado.importeTexto} · {resultado.cliente.nombre}
+          </p>
+          <p className="mt-3 text-sm text-slate-500">
+            Los puntos volvieron atrás. El cobro no se borró: queda registrado junto con su
+            anulación y el motivo.
+          </p>
+        </div>
+        <button className="boton-principal w-full py-4 text-lg" onClick={alSeguir} autoFocus>
+          Nuevo cobro
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -661,6 +707,61 @@ function Comprobante({
           {copiado ? 'Copiado' : 'Copiar mensaje de WhatsApp'}
         </button>
       </div>
+
+      {/* Discreto a propósito: se usa poco y no se puede tocar sin querer. */}
+      {!anulando ? (
+        <div className="text-center">
+          <button
+            type="button"
+            className="text-xs font-medium text-slate-400 underline underline-offset-4 hover:text-[var(--color-error)]"
+            onClick={() => setAnulando(true)}
+          >
+            Me equivoqué: anular este cobro
+          </button>
+        </div>
+      ) : (
+        <div className="tarjeta space-y-3">
+          <p className="text-sm font-semibold">Anular el cobro de {resultado.importeTexto}</p>
+          <p className="text-xs text-slate-500">
+            Se le descuentan a {resultado.cliente.nombre} los puntos que acaba de sumar. El
+            cobro queda registrado como anulado, con el motivo: no se borra nada.
+          </p>
+          <input
+            ref={campoMotivo}
+            className="campo"
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') void anular();
+              if (e.key === 'Escape') setAnulando(false);
+            }}
+            placeholder="Motivo: importe mal tipeado, cliente equivocado…"
+            maxLength={200}
+          />
+          {errorAnular && <p className="aviso-error">{errorAnular}</p>}
+          <div className="grid gap-2 sm:grid-cols-2">
+            <button
+              type="button"
+              className="boton-peligro py-3"
+              disabled={motivo.trim().length < 3 || guardandoAnular}
+              onClick={() => void anular()}
+            >
+              {guardandoAnular ? 'Anulando…' : 'Confirmar anulación'}
+            </button>
+            <button
+              type="button"
+              className="boton-secundario py-3"
+              onClick={() => {
+                setAnulando(false);
+                setMotivo('');
+                setErrorAnular(null);
+              }}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Invisible en pantalla; al imprimir es lo único que sale. */}
       <Recibo

@@ -100,6 +100,15 @@
            text-[var(--color-tinta)] hover:border-[var(--color-marino-claro)];
   }
 
+  /* Para lo que deshace algo: anular un cobro. Rojo y lleno, para que se vea
+     distinto del resto y nadie lo apriete creyendo que confirma. */
+  .boton-peligro {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-base
+           font-semibold text-white transition active:scale-[0.99]
+           disabled:cursor-not-allowed disabled:opacity-50;
+    background: var(--color-error);
+  }
+
   .tarjeta {
     @apply rounded-2xl border border-[var(--color-borde)] bg-white p-5 shadow-sm;
   }

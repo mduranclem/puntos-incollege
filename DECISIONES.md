@@ -1691,3 +1691,32 @@ desde ahí con un clic, y después cada uno cae en su pantalla (D-052).
 **Consecuencia.** Hay una sola dirección que recordar. Los dos formularios siguen
 separados, cada uno con su endpoint, y el límite por IP de credenciales los cubre a los
 dos (D-044).
+
+## D-054 · Anular un cobro se puede hacer desde el mostrador
+
+**Contexto.** Revisando el artefacto antes de abrirlo a clientes reales apareció que el
+servidor tenía `POST /cobros/:id/anular` —probado, con `REVERSA`, respetando el libro
+mayor— y **ninguna pantalla lo llamaba**. Para arreglar un cobro mal hecho había que
+pegarle a la API a mano.
+
+**Por qué importa el primer día.** Cobrar mal no es un caso raro: es un importe tipeado
+de más o el cliente equivocado elegido de la lista de coincidencias, con gente esperando.
+Que la única salida sea llamar a alguien que sepa de sistemas convierte un error de medio
+minuto en un problema del día.
+
+**Decisión.** El comprobante —la pantalla que queda después de cobrar, cuando el error se
+nota— tiene un enlace discreto "Me equivoqué: anular este cobro". Pide un motivo de al
+menos tres caracteres, que es lo que el endpoint ya exigía, y lo guarda en el pago.
+
+**Discreto, pero no escondido.** Es un enlace chico y gris, no un botón: se usa poco y
+apretarlo sin querer al lado de "Nuevo cobro" sería peor que no tenerlo. Recién al tocarlo
+aparece el formulario, y el botón que confirma es rojo y lleno, distinto de todo el resto
+de la pantalla, para que nadie lo confunda con un "aceptar".
+
+**No se borra nada.** El motor genera un movimiento `REVERSA` y el pago queda en estado
+`ANULADO` con su motivo y su fecha. El libro mayor sigue siendo append-only (D-004): la
+anulación es una fila más, no un borrado.
+
+**Consecuencia.** Queda pendiente la otra mitad: anular un cobro de hace un rato, cuando
+el comprobante ya no está en pantalla. El servidor también lo tiene resuelto
+(`GET /cobros/recientes`, los últimos 20 del local) y tampoco tiene pantalla.
