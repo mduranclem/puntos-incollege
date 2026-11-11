@@ -174,6 +174,18 @@ Esto es lo primero que hay que mirar al retomar, en este orden.
 - [x] Respaldo de la base fuera del servidor, en Google Drive
 - [x] Escaneo del QR probado con un celular real sobre HTTPS
 
+**Nivel 2 — lo que se endureció antes de abrir (noviembre 2026):**
+
+- [x] **Anular un cobro desde el mostrador** (D-054, D-055). El servidor sabía hacerlo y
+      ninguna pantalla lo llamaba: un importe mal tipeado no tenía arreglo salvo pegarle a
+      la API a mano. Va en el comprobante, para el error que se nota al instante, y en la
+      nueva pestaña "Últimos cobros", para el que se nota cuando el cliente ya se fue.
+- [x] **Los avisos perdidos se ven y se reintentan** (D-056). Un `FALLIDO` no se volvía a
+      mirar nunca y nadie se enteraba. Ahora el número está arriba de todo el panel y hay
+      un botón para devolverlos a la cola, conservando el error que explica la falla.
+- [x] **`preparar:local` aplica las ocho migraciones**, no sólo la primera. Armar una base
+      de cero daba una base incompleta, y el error aparecía recién en el seed.
+
 **Lo que queda, todo depende de una acción en un panel o en un teléfono:**
 
 - [x] **El número de WhatsApp.** Hecho el 17/10: instancia `puntos-incollege`, número
