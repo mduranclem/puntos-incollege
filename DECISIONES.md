@@ -1664,3 +1664,30 @@ esto es para que se entienda.
 
 **Consecuencia.** Entrar es siempre por `/mostrador/ingresar`, y después cada uno ve lo
 suyo sin elegir nada.
+
+## D-053 · Una sola dirección para decir en voz alta
+
+**Contexto.** El dueño vio tres direcciones —la del cliente, `/mostrador/ingresar` y
+`/mostrador/admin`— y dijo que eran muchas. Propuso una sola, y que el mail de cada uno
+decidiera qué pantalla ve.
+
+**Eran dos, no tres.** `/mostrador/admin` no es un link que se reparta: es una pestaña de
+adentro, y desde D-052 la gerencia cae ahí sola al entrar. Que aparezca escrita en una
+explicación no quiere decir que alguien tenga que tipearla.
+
+**Lo que no se hace: un solo formulario de ingreso.** El personal entra con usuario
+(D-034) y el cliente con mail (D-036): son dos espacios de credenciales distintos, con
+tokens firmados con secretos distintos. Unificarlos pedía darle mail al personal, y
+dejaba un problema peor: el ingreso del cliente es la pantalla más pública del sistema, y
+convertirla también en la puerta de la caja la pone a tiro de cualquiera que pruebe
+credenciales, además de permitir averiguar si un usuario del mostrador existe. Son cinco
+personas de un lado y todos los clientes del otro.
+
+**Lo que sí se hace.** Un enlace discreto al pie del ingreso del cliente —"Trabajo en
+InCollege"— que lleva a `/mostrador/ingresar`. La dirección que se reparte, se escribe en
+una bolsa o se dice de boca pasa a ser **una sola**: el dominio pelado. El personal llega
+desde ahí con un clic, y después cada uno cae en su pantalla (D-052).
+
+**Consecuencia.** Hay una sola dirección que recordar. Los dos formularios siguen
+separados, cada uno con su endpoint, y el límite por IP de credenciales los cubre a los
+dos (D-044).

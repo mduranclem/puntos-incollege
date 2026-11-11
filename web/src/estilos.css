@@ -197,6 +197,14 @@
   .ingreso-volver { @apply mt-3 w-full text-sm font-medium text-slate-500 underline; }
   .ingreso-pie { @apply max-w-sm text-center text-xs leading-relaxed text-white/70; }
 
+  /* La puerta del personal, en la pantalla del cliente. Discreta a propósito:
+     la dirección que se reparte es una sola (D-038), pero los cinco del
+     mostrador no tienen por qué acordarse de una segunda (D-053). */
+  .ingreso-equipo {
+    @apply mt-5 text-xs font-medium text-white/45 underline underline-offset-4
+           transition hover:text-white/80;
+  }
+
   /* ---- Armazón ----
      Marino de fondo, contenido en tarjetas, pestañas abajo.
 
