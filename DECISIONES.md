@@ -1768,3 +1768,44 @@ los seis intentos se gastan de nuevo contra el mismo problema.
 
 **Consecuencia.** Probado contra Postgres real: un evento `FALLIDO` con seis intentos
 vuelve a `PENDIENTE` con cero, conserva su error, y la condición del despachador lo toma.
+
+## D-057 · La lista real: un precio por prenda, el de efectivo
+
+**Contexto.** El dueño pasó las dos listas impresas de InCollege. Reemplazan a la lista
+"Colegial" que estaba cargada, que tenía otras prendas y otros precios.
+
+**Un precio por prenda, no uno por talle.** La lista dice **"Todos los talles · Todos los
+locales"**. El modelo sigue guardando `PrecioPorTalle` —no se toca el esquema— y el script
+escribe el mismo valor en los cuatro talles. Si algún día vuelven a diferenciarse, el
+modelo ya está y la gerencia los separa desde el panel sin que nadie programe nada.
+
+**Se carga la columna PROMO, que es la de efectivo o transferencia.** Es la que
+corresponde: el programa acredita puntos sólo por efectivo (D-001), así que es el precio
+que paga quien participa.
+
+**Las otras tres columnas son un recargo, no otra lista.** Verificado fila por fila:
+QR/débito/1 pago es el precio promo **×1,14**, tres pagos **×1,23** y seis pagos
+**×1,35**. Da exacto en todas las prendas, incluidas las especiales. Eso **no está en el
+sistema todavía**: hoy `Articulo` guarda un precio y el mostrador elige el medio de pago
+por separado, así que una venta con tarjeta armada con los botones de artículos cobra el
+precio de efectivo. No es una regresión —la lista anterior también era de contado— pero
+ahora que el recargo está escrito y es una regla clara, corresponde que lo decida el
+servidor como cualquier otro valor de negocio (D-009, D-049).
+
+**Catálogo nuevo:** 25 artículos. Entran joggings, pantalones cargo, shorts rústicos,
+buzos básicos, la mochila Nuevo Siglo y el buzo de Nuevo Siglo y Oblatas; entra el
+acabado **estampado** en casi todas las prendas. La chomba lisa no se carga: en la lista
+impresa su casillero dice "—".
+
+**Y un botón que rompía la venta.** Al cargar aparecieron dos artículos del seed de
+muestra activos y **sin un solo precio por talle**. La desactivación de lo que sale de
+lista usaba `codigo NOT IN (...)`, y en SQL `NULL NOT IN (…)` no es verdadero: los
+artículos sin código se salvaban. Quedaban como botones del mostrador que al tocarlos
+cortan el cobro, porque falta el precio de ese talle. Ahora se desactiva también todo
+artículo activo sin ningún precio, que es la condición de fondo y vale siempre: lo que no
+se puede vender no puede estar activo. Un artículo creado desde el panel, con sus precios
+puestos, no se toca.
+
+**Consecuencia.** Verificado contra la base: 25 activos, 2 desactivados, **ninguno activo
+sin precio**, 100 precios escritos. Los precios se siguen editando desde el panel y lo
+editado gana sobre el script, que en producción sólo corre con `--si-falta`.
