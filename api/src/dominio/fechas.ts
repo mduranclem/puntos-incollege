@@ -1,10 +1,13 @@
 /**
  * Fechas de calendario del negocio (D-020).
  *
- * El cierre de temporada es una **fecha de calendario argentina**, no un instante
- * cualquiera: "los puntos vencen el 31 de diciembre" significa al final de ese día
- * en Rosario. Guardarla como instante sin fijar la zona hace que al leerla en UTC
- * aparezca como el día siguiente, y cada guardado la corra un día más.
+ * Un día del negocio es una **fecha de calendario argentina**, no un instante
+ * cualquiera: "lo que se cobró el 31 de diciembre" es lo que pasó durante ese día
+ * en Rosario. Tratarlo como instante sin fijar la zona hace que al leerlo en UTC
+ * aparezca como el día siguiente.
+ *
+ * Lo usa el registro diario. Nació con el cierre de temporada, que ya no existe
+ * (D-058), pero el problema que resuelve sigue estando todos los días.
  *
  * Argentina usa UTC-3 fijo, sin horario de verano, así que alcanza con un offset
  * constante. Si algún día volviera el horario de verano, este es el único archivo

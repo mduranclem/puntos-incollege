@@ -23,8 +23,18 @@ export type Movimiento = {
   motivo: string | null;
 };
 
+/** Por qué un cobro no suma puntos. Lo decide el servidor (D-059). */
+export type MotivoSinPuntos = 'NO_ES_EFECTIVO' | 'SIN_CUENTA';
+
+export const TEXTO_SIN_PUNTOS: Record<MotivoSinPuntos, string> = {
+  NO_ES_EFECTIVO: 'no fue en efectivo',
+  SIN_CUENTA: 'todavía no tiene cuenta en la app',
+};
+
 export type ResumenDeCuenta = {
   cliente: { id: string; nombre: string; telefono: string; telefonoE164: string };
+  /** Sin cuenta en la app no suma (D-059). */
+  tieneCuenta: boolean;
   cuentaId: string;
   saldoPuntos: number;
   equivalenteTexto: string;

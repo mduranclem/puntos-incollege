@@ -1,8 +1,8 @@
 # Instrucciones para Claude — Puntos InCollege
 
 Programa de fidelización por puntos de InCollege (indumentaria escolar, Rosario).
-Los clientes suman puntos **sólo pagando en efectivo en el local** y los canjean por
-descuento en pesos.
+Los clientes suman puntos **sólo pagando en efectivo en el local** y **sólo desde que
+tienen cuenta en la app**; los canjean por descuento en pesos.
 
 ## Antes de tocar nada
 
@@ -52,6 +52,10 @@ acá va el resumen para que no se rompan por descuido:
 - **Los límites por IP van todos juntos en `app.ts`** (D-044), no repartidos por las rutas:
   así se puede auditar de un vistazo qué está protegido. Todo endpoint público nuevo que
   mande WhatsApp o pruebe credenciales necesita el suyo.
+- **Sin cuenta en la app no se suma** (D-059). El mostrador le cobra igual a quien no
+  tiene cuenta y la venta queda registrada, pero el pago va a `NO_ACREDITABLE` y no se
+  acredita un punto. Lo que compró antes de registrarse no se recupera después: no hay
+  acreditación retroactiva en ninguna parte, y no la agregues.
 - **La cuenta del cliente es su teléfono** (D-010, D-036). Desde D-036 entra con mail y
   contraseña, pero el mail es sólo un nombre de usuario: el teléfono es lo que ata los
   puntos a una persona. Por eso registrarse pide una vez el código por WhatsApp, y por eso

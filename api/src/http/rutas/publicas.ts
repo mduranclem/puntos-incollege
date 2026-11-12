@@ -93,6 +93,8 @@ async function armarCuenta(clienteId: string, cantidadDeMovimientos: number) {
     nombre: resumen.cliente.nombre,
     telefono: resumen.cliente.telefono,
     telefonoE164: resumen.cliente.telefonoE164,
+    /** Sin cuenta en la app no se suma (D-059): esta pantalla es donde invitamos a crearla. */
+    tieneCuenta: resumen.tieneCuenta,
     saldoPuntos: resumen.saldoPuntos,
     equivalenteTexto: resumen.equivalenteTexto,
     faltaParaElProximoTexto: resumen.faltaParaElProximoTexto,

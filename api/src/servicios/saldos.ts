@@ -104,6 +104,12 @@ export async function resumenDeCuenta(
       telefonoE164: cliente.telefonoE164,
       telefono: formatearTelefono(cliente.telefonoE164),
     },
+    /**
+     * Si tiene cuenta en la app. Sin cuenta no suma (D-059), así que el
+     * mostrador lo tiene que saber **antes** de cobrar: es la diferencia entre
+     * avisarle a la persona y prometerle puntos que no van a llegar.
+     */
+    tieneCuenta: cliente.registradoEn !== null,
     cuentaId: cuenta.id,
     saldoPuntos,
     equivalenteCentavos,

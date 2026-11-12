@@ -14,6 +14,8 @@ export type Movimiento = {
 };
 
 export type Cuenta = {
+  /** Si ya puso mail y contraseña. Sin eso no suma puntos (D-059). */
+  tieneCuenta: boolean;
   nombre: string;
   telefono: string;
   telefonoE164: string;

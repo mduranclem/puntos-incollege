@@ -114,8 +114,8 @@ export function IngresoCliente() {
       </div>
 
       <p className="ingreso-pie">
-        Si ya compraste pagando en efectivo, tus puntos están esperándote: creá la cuenta
-        con el mismo teléfono que diste en el local y los vas a ver ahí.
+        Creá tu cuenta con el teléfono que das en el local: desde tu próxima compra en
+        efectivo empezás a sumar puntos para descuento.
       </p>
 
       <Link className="ingreso-equipo" to="/mostrador/ingresar">

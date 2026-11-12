@@ -554,6 +554,11 @@
   .pantalla-titulo { @apply text-2xl font-extrabold text-white; }
   .pantalla-bajada { @apply -mt-3 text-sm; color: var(--color-apagado-claro); }
 
+  /* La cuenta a medio crear: no suma hasta que ponga mail y contraseña (D-059). */
+  .cta-falta-cuenta { @apply rounded-[20px] bg-white px-5 py-5 text-center; }
+  .cta-falta-titulo { @apply mb-2 text-[16px] font-extrabold; color: var(--color-marino); }
+  .cta-falta-cuenta p { @apply text-[14px] leading-relaxed; color: var(--color-apagado); }
+
   .vacio { @apply rounded-[20px] bg-white px-6 py-10 text-center; }
   .vacio-titulo { @apply mb-2 text-[18px] font-extrabold; color: var(--color-marino); }
   .vacio p { @apply text-[14px] leading-relaxed; color: var(--color-apagado); }

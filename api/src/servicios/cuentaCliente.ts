@@ -123,9 +123,12 @@ export async function pedirCodigoDeRegistro(
 /**
  * Paso 2: valida el código y deja la cuenta registrada.
  *
- * Si el teléfono ya tenía cuenta —porque el mostrador le cobró antes— se le
- * agregan el mail y la contraseña a **esa** cuenta: no se crea una nueva y no
- * se pierde un solo punto. Es el caso más común de todos.
+ * Si el teléfono ya estaba en el sistema —porque el mostrador le cobró antes— se
+ * le agregan el mail y la contraseña a **esa** ficha: no se crea otra y el
+ * historial de compras queda junto. Es el caso más común de todos.
+ *
+ * Lo que no trae son puntos: las compras anteriores a la cuenta no suman
+ * (D-059). Desde acá en adelante, sí.
  */
 export async function confirmarRegistro(
   prisma: PrismaClient,

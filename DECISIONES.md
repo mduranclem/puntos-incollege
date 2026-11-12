@@ -1848,3 +1848,54 @@ siendo el único límite.
 que ya no se emiten. Son inalcanzables —el nodo corta con "Tipo de aviso desconocido" y la
 API nunca manda esos tipos—, y se sacan cuando se toque ese nodo para quitarle el token
 escrito a mano.
+
+---
+
+## D-059 · Sólo suma quien tiene cuenta en la app
+
+**Contexto.** El sistema acreditaba puntos por cualquier cobro en efectivo, tuviera o no
+cuenta la persona: la identidad es el teléfono (D-010), así que el mostrador abría la ficha
+al cobrar y los puntos quedaban ahí esperando. Dos pantallas lo prometían con esas
+palabras: *"tus puntos están esperándote"*. El dueño lo definió al revés: **los puntos se
+empiezan a sumar cuando la persona tiene la app.** Lo que compró antes, sin cuenta, no
+suma.
+
+**Decisión.** Para acreditar hacen falta dos condiciones, y las dos se deciden en el
+ingestor, que es el único camino de un pago al motor (D-003):
+
+1. que el pago sea en **efectivo** (el programa existe para eso), y
+2. que el cliente tenga **cuenta en la app** — `Cliente.registradoEn` no nulo, o sea que
+   puso mail y contraseña (D-036).
+
+Lo que no acredita **se registra igual**, con estado `NO_ACREDITABLE`: una venta que no
+suma puntos sigue siendo una venta y tiene que estar en el registro diario. La respuesta
+del cobro agrega `motivoSinPuntos`: `NO_ES_EFECTIVO` o `SIN_CUENTA`.
+
+**No hay acreditación retroactiva, y es el punto de toda la decisión.** Registrarse sigue
+uniendo la ficha que abrió el mostrador con el mail y la contraseña —el historial de
+compras queda junto, el teléfono sigue siendo la identidad— pero no acredita nada de
+antes. Nadie recorre pagos viejos. Si algún día se quisiera, sería una decisión nueva y
+explícita.
+
+**Dónde se dice, porque una regla que no se avisa es una trampa:**
+
+- **Antes de cobrar.** La pantalla de confirmación (D-028) ya avisaba cuando no era
+  efectivo; ahora también cuando la persona no tiene cuenta, y dice dónde crearla. El
+  vendedor no puede prometer puntos que no van a llegar: eso es peor que no sumarlos.
+- **En el comprobante y en el recibo impreso**, con el motivo.
+- **En el mensaje de WhatsApp que copia el vendedor**, que antes decía "Sumaste puntos"
+  siempre. A quien no tiene cuenta lo invita a crearla.
+- **En la app**, arriba de todo, para quien entró por el link del mostrador y nunca puso
+  mail y contraseña: le falta un paso y hasta darlo no suma.
+- **Al entrar y al registrarse**, donde antes estaba la promesa de los puntos esperando.
+
+**Consecuencia.** El mostrador no puede dar de alta a nadie "para que empiece a sumar": la
+cuenta la crea la persona desde la app, con su teléfono. Eso es más fricción —y menos
+puntos emitidos— a cambio de que el programa tenga app instalada del otro lado, que es lo
+que el dueño quiere. Los saldos que ya existen de antes de esta decisión no se tocan: el
+libro mayor es append-only (D-004).
+
+**Verificado contra la base local**, con `npm run probar:local`: cobro en efectivo sin
+cuenta → `NO_ACREDITABLE`, saldo 0; el mismo cobro repetido → idempotente; se registra;
+cobro siguiente → acredita 3 puntos. El libro mayor queda con un solo movimiento: lo de
+antes no apareció por ningún lado.

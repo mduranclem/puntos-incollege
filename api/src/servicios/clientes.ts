@@ -23,6 +23,11 @@ export type ClienteResuelto = {
   id: string;
   nombre: string;
   telefonoE164: string;
+  /**
+   * Cuándo se registró en la app, o `null` si la ficha la abrió el mostrador al
+   * cobrarle. Lo mira el ingestor: sin cuenta no se acreditan puntos (D-059).
+   */
+  registradoEn: Date | null;
   creado: boolean;
 };
 

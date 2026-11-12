@@ -12,8 +12,10 @@ import {
   formatearPesos,
   itemsParaLaApi,
   leerSesion,
+  TEXTO_SIN_PUNTOS,
   totalDeItems,
   type ItemElegido,
+  type MotivoSinPuntos,
   type ResumenDeCuenta,
 } from '../api';
 import { Escaner, useHayCamara } from '../componentes/Escaner';
@@ -42,6 +44,7 @@ type Resultado = ResumenDeCuenta & {
   pagoId: string;
   fecha: string;
   acredito: boolean;
+  motivoSinPuntos: MotivoSinPuntos | null;
   yaAplicado: boolean;
   puntosAcreditados: number;
   clienteNuevo: boolean;
@@ -263,6 +266,14 @@ export function Cobro() {
     }
   }
 
+  /**
+   * Lo que va a decidir el servidor, calculado acá sólo para avisarlo antes de
+   * cobrar (D-059). El importe y los puntos los sigue decidiendo el servidor:
+   * esto es un cartel, no una regla.
+   */
+  const motivoPrevisto: MotivoSinPuntos | null =
+    medio !== 'EFECTIVO' ? 'NO_ES_EFECTIVO' : cliente?.tieneCuenta ? null : 'SIN_CUENTA';
+
   function nuevoCobro() {
     setTelefono('');
     setNombre('');
@@ -302,7 +313,7 @@ export function Cobro() {
         items={items}
         totalTexto={items.length > 0 ? formatearPesos(totalCentavos) : `$${importe}`}
         medio={MEDIOS.find((m) => m.valor === medio)?.texto ?? medio}
-        acredita={medio === 'EFECTIVO'}
+        motivoSinPuntos={motivoPrevisto}
         guardando={guardando}
         alConfirmar={() => void registrar()}
         alVolver={() => setConfirmando(false)}
@@ -634,7 +645,7 @@ function Comprobante({
           </p>
         ) : (
           <p className="mt-3 inline-flex rounded-full bg-slate-100 px-4 py-1.5 text-sm font-semibold text-slate-600">
-            Sin puntos: no fue en efectivo
+            Sin puntos: {resultado.motivoSinPuntos ? TEXTO_SIN_PUNTOS[resultado.motivoSinPuntos] : '—'}
           </p>
         )}
 
@@ -662,10 +673,18 @@ function Comprobante({
         <button
           className="boton-secundario py-4"
           onClick={async () => {
-            const texto =
-              `Hola ${resultado.cliente.nombre}! Sumaste puntos en InCollege. ` +
-              `Tenés ${resultado.saldoPuntos} punto(s) (${resultado.equivalenteTexto}). ` +
-              `Mirá tu saldo acá: ${resultado.link}`;
+            const texto = resultado.acredito
+              ? `Hola ${resultado.cliente.nombre}! Sumaste puntos en InCollege. ` +
+                `Tenés ${resultado.saldoPuntos} punto(s) (${resultado.equivalenteTexto}). ` +
+                `Mirá tu saldo acá: ${resultado.link}`
+              : resultado.motivoSinPuntos === 'SIN_CUENTA'
+                ? `Hola ${resultado.cliente.nombre}! Creá tu cuenta de Puntos InCollege acá: ` +
+                  `${resultado.link}
+
+Desde tu próxima compra en efectivo empezás a sumar puntos ` +
+                  `para descuento.`
+                : `Hola ${resultado.cliente.nombre}! Esta compra no suma puntos: los puntos son ` +
+                  `sólo por pago en efectivo. Mirá tu cuenta acá: ${resultado.link}`;
             try {
               await navigator.clipboard.writeText(texto);
               setCopiado(true);
@@ -714,6 +733,7 @@ function Comprobante({
         totalTexto={resultado.importeTexto}
         medio={medio}
         acredito={resultado.acredito}
+        motivoSinPuntos={resultado.motivoSinPuntos}
         puntosAcreditados={resultado.puntosAcreditados}
         saldoPuntos={resultado.saldoPuntos}
         equivalenteTexto={resultado.equivalenteTexto}
@@ -733,7 +753,7 @@ function Confirmacion({
   items,
   totalTexto,
   medio,
-  acredita,
+  motivoSinPuntos,
   guardando,
   alConfirmar,
   alVolver,
@@ -744,7 +764,7 @@ function Confirmacion({
   items: ItemElegido[];
   totalTexto: string;
   medio: string;
-  acredita: boolean;
+  motivoSinPuntos: MotivoSinPuntos | null;
   guardando: boolean;
   alConfirmar: () => void;
   alVolver: () => void;
@@ -801,10 +821,19 @@ function Confirmacion({
           <strong>{totalTexto}</strong>
         </div>
 
-        <p className={acredita ? 'conf-nota' : 'conf-nota conf-nota-gris'}>
-          {acredita
+        {/* Decirlo antes y no después: prometer puntos que no van a llegar es
+            peor que cobrar sin puntos (D-059). */}
+        <p className={motivoSinPuntos ? 'conf-nota conf-nota-gris' : 'conf-nota'}>
+          {!motivoSinPuntos
             ? 'Al confirmar se acreditan los puntos.'
-            : 'Este cobro se registra pero no suma puntos: no es efectivo.'}
+            : `Este cobro se registra pero no suma puntos: ${TEXTO_SIN_PUNTOS[motivoSinPuntos]}.`}
+          {motivoSinPuntos === 'SIN_CUENTA' && (
+            <>
+              {' '}
+              Si la crea en <strong>{window.location.host}</strong>, empieza a sumar desde la
+              próxima compra en efectivo.
+            </>
+          )}
         </p>
       </div>
 

@@ -92,8 +92,25 @@ export function Cuenta() {
     <div className="cta">
       <header>
         <h1 className="cta-saludo">{saludo}</h1>
-        <p className="cta-bajada">Tu próxima compra suma</p>
+        <p className="cta-bajada">
+          {cuenta.tieneCuenta ? 'Tu próxima compra suma' : 'Te falta un paso para empezar a sumar'}
+        </p>
       </header>
+
+      {/* La ficha la abrió el mostrador al cobrarle, pero sin mail y contraseña
+          todavía no suma (D-059). Es lo primero que tiene que ver. */}
+      {!cuenta.tieneCuenta && (
+        <section className="cta-falta-cuenta">
+          <p className="cta-falta-titulo">Todavía no terminaste de crear tu cuenta</p>
+          <p>
+            Ponete un mail y una contraseña y desde tu próxima compra en efectivo empezás a
+            sumar puntos. Las compras anteriores no suman.
+          </p>
+          <Link className="vacio-accion" to="/app/registrarse">
+            Crear mi cuenta
+          </Link>
+        </section>
+      )}
 
       <TarjetaDeSaldo cuenta={cuenta} conSaldo={conSaldo} yaUso={yaUso} />
 
@@ -134,7 +151,7 @@ export function Cuenta() {
         </div>
       </section>
 
-      <Desplegable titulo="Condiciones y vencimiento">
+      <Desplegable titulo="Condiciones">
         <div className="condiciones-lista">
           <p>
             Sumás 1 punto por cada {cuenta.porPuntoTexto} que pagás en efectivo en el local.
@@ -150,6 +167,10 @@ export function Cuenta() {
           <p>
             Los puntos de una compra se suman cuando terminás de pagarla, así que no se
             pueden usar en esa misma compra.
+          </p>
+          <p>
+            Sumás desde que tenés la cuenta: lo que compraste antes de crearla no suma
+            puntos.
           </p>
         </div>
       </Desplegable>

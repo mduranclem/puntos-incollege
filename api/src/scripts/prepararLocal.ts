@@ -48,8 +48,14 @@ for (const migracion of migraciones) {
       aplicadas++;
     } catch (error) {
       const mensaje = error instanceof Error ? error.message : String(error);
-      // Correrlo de nuevo sobre una base ya armada no es un error.
-      if (!/already exists|ya existe|duplicate|does not exist/i.test(mensaje)) {
+      // Correrlo de nuevo sobre una base ya armada no es un error. El último
+      // caso es el de un `ALTER TYPE ... RENAME VALUE` ya aplicado: el valor
+      // viejo no está porque ya se renombró.
+      if (
+        !/already exists|ya existe|duplicate|does not exist|is not an existing enum label/i.test(
+          mensaje,
+        )
+      ) {
         console.error(`\nFalló en ${migracion}:\n${sentencia}\n`);
         throw error;
       }

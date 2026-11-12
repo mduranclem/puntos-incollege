@@ -2,9 +2,11 @@
 
 Programa de fidelización por puntos de InCollege (indumentaria escolar, Rosario).
 
-Los clientes suman puntos **sólo pagando en efectivo en el local** y los canjean por
-descuento en pesos. El objetivo del programa es doble: bajar la comisión de los medios
-de pago electrónicos y que el cliente pase por el local y conozca las otras líneas.
+Los clientes suman puntos **sólo pagando en efectivo en el local** y **sólo desde que
+tienen cuenta en la app** (D-059); los canjean por descuento en pesos. Lo que compraron
+antes de crear la cuenta no suma. El objetivo del programa es doble: bajar la comisión de
+los medios de pago electrónicos y que el cliente pase por el local y conozca las otras
+líneas.
 
 - **Alcance de esta entrega:** uniformes y ropa lisa, con carga manual en el mostrador.
 - **Fuera de alcance:** egresados (entra después como fuente de pagos, ver

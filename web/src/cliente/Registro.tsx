@@ -100,8 +100,8 @@ export function RegistroCliente() {
         {paso === 'datos' ? (
           <form onSubmit={pedirCodigo} noValidate>
             <p className="ingreso-texto">
-              Si ya compraste en efectivo, poné el mismo teléfono que diste en el local:
-              tus puntos ya están ahí esperándote.
+              Poné el mismo teléfono que das en el local: es lo que une tus compras con tu
+              cuenta. Los puntos los empezás a sumar desde que la creás.
             </p>
 
             <label className="ingreso-etiqueta" htmlFor="r-nombre">
