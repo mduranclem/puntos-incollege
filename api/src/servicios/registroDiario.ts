@@ -64,8 +64,13 @@ export async function registroDelDia(
   // --- Totales del día ---
   const porMedio = new Map<MedioDePago, { cantidad: number; centavos: bigint }>();
   let cobradoCentavos = 0n;
+  // Los recargos por forma de pago, aparte (D-061). Sin esta cifra el ranking de
+  // artículos —que está a precio de lista— no cierra contra lo cobrado, y quien
+  // lee el registro se pone a buscar un error que no existe.
+  let recargosCentavos = 0n;
   for (const pago of pagos) {
     cobradoCentavos += pago.importeCentavos;
+    recargosCentavos += pago.recargoCentavos;
     const medio = pago.medioDePago as MedioDePago;
     const actual = porMedio.get(medio) ?? { cantidad: 0, centavos: 0n };
     porMedio.set(medio, {
@@ -116,6 +121,8 @@ export async function registroDelDia(
       montoCentavos: p.importeCentavos,
       montoTexto: formatearPesos(p.importeCentavos),
       medioDePago: p.medioDePago,
+      formaDePago: p.formaDePagoCodigo,
+      recargoTexto: p.recargoCentavos > 0n ? formatearPesos(p.recargoCentavos) : null,
       cliente: p.cliente.nombre,
       local: p.local.nombre,
       usuario: p.usuario?.nombre ?? null,
@@ -129,6 +136,8 @@ export async function registroDelDia(
         montoCentavos: descuento,
         montoTexto: formatearPesos(descuento),
         medioDePago: null,
+        formaDePago: null,
+        recargoTexto: null,
         cliente: c.cuenta.cliente.nombre,
         local: c.local?.nombre ?? '—',
         usuario: c.usuario?.nombre ?? null,
@@ -143,6 +152,10 @@ export async function registroDelDia(
       operaciones: pagos.length,
       cobradoCentavos,
       cobradoTexto: formatearPesos(cobradoCentavos),
+      recargosCentavos,
+      recargosTexto: formatearPesos(recargosCentavos),
+      /** Lo cobrado a precio de lista: lo que suman los artículos vendidos. */
+      aPrecioDeListaTexto: formatearPesos(cobradoCentavos - recargosCentavos),
       descontadoEnCanjesTexto: formatearPesos(descontadoCentavos),
       puntosCanjeados,
       canjes: canjes.length,

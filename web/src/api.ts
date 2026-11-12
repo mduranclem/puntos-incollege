@@ -170,6 +170,53 @@ export type ItemElegido = {
   lineaDeNegocio?: 'UNIFORMES' | 'ROPA_LISA' | 'EGRESADOS';
 };
 
+/**
+ * Una forma de pago del mostrador, con su recargo (D-061). Las manda la API:
+ * los botones no están escritos en esta pantalla, así cambiar un arancel no es
+ * un despliegue.
+ */
+export type FormaDePago = {
+  codigo: string;
+  nombre: string;
+  medioDePago: string;
+  recargoBps: number;
+  recargoTexto: string;
+  cuotas: number;
+  /** Sólo el efectivo suma puntos (D-001). */
+  acredita: boolean;
+};
+
+/**
+ * El recargo sobre un precio de lista, en centavos.
+ *
+ * Es el mismo cálculo que hace el servidor —redondeo al peso entero, para
+ * arriba en el empate (D-061)— porque la pantalla tiene que mostrar antes de
+ * cobrar exactamente lo que se va a cobrar. El que manda es el servidor: acá se
+ * calcula para mostrar, no para cobrar.
+ */
+export const calcularRecargo = (baseCentavos: number, recargoBps: number): number =>
+  recargoBps <= 0 || baseCentavos <= 0 ? 0 : Math.round((baseCentavos * recargoBps) / 1_000_000) * 100;
+
+/**
+ * Lo que tipeó el vendedor, en centavos, para poder mostrar el total con
+ * recargo antes de confirmar. Convención rioplatense: la coma es decimal.
+ *
+ * Es una lectura **para mostrar**. El que parsea de verdad y decide cuánto se
+ * cobra es el servidor (D-049): si acá se leyera distinto, lo que manda es lo
+ * que devuelve la API y la pantalla lo muestra en el comprobante.
+ */
+export function leerImporte(texto: string): number {
+  const limpio = texto.trim().replace(/[\s$]/g, '');
+  if (!limpio) return 0;
+  const conPunto = limpio.includes(',')
+    ? limpio.replace(/\./g, '').replace(',', '.')
+    : /^\d+\.\d{1,2}$/.test(limpio)
+      ? limpio
+      : limpio.replace(/\./g, '');
+  const pesos = Number(conPunto);
+  return Number.isFinite(pesos) ? Math.round(pesos * 100) : 0;
+}
+
 export const totalDeItems = (items: ItemElegido[]) =>
   items.reduce((suma, i) => suma + i.precioUnitarioCentavos * i.cantidad, 0);
 

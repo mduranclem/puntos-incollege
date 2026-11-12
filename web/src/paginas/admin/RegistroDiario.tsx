@@ -13,6 +13,10 @@ type Registro = {
   totales: {
     operaciones: number;
     cobradoTexto: string;
+    /** Recargos por forma de pago incluidos en lo cobrado (D-061). */
+    recargosCentavos: string;
+    recargosTexto: string;
+    aPrecioDeListaTexto: string;
     descontadoEnCanjesTexto: string;
     puntosCanjeados: number;
     canjes: number;
@@ -113,6 +117,14 @@ export function PanelRegistroDiario() {
                 en {datos.totales.operaciones}{' '}
                 {datos.totales.operaciones === 1 ? 'operación' : 'operaciones'}
               </p>
+              {/* Sin esta línea, el ranking de artículos —que va a precio de
+                  lista— no cierra contra lo cobrado (D-061). */}
+              {Number(datos.totales.recargosCentavos) > 0 && (
+                <p className="mt-1 text-sm text-slate-500">
+                  {datos.totales.aPrecioDeListaTexto} de lista +{' '}
+                  <strong>{datos.totales.recargosTexto}</strong> de recargos
+                </p>
+              )}
             </div>
             <div className="tarjeta">
               <p className="text-xs uppercase tracking-wide text-slate-500">Descontado en canjes</p>

@@ -757,6 +757,29 @@
     font-variant-numeric: tabular-nums;
   }
   .conf-items li:first-child { @apply border-t-0; }
+  /* Desglose del recargo por forma de pago (D-061). El total destacado, porque
+     es la cifra que el vendedor dice en voz alta. */
+  .desglose {
+    @apply mt-3 rounded-xl border border-[var(--color-borde)] bg-white px-4 py-3;
+  }
+  .desglose > p {
+    @apply flex items-baseline justify-between gap-4 text-sm text-slate-600;
+  }
+  .desglose > p > span:last-child {
+    @apply font-semibold text-slate-800;
+    font-variant-numeric: tabular-nums;
+  }
+  .desglose-total {
+    @apply mt-2 border-t border-[var(--color-borde)] pt-2;
+  }
+  .desglose-total > span:last-child {
+    @apply text-xl font-bold;
+    color: var(--color-marino) !important;
+  }
+  /* Una forma de pago y su recargo, en el panel (D-061). */
+  .fila-recargo {
+    @apply flex items-center justify-between gap-4 rounded-xl border border-[var(--color-borde)] px-4 py-2.5;
+  }
   .conf-total {
     @apply flex items-baseline justify-between gap-4 border-t-2 border-[var(--color-tinta)] pt-3;
   }
@@ -893,6 +916,11 @@
     font-size: 13px;
     font-weight: 800;
     font-variant-numeric: tabular-nums;
+  }
+  /* Subtotal y recargo: más chicos que el total, que es el que se lee primero. */
+  .recibo-total-chico {
+    font-size: 11px;
+    font-weight: 600;
   }
   .recibo-pie {
     margin: 0;

@@ -1,7 +1,11 @@
 /**
  * Cobro en el mostrador. Es la pantalla que se usa con gente esperando, así que
- * es un solo viaje: busca o da de alta al cliente, registra el pago y —si fue en
- * efectivo— acredita los puntos y devuelve el saldo actualizado.
+ * es un solo viaje: busca al cliente, registra el pago y —si fue en efectivo—
+ * acredita los puntos y devuelve el saldo actualizado.
+ *
+ * El importe lo cierra el servidor: los artículos dan el precio de lista (D-049)
+ * y la forma de pago le suma su recargo (D-061). La pantalla manda qué se vendió
+ * y cómo se paga, nunca cuánto hay que cobrar.
  *
  * El pago entra por el ingestor, igual que va a entrar el de egresados (D-003).
  */
@@ -19,6 +23,12 @@ import { linkDeSaldo } from '../../servicios/tokenCliente.js';
 import { encolarAvisoDeAcreditacion } from '../../servicios/avisos.js';
 import { MEDIOS_DE_PAGO, LINEAS_HABILITADAS, ErrorDeNegocio, TALLES } from '../../dominio/tipos.js';
 import { guardarItems, resolverItems, resumirItems } from '../../servicios/ventas.js';
+import {
+  conRecargo,
+  formaDePagoVigente,
+  formasDePago,
+  textoDeRecargo,
+} from '../../servicios/formasDePago.js';
 
 const motor = new MotorDePuntos(new RepositorioPrisma(prisma));
 const ingestor = new IngestorDePagos(prisma, motor);
@@ -37,8 +47,16 @@ const Cobro = z.object({
   nombre: z.string().trim().max(120).optional(),
   /** Si vienen ítems, el total sale de ellos; si no, del importe tipeado (D-027). */
   items: z.array(Item).max(40).default([]),
+  /** Precio de lista, de contado. El recargo lo pone el servidor (D-061). */
   importe: z.string().min(1).optional(),
-  medioDePago: z.enum(MEDIOS_DE_PAGO),
+  /** Código de `FormaDePago`: de ahí salen el medio y el recargo (D-061). */
+  formaDePago: z.string().trim().min(1).max(40).optional(),
+  /**
+   * Camino viejo, de antes del recargo. Se sigue aceptando para que una pantalla
+   * desplegada con la versión anterior no deje de cobrar en medio de un sábado:
+   * cobra sin recargo, que es exactamente lo que hacía.
+   */
+  medioDePago: z.enum(MEDIOS_DE_PAGO).optional(),
   lineaDeNegocio: z.enum(['UNIFORMES', 'ROPA_LISA']),
   /** Clave de idempotencia que genera la pantalla: el doble click no duplica (D-006). */
   referencia: z.string().uuid().optional(),
@@ -54,28 +72,53 @@ export function rutasDeCobros() {
       const sesion = req.sesion!;
 
       const { items, totalCentavos } = await resolverItems(prisma, datos.items);
-      // Con ítems cargados, el total lo manda el detalle: no puede haber un
+      // Con ítems cargados, la base la manda el detalle: no puede haber un
       // importe que no coincida con lo que dice que se vendió.
-      const importeCentavos = items.length > 0 ? totalCentavos : parsearImporte(datos.importe ?? '');
-      if (importeCentavos <= 0n) {
+      const baseCentavos = items.length > 0 ? totalCentavos : parsearImporte(datos.importe ?? '');
+      if (baseCentavos <= 0n) {
         throw new ErrorDeNegocio('IMPORTE_INVALIDO', 'El importe tiene que ser mayor a cero');
       }
       if (!LINEAS_HABILITADAS.includes(datos.lineaDeNegocio)) {
         throw new ErrorDeNegocio('LINEA_NO_HABILITADA', 'Esa línea no participa del programa');
       }
 
+      /**
+       * La forma de pago decide dos cosas: con qué medio queda registrado y
+       * cuánto se recarga sobre el precio de lista (D-061). El recargo lo
+       * calcula el servidor por el mismo motivo que el precio: la pantalla no
+       * decide plata (D-049).
+       */
+      const forma = datos.formaDePago
+        ? await formaDePagoVigente(prisma, datos.formaDePago)
+        : null;
+      const medioDePago = forma?.medioDePago ?? datos.medioDePago;
+      if (!medioDePago) {
+        throw new ErrorDeNegocio('FORMA_DE_PAGO_INVALIDA', 'Falta la forma de pago');
+      }
+      const importe = conRecargo({ recargoBps: forma?.recargoBps ?? 0 }, baseCentavos);
+
       const resultado = await ingestor.ingerir({
         referenciaExterna: `manual:${datos.referencia ?? randomUUID()}`,
         ocurridoEn: new Date(),
-        importeCentavos,
-        medioDePago: datos.medioDePago,
+        importeCentavos: importe.totalCentavos,
+        medioDePago,
         lineaDeNegocio: datos.lineaDeNegocio,
+        ...(forma
+          ? {
+              recargo: {
+                formaDePagoCodigo: forma.codigo,
+                bps: forma.recargoBps,
+                centavos: importe.recargoCentavos,
+              },
+            }
+          : {}),
         localCodigo: sesion.localCodigo,
         cliente: { telefonoCrudo: datos.telefono, nombre: datos.nombre },
         usuarioId: sesion.usuarioId,
         metadata: {
           cargadoPor: sesion.usuario,
           local: sesion.localNombre,
+          ...(forma ? { formaDePago: forma.nombre } : {}),
           ...(items.length ? { vendido: resumirItems(items) } : {}),
         },
       });
@@ -108,7 +151,14 @@ export function rutasDeCobros() {
         acredito: resultado.acredito,
         yaAplicado: resultado.yaAplicado,
         puntosAcreditados: resultado.puntosAcreditados,
-        importeTexto: formatearPesos(importeCentavos),
+        importeTexto: formatearPesos(importe.totalCentavos),
+        // El desglose va completo: en el mostrador hay que poder decir "la
+        // prenda sale esto, el recargo de la tarjeta es esto" (D-061).
+        baseTexto: formatearPesos(importe.baseCentavos),
+        recargoTexto: formatearPesos(importe.recargoCentavos),
+        recargoBps: importe.recargoBps,
+        recargoPorcentajeTexto: textoDeRecargo(importe.recargoBps),
+        formaDePago: forma ? { codigo: forma.codigo, nombre: forma.nombre } : null,
         vendido: resumirItems(items),
         link: linkDeSaldo(
           resultado.clienteId,
@@ -151,6 +201,30 @@ export function rutasDeCobros() {
 
       const resumen = await resumenDeCuenta(prisma, pago.clienteId, 5);
       return res.json({ anulado: true, yaEstaba: false, ...resumen });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+  /**
+   * Las formas de pago habilitadas, con su recargo (D-061). Las lee el mostrador
+   * al abrir la pantalla: los botones no están escritos en el código, para que
+   * cambiar un arancel no sea un despliegue.
+   */
+  router.get('/formas-de-pago', async (_req, res, next) => {
+    try {
+      const formas = await formasDePago(prisma, { soloActivas: true });
+      return res.json({
+        formas: formas.map((f) => ({
+          codigo: f.codigo,
+          nombre: f.nombre,
+          medioDePago: f.medioDePago,
+          recargoBps: f.recargoBps,
+          recargoTexto: textoDeRecargo(f.recargoBps),
+          cuotas: f.cuotas,
+          acredita: f.medioDePago === 'EFECTIVO',
+        })),
+      });
     } catch (error) {
       return next(error);
     }

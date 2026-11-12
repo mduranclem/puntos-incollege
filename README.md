@@ -4,9 +4,14 @@ Programa de fidelización por puntos de InCollege (indumentaria escolar, Rosario
 
 Los clientes suman puntos **sólo pagando en efectivo en el local** y **sólo desde que
 tienen cuenta en la app** (D-059); los canjean por descuento en pesos. Sin cuenta el cobro
-no se registra acá (D-060): el mostrador busca a la persona, no la da de alta. El objetivo del programa es doble: bajar la comisión de
-los medios de pago electrónicos y que el cliente pase por el local y conozca las otras
-líneas.
+no se registra acá (D-060): el mostrador busca a la persona, no la da de alta. El objetivo
+del programa es doble: bajar la comisión de los medios de pago electrónicos y que el
+cliente pase por el local y conozca las otras líneas.
+
+Los precios de lista son **de contado**. Pagar con tarjeta o QR tiene recargo —14% con QR,
+débito o un pago, 23% en tres cuotas, 35% en seis— y lo suma el servidor sobre el precio de
+lista (D-061). Los porcentajes los edita la gerencia desde el panel, en Configuración →
+*Recargo por forma de pago*.
 
 - **Alcance de esta entrega:** uniformes y ropa lisa, con carga manual en el mostrador.
 - **Fuera de alcance:** egresados (entra después como fuente de pagos, ver
@@ -139,7 +144,7 @@ las dos historias. No borres nada: pedile a Claude que resuelva el conflicto.
 |---|---|
 | `npm test` | Tests del motor de puntos. No necesitan base de datos. |
 | `npm run simular` | Ciclo completo del motor por consola, sin base de datos. |
-| `npm run probar:local --workspace=api` | Un cobro en efectivo contra la base local, con el libro mayor y los avisos que deja. |
+| `npm run probar:local --workspace=api` | El ciclo completo contra la base local: cobro sin cuenta rechazado, cobro en efectivo, idempotencia, tarjeta y recargo por forma de pago. |
 | `npm run tareas --workspace=api` | Despacho de avisos. |
 | `npm run probar:concurrencia --workspace=api` | Canjes simultáneos contra un PostgreSQL real (D-007). Necesita `DATABASE_URL_TEST` con `schema=pruebas`. |
 | `npm run build` | Compila API y web. |

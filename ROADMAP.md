@@ -78,6 +78,14 @@ Enter → importe → Enter, sin tocar el mouse, y el saldo queda a la vista.
 empresa: workflow "Puntos InCollege - Avisos de WhatsApp", instancia `practican8nWhatsApp`.
 Probado de punta a punta con un número real.
 
+## Recargo por forma de pago · **hecho**
+
+- [x] Tabla `FormaDePago` con el recargo en bps, editable desde el panel (D-061)
+- [x] El servidor cierra el importe: lista + recargo de la forma elegida
+- [x] Desglose en la pantalla de cobro, en la confirmación y en el recibo impreso
+- [x] Los recargos del día, aparte, en el registro diario
+- [x] La app del cliente avisa que los precios son de contado
+
 ## Etapa 8 — Vencimiento automático · **sacada**
 Estuvo hecha y se quitó: el dueño definió que los puntos no vencen (D-058). No hay
 tarea de vencimiento, ni fecha de cierre, ni aviso previo.

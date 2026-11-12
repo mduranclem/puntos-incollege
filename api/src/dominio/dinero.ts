@@ -106,6 +106,27 @@ export function aplicarBps(centavos: bigint, bps: number): bigint {
 }
 
 /**
+ * Recargo por forma de pago sobre un precio de lista (D-061).
+ *
+ * Devuelve **sólo el recargo**, no el total: así el comprobante puede mostrar
+ * las tres cifras —lista, recargo, total— que es lo que la gente quiere ver
+ * cuando le cobran más que el cartel.
+ *
+ * Redondea al peso entero, al más cercano y para arriba en el empate. Los
+ * precios de lista son pesos enteros (D-049), así que redondeando el recargo el
+ * total también queda entero: nadie va a buscar cincuenta centavos de vuelto, y
+ * un total con centavos en el mostrador es una discusión asegurada.
+ */
+export function aplicarRecargo(baseCentavos: bigint, recargoBps: number): bigint {
+  if (!Number.isInteger(recargoBps) || recargoBps < 0) {
+    throw new ErrorDeNegocio('RECARGO_INVALIDO', 'El recargo debe ser un entero en bps');
+  }
+  if (recargoBps === 0 || baseCentavos <= 0n) return 0n;
+  const enPesos = (baseCentavos * BigInt(recargoBps) + 500_000n) / 1_000_000n;
+  return enPesos * CENTAVOS_POR_PESO;
+}
+
+/**
  * Un precio de lista: número entero de pesos, mayor a cero (D-049).
  *
  * Es más estricto que `parsearImporte` a propósito. Un importe cobrado puede

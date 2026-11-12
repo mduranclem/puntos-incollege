@@ -105,6 +105,7 @@ model Usuario {
   movimientos     Movimiento[]
   configuraciones Configuracion[]
   preciosEditados PrecioPorTalle[]
+  formasEditadas  FormaDePago[]
 }
 
 model Cliente {
@@ -227,9 +228,18 @@ model Pago {
   origen            OrigenDePago @default(MANUAL)
   estado            EstadoDePago @default(PENDIENTE)
 
+  /// Lo que efectivamente se cobró, **recargo incluido** (D-061).
   importeCentavos BigInt
   medioDePago     MedioDePago
   lineaDeNegocio  LineaDeNegocio
+
+  /// Recargo por forma de pago (D-061). Qué forma se eligió, con qué tasa y
+  /// cuánto sumó en pesos. `importeCentavos - recargoCentavos` es el precio de
+  /// lista, que es lo que suman los `ItemDeVenta`.
+  /// En efectivo —el único medio que acredita puntos— los tres quedan en cero.
+  formaDePagoCodigo String?
+  recargoBps        Int     @default(0)
+  recargoCentavos   BigInt  @default(0)
 
   ocurridoEn  DateTime
   creadoEn    DateTime  @default(now())
@@ -291,6 +301,46 @@ model TasaAcumulacion {
   centavosPorPunto BigInt
 
   @@unique([configuracionId, lineaDeNegocio])
+}
+
+/**
+ * Las formas de pago del mostrador, con su recargo (D-061).
+ *
+ * Los precios de lista son de contado. Pagar con tarjeta o QR le cuesta plata a
+ * la casa, y ese costo se traslada: es un recargo sobre el precio de lista, no
+ * un precio distinto por artículo.
+ *
+ * Es una fila por forma y no una constante en el código porque los recargos
+ * cambian cada vez que cambian los aranceles (D-009): la gerencia los edita
+ * desde el panel y rige en el cobro siguiente.
+ *
+ * Se edita en su lugar, igual que los precios (D-049). El pasado no se toca
+ * porque cada `Pago` guarda el recargo con el que se cobró.
+ *
+ * `medioDePago` es con qué queda registrado en el libro: "Crédito 3 cuotas" y
+ * "Crédito 6 cuotas" son dos formas con el mismo medio. El medio decide los
+ * puntos (sólo efectivo, D-001); la forma decide el recargo.
+ */
+model FormaDePago {
+  id          String      @id @default(uuid())
+  /// Clave estable ("credito-3"). Es lo que manda la pantalla y lo que queda
+  /// escrito en el pago.
+  codigo      String      @unique
+  nombre      String
+  medioDePago MedioDePago
+  /// Recargo en puntos básicos sobre el precio de lista (1400 = 14%).
+  recargoBps  Int         @default(0)
+  /// En cuántos pagos. Sólo informativo: el que decide el recargo es `recargoBps`.
+  cuotas      Int         @default(1)
+  orden       Int         @default(0)
+  /// Aparece como botón en el mostrador.
+  activa      Boolean     @default(true)
+
+  actualizadoEn    DateTime @updatedAt
+  actualizadoPorId String?
+  actualizadoPor   Usuario? @relation(fields: [actualizadoPorId], references: [id])
+
+  @@index([activa, orden])
 }
 
 /// Cola de avisos hacia n8n. Si n8n está caído, el cobro no falla (D-014).

@@ -12,7 +12,7 @@ web/dist/
 api/dist/
 
 # Base de datos embebida para desarrollo local
-.pglite/
+.pglite*/
 
 # Artefactos de compilación de TypeScript
 *.tsbuildinfo

@@ -35,12 +35,17 @@ acá va el resumen para que no se rompan por descuido:
 - **Concurrencia del canje** (D-007): transacción con `SELECT ... FOR UPDATE` sobre la
   cuenta y verificación del saldo **adentro** de la transacción.
 - **Plata en centavos, `BigInt`** (D-002). Nunca `float`, nunca `Number` para importes.
-- **Nada de valores de negocio en el código** (D-009). Tasa por línea, valor del punto,
-  tope de canje y fecha de cierre salen de la tabla `Configuracion`; los precios, de
-  `Articulo` y `PrecioPorTalle`, y los edita la gerencia desde el panel (D-049).
-- **El precio lo decide el servidor** (D-049). La pantalla manda artículo y talle, nunca
-  el importe. Si falta el precio de ese talle, el cobro se corta: cobrar el de otro talle
-  sería cobrar mal en silencio.
+- **Nada de valores de negocio en el código** (D-009). Tasa por línea, valor del punto y
+  tope de canje salen de la tabla `Configuracion`; los precios, de `Articulo` y
+  `PrecioPorTalle`; el recargo por forma de pago, de `FormaDePago` (D-061). Todo lo edita
+  la gerencia desde el panel.
+- **El precio lo decide el servidor** (D-049). La pantalla manda artículo, talle y forma
+  de pago, nunca el importe. Si falta el precio de ese talle, el cobro se corta: cobrar el
+  de otro talle sería cobrar mal en silencio.
+- **Los precios de lista son de contado** (D-061). El recargo por forma de pago lo suma el
+  servidor sobre el precio de lista, y queda guardado en el pago junto con la tasa que se
+  aplicó. El efectivo no tiene recargo y es el único que acredita puntos: el recargo nunca
+  entra en el cálculo de puntos.
 - **Los pagos entran por el puerto `FuenteDePagos`** (D-003). El motor no sabe de dónde
   viene un pago. Así entra egresados después sin refactor.
 - **Nadie entra sin contraseña propia** (D-034). El personal usa usuario + contraseña; la
@@ -63,7 +68,7 @@ acá va el resumen para que no se rompan por descuido:
   recuperar la contraseña también va por ahí y no por mail.
 
 Si tocás el motor (`api/src/motor/`, `api/src/dominio/`), corré `npm test` y que pasen
-los 96 tests antes de dar nada por hecho.
+los 108 tests antes de dar nada por hecho.
 
 ## Convenciones
 

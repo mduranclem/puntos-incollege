@@ -11,6 +11,7 @@ import { motivoContrasenaInvalida } from '../dominio/contrasenas.js';
 import { prisma } from '../infra/prisma/cliente.js';
 import { parsearImporte } from '../dominio/dinero.js';
 import { finDelDiaArgentina } from '../dominio/fechas.js';
+import { asegurarFormasDePago, formasDePago } from '../servicios/formasDePago.js';
 
 /**
  * Los seis locales con sus direcciones reales. Se pueden editar desde el panel:
@@ -113,6 +114,18 @@ export async function sembrar() {
     });
     console.log('Configuración inicial: $10.000 = 1 punto · punto = $1.000 · sin tope de canje');
   }
+
+  // Formas de pago con su recargo (D-061). Si ya hay cargadas no se tocan: las
+  // que valen son las que editó la gerencia.
+  await asegurarFormasDePago(prisma);
+  const formas = await formasDePago(prisma, { soloActivas: true });
+  console.log(
+    `Formas de pago: ${formas.length} · con recargo: ` +
+      (formas
+        .filter((f) => f.recargoBps > 0)
+        .map((f) => `${f.nombre} ${f.recargoBps / 100}%`)
+        .join(', ') || 'ninguna'),
+  );
 
   // Precios reales de lista. La administración los edita u oculta desde el panel.
   // No se inventan promociones: las carga la empresa.

@@ -11,7 +11,8 @@ import { exigeRol, exigeSesion } from '../sesion.js';
 import { formatearPesos, parsearImporte } from '../../dominio/dinero.js';
 import { formatearTelefono, normalizarTelefono } from '../../dominio/telefono.js';
 import { configuracionVigente } from '../../servicios/configuracion.js';
-import { LINEAS_DE_NEGOCIO, TIPOS_DE_MOVIMIENTO } from '../../dominio/tipos.js';
+import { ErrorDeNegocio, LINEAS_DE_NEGOCIO, TIPOS_DE_MOVIMIENTO } from '../../dominio/tipos.js';
+import { formasDePago, textoDeRecargo } from '../../servicios/formasDePago.js';
 import { despacharPendientes } from '../../servicios/despachador.js';
 import { registroDelDia } from '../../servicios/registroDiario.js';
 
@@ -26,6 +27,25 @@ const NuevaConfiguracion = z.object({
       }),
     )
     .min(1),
+});
+
+/**
+ * Los recargos por forma de pago (D-061). Se editan en su lugar, como los
+ * precios (D-049): el pasado no se toca porque cada pago guarda el recargo con
+ * el que se cobró.
+ */
+const Recargos = z.object({
+  formas: z
+    .array(
+      z.object({
+        codigo: z.string().trim().min(1).max(40),
+        /** En porcentaje, que es como lo pasa la tarjeta: 14, 23, 35. */
+        recargoPorcentaje: z.number().min(0).max(200),
+        activa: z.boolean().optional(),
+      }),
+    )
+    .min(1)
+    .max(40),
 });
 
 export function rutasDeAdmin() {
@@ -76,6 +96,72 @@ export function rutasDeAdmin() {
       });
 
       return res.json({ id: creada.id, vigenteDesde: creada.vigenteDesde });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+  router.get('/formas-de-pago', async (_req, res, next) => {
+    try {
+      const formas = await formasDePago(prisma);
+      return res.json({
+        formas: formas.map((f) => ({
+          codigo: f.codigo,
+          nombre: f.nombre,
+          medioDePago: f.medioDePago,
+          recargoBps: f.recargoBps,
+          recargoPorcentaje: f.recargoBps / 100,
+          recargoTexto: textoDeRecargo(f.recargoBps),
+          cuotas: f.cuotas,
+          activa: f.activa,
+          acredita: f.medioDePago === 'EFECTIVO',
+        })),
+      });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+  /**
+   * Guardar los recargos. Se edita la fila, no se versiona: lo que hay que poder
+   * auditar es con qué recargo se cobró cada venta, y eso está en el pago.
+   */
+  router.put('/formas-de-pago', async (req, res, next) => {
+    try {
+      const datos = Recargos.parse(req.body);
+      // Se leen primero para que un código inventado no pase en silencio.
+      const vigentes = new Map((await formasDePago(prisma)).map((f) => [f.codigo, f]));
+      for (const forma of datos.formas) {
+        if (!vigentes.has(forma.codigo)) {
+          throw new ErrorDeNegocio(
+            'FORMA_DE_PAGO_INVALIDA',
+            `No existe la forma de pago "${forma.codigo}"`,
+            { codigo: forma.codigo },
+          );
+        }
+      }
+
+      for (const forma of datos.formas) {
+        await prisma.formaDePago.update({
+          where: { codigo: forma.codigo },
+          data: {
+            recargoBps: Math.round(forma.recargoPorcentaje * 100),
+            ...(forma.activa !== undefined ? { activa: forma.activa } : {}),
+            actualizadoPorId: req.sesion!.usuarioId,
+          },
+        });
+      }
+
+      const formas = await formasDePago(prisma);
+      return res.json({
+        formas: formas.map((f) => ({
+          codigo: f.codigo,
+          nombre: f.nombre,
+          recargoPorcentaje: f.recargoBps / 100,
+          recargoTexto: textoDeRecargo(f.recargoBps),
+          activa: f.activa,
+        })),
+      });
     } catch (error) {
       return next(error);
     }

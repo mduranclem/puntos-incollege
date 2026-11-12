@@ -20,9 +20,19 @@ export type PagoNormalizado = {
   /** Clave de idempotencia. Única en todo el sistema. Ej: `manual:<uuid>`, `siro:00012345`. */
   referenciaExterna: string;
   ocurridoEn: Date;
+  /** Lo que se cobró, recargo incluido (D-061). De acá salen los puntos. */
   importeCentavos: bigint;
   medioDePago: MedioDePago;
   lineaDeNegocio: LineaDeNegocio;
+  /**
+   * Desglose del recargo por forma de pago, cuando la fuente lo conoce (D-061).
+   * La fuente de egresados no lo va a mandar: sus pagos llegan ya cerrados.
+   */
+  recargo?: {
+    formaDePagoCodigo: string;
+    bps: number;
+    centavos: bigint;
+  };
   localCodigo: string;
   cliente: {
     telefonoCrudo: string;

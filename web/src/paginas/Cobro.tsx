@@ -2,8 +2,13 @@
  * Pantalla de cobro en el mostrador.
  *
  * Se usa con gente esperando: se completa entera con el teclado, sin mouse y sin
- * recargas. Teléfono → Enter → importe → Enter → listo. El medio de pago arranca
- * en EFECTIVO, que es el caso que interesa al programa.
+ * recargas. Teléfono → Enter → importe → Enter → listo. La forma de pago arranca
+ * en efectivo, que es el caso que interesa al programa.
+ *
+ * Los importes que se tipean y los precios del catálogo son **de contado**. La
+ * forma de pago le suma su recargo (D-061) y la pantalla muestra el desglose
+ * antes de confirmar: el vendedor tiene que poder decir en voz alta "la prenda
+ * sale esto, el recargo de la tarjeta es esto, total esto".
  */
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -13,6 +18,9 @@ import {
   itemsParaLaApi,
   leerSesion,
   totalDeItems,
+  calcularRecargo,
+  leerImporte,
+  type FormaDePago,
   type ItemElegido,
   type ResumenDeCuenta,
 } from '../api';
@@ -22,13 +30,6 @@ import { Recibo } from '../componentes/Recibo';
 import { AnularCobro } from '../componentes/AnularCobro';
 
 type Linea = 'UNIFORMES' | 'ROPA_LISA';
-type Medio =
-  | 'EFECTIVO'
-  | 'TRANSFERENCIA'
-  | 'TARJETA_DEBITO'
-  | 'TARJETA_CREDITO'
-  | 'QR'
-  | 'BILLETERA_VIRTUAL';
 
 type Coincidencia = {
   id: string;
@@ -45,17 +46,16 @@ type Resultado = ResumenDeCuenta & {
   yaAplicado: boolean;
   puntosAcreditados: number;
   importeTexto: string;
+  baseTexto: string;
+  recargoTexto: string;
+  recargoBps: number;
+  recargoPorcentajeTexto: string;
+  formaDePago: { codigo: string; nombre: string } | null;
   link: string;
 };
 
-const MEDIOS: Array<{ valor: Medio; texto: string; tecla: string }> = [
-  { valor: 'EFECTIVO', texto: 'Efectivo', tecla: '1' },
-  { valor: 'TRANSFERENCIA', texto: 'Transferencia', tecla: '2' },
-  { valor: 'TARJETA_DEBITO', texto: 'Débito', tecla: '3' },
-  { valor: 'TARJETA_CREDITO', texto: 'Crédito', tecla: '4' },
-  { valor: 'QR', texto: 'QR', tecla: '5' },
-  { valor: 'BILLETERA_VIRTUAL', texto: 'Billetera', tecla: '6' },
-];
+/** El efectivo es el que interesa al programa, y es el que no tiene recargo. */
+const FORMA_POR_DEFECTO = 'efectivo';
 
 const LINEAS: Array<{ valor: Linea; texto: string; tecla: string }> = [
   { valor: 'UNIFORMES', texto: 'Uniformes', tecla: 'u' },
@@ -71,7 +71,13 @@ export function Cobro() {
   const sesion = leerSesion();
   const [telefono, setTelefono] = useState('');
   const [importe, setImporte] = useState('');
-  const [medio, setMedio] = useState<Medio>('EFECTIVO');
+  /**
+   * Las formas de pago salen de la API (D-061). Mientras no cargaron no se
+   * cobra: sin saber el recargo, el total de la pantalla sería mentira.
+   */
+  const [formas, setFormas] = useState<FormaDePago[]>([]);
+  const [forma, setForma] = useState(FORMA_POR_DEFECTO);
+  const [fallaronFormas, setFallaronFormas] = useState(false);
   /** `null` = deducida de los artículos. Con valor, la eligió la vendedora. */
   const [lineaElegida, setLineaElegida] = useState<Linea | null>(null);
   const [referencia, setReferencia] = useState(nuevaReferencia);
@@ -98,6 +104,27 @@ export function Cobro() {
   const campoImporte = useRef<HTMLInputElement>(null);
 
   useEffect(() => campoTelefono.current?.focus(), []);
+
+  useEffect(() => {
+    let vigente = true;
+    (async () => {
+      try {
+        const datos = await api<{ formas: FormaDePago[] }>('/cobros/formas-de-pago');
+        if (!vigente) return;
+        setFormas(datos.formas);
+        // Si la gerencia apagó el efectivo —no debería, pero puede— se arranca
+        // con la primera que haya en vez de quedar con una elegida que no existe.
+        if (!datos.formas.some((f) => f.codigo === FORMA_POR_DEFECTO) && datos.formas[0]) {
+          setForma(datos.formas[0].codigo);
+        }
+      } catch {
+        if (vigente) setFallaronFormas(true);
+      }
+    })();
+    return () => {
+      vigente = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (cliente) campoImporte.current?.focus();
@@ -133,14 +160,17 @@ export function Cobro() {
     return () => clearTimeout(reloj);
   }, [telefono, cliente, bloqueo]);
 
-  // Atajos: Alt+número para el medio de pago, Alt+U / Alt+R para la línea.
+  // Atajos: Alt+número para la forma de pago, Alt+U / Alt+R para la línea.
   useEffect(() => {
     function alTeclear(evento: KeyboardEvent) {
       if (!evento.altKey) return;
-      const porMedio = MEDIOS.find((m) => m.tecla === evento.key);
-      if (porMedio) {
+      // La tecla es la posición en la lista: la manda el orden que puso la
+      // gerencia, no una constante de esta pantalla.
+      const indice = Number(evento.key) - 1;
+      const porForma = Number.isInteger(indice) && indice >= 0 ? formas[indice] : undefined;
+      if (porForma) {
         evento.preventDefault();
-        setMedio(porMedio.valor);
+        setForma(porForma.codigo);
         return;
       }
       // alt+u / alt+r siguen sirviendo para forzar la línea a mano, por si la
@@ -153,7 +183,7 @@ export function Cobro() {
     }
     window.addEventListener('keydown', alTeclear);
     return () => window.removeEventListener('keydown', alTeclear);
-  }, []);
+  }, [formas]);
 
   /** Trae al cliente por teléfono completo. Es el camino de siempre, sin cambios. */
   async function buscar(texto = telefono) {
@@ -210,9 +240,19 @@ export function Cobro() {
     }
   }
 
-  /** Con artículos elegidos, el total lo manda el detalle (D-027). */
-  const totalCentavos = items.length > 0 ? totalDeItems(items) : 0;
+  /** Con artículos elegidos, el precio de lista lo manda el detalle (D-027). */
+  const baseCentavos = items.length > 0 ? totalDeItems(items) : leerImporte(importe);
   const hayMonto = items.length > 0 || importe.trim() !== '';
+
+  /**
+   * El desglose: precio de lista, recargo de la forma de pago y total (D-061).
+   * Se calcula acá sólo para mostrarlo; el que cobra es el servidor.
+   */
+  const formaElegida = formas.find((f) => f.codigo === forma) ?? null;
+  const recargoCentavos = calcularRecargo(baseCentavos, formaElegida?.recargoBps ?? 0);
+  const totalCentavos = baseCentavos + recargoCentavos;
+  const hayRecargo = recargoCentavos > 0;
+  const acredita = formaElegida?.acredita ?? false;
 
   /**
    * La línea sale de lo que se vendió, no de un botón más (D-043).
@@ -237,7 +277,7 @@ export function Cobro() {
   const linea: Linea = lineaElegida ?? lineaDeducida ?? 'UNIFORMES';
 
   async function registrar() {
-    if (!telefono.trim() || !hayMonto || guardando || bloqueo) return;
+    if (!telefono.trim() || !hayMonto || guardando || bloqueo || !formaElegida) return;
     setGuardando(true);
     setError(null);
     try {
@@ -245,7 +285,7 @@ export function Cobro() {
         cuerpo: {
           telefono,
           ...(items.length > 0 ? { items: itemsParaLaApi(items) } : { importe }),
-          medioDePago: medio,
+          formaDePago: forma,
           lineaDeNegocio: linea,
           referencia,
         },
@@ -264,7 +304,7 @@ export function Cobro() {
     setImporte('');
     setItems([]);
     setConfirmando(false);
-    setMedio('EFECTIVO');
+    setForma(formas.some((f) => f.codigo === FORMA_POR_DEFECTO) ? FORMA_POR_DEFECTO : forma);
     setLineaElegida(null);
     setCliente(null);
     setBloqueo(null);
@@ -280,7 +320,7 @@ export function Cobro() {
       <Comprobante
         resultado={resultado}
         items={items}
-        medio={MEDIOS.find((m) => m.valor === medio)?.texto ?? medio}
+        medio={resultado.formaDePago?.nombre ?? formaElegida?.nombre ?? ''}
         local={sesion?.localNombre ?? ''}
         vendedor={sesion?.nombre ?? sesion?.usuario ?? ''}
         alSeguir={nuevoCobro}
@@ -294,9 +334,12 @@ export function Cobro() {
         cliente={cliente?.cliente.nombre ?? null}
         telefono={cliente?.cliente.telefono ?? telefono}
         items={items}
-        totalTexto={items.length > 0 ? formatearPesos(totalCentavos) : `$${importe}`}
-        medio={MEDIOS.find((m) => m.valor === medio)?.texto ?? medio}
-        acredita={medio === 'EFECTIVO'}
+        baseTexto={formatearPesos(baseCentavos)}
+        recargoTexto={hayRecargo ? formatearPesos(recargoCentavos) : null}
+        recargoPorcentajeTexto={formaElegida?.recargoTexto ?? ''}
+        totalTexto={formatearPesos(totalCentavos)}
+        medio={formaElegida?.nombre ?? ''}
+        acredita={acredita}
         guardando={guardando}
         alConfirmar={() => void registrar()}
         alVolver={() => setConfirmando(false)}
@@ -318,7 +361,7 @@ export function Cobro() {
         onSubmit={(e) => {
           e.preventDefault();
           // Nunca se cobra de un saque: primero se confirma (D-028).
-          if (telefono.trim() && hayMonto && !bloqueo) setConfirmando(true);
+          if (telefono.trim() && hayMonto && !bloqueo && formaElegida) setConfirmando(true);
         }}
       >
         <div>
@@ -458,7 +501,8 @@ export function Cobro() {
 
         <div>
           <label className="etiqueta" htmlFor="importe">
-            {items.length > 0 ? 'Total de la venta' : 'Importe cobrado'}
+            {items.length > 0 ? 'Suma de los artículos' : 'Importe de la venta'}
+            {hayRecargo && <span className="font-normal text-slate-500"> · precio de lista, sin el recargo</span>}
           </label>
           <div className="relative">
             <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-3xl font-semibold text-slate-400">
@@ -472,32 +516,61 @@ export function Cobro() {
               autoComplete="off"
               placeholder="0"
               readOnly={items.length > 0}
-              value={items.length > 0 ? formatearPesos(totalCentavos).replace('$', '') : importe}
+              value={items.length > 0 ? formatearPesos(baseCentavos).replace('$', '') : importe}
               onChange={(e) => setImporte(e.target.value.replace(/[^\d.,]/g, ''))}
             />
           </div>
         </div>
 
         <div>
-          <span className="etiqueta">Medio de pago</span>
-          <div className="flex flex-wrap gap-2">
-            {MEDIOS.map((m) => (
-              <button
-                key={m.valor}
-                type="button"
-                onClick={() => setMedio(m.valor)}
-                className={`chip border ${
-                  medio === m.valor
-                    ? 'border-[var(--color-marino)] bg-[var(--color-marino)] text-white'
-                    : 'border-[var(--color-borde)] bg-white text-slate-700'
-                }`}
-              >
-                {m.texto}
-                <span className="ml-1.5 text-[10px] opacity-60">alt+{m.tecla}</span>
-              </button>
-            ))}
-          </div>
-          {medio !== 'EFECTIVO' && (
+          <span className="etiqueta">Forma de pago</span>
+          {fallaronFormas ? (
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-[var(--color-error)]">
+              No se pudieron cargar las formas de pago. Recargá la página: sin saber el recargo no
+              se puede cobrar.
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {formas.map((f, i) => (
+                <button
+                  key={f.codigo}
+                  type="button"
+                  onClick={() => setForma(f.codigo)}
+                  className={`chip border ${
+                    forma === f.codigo
+                      ? 'border-[var(--color-marino)] bg-[var(--color-marino)] text-white'
+                      : 'border-[var(--color-borde)] bg-white text-slate-700'
+                  }`}
+                >
+                  {f.nombre}
+                  {f.recargoBps > 0 && <span className="ml-1.5 font-semibold">+{f.recargoTexto}</span>}
+                  {i < 9 && <span className="ml-1.5 text-[10px] opacity-60">alt+{i + 1}</span>}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* El desglose, antes de confirmar: el vendedor lo lee en voz alta. */}
+          {hayRecargo && hayMonto && (
+            <div className="desglose">
+              <p>
+                <span>Precio de lista</span>
+                <span>{formatearPesos(baseCentavos)}</span>
+              </p>
+              <p>
+                <span>
+                  Recargo {formaElegida?.nombre.toLowerCase()} · {formaElegida?.recargoTexto}
+                </span>
+                <span>+{formatearPesos(recargoCentavos)}</span>
+              </p>
+              <p className="desglose-total">
+                <span>A cobrar</span>
+                <span>{formatearPesos(totalCentavos)}</span>
+              </p>
+            </div>
+          )}
+
+          {formaElegida && !acredita && (
             <p className="mt-2 text-sm text-slate-600">
               Se registra el cobro pero no suma puntos: los puntos son sólo por efectivo.
             </p>
@@ -554,9 +627,9 @@ export function Cobro() {
 
         <button
           className="boton-principal w-full py-4 text-lg"
-          disabled={guardando || !hayMonto || bloqueo !== null}
+          disabled={guardando || !hayMonto || bloqueo !== null || !formaElegida}
         >
-          Registrar cobro
+          {hayRecargo && hayMonto ? `Cobrar ${formatearPesos(totalCentavos)}` : 'Registrar cobro'}
         </button>
         <p className="text-center text-xs text-slate-500">
           {bloqueo
@@ -618,6 +691,12 @@ function Comprobante({
         <p className="text-sm text-slate-600">
           Cobro registrado · {resultado.importeTexto} · {resultado.cliente.nombre}
         </p>
+        {resultado.recargoBps > 0 && (
+          <p className="text-xs text-slate-500">
+            {resultado.baseTexto} de lista + {resultado.recargoTexto} de recargo (
+            {resultado.recargoPorcentajeTexto})
+          </p>
+        )}
 
         {resultado.acredito ? (
           <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-[var(--color-punto-suave)] px-4 py-1.5 text-sm font-semibold text-[var(--color-tinta)]">
@@ -705,6 +784,9 @@ function Comprobante({
         cliente={resultado.cliente.nombre}
         telefono={resultado.cliente.telefono}
         items={items}
+        baseTexto={resultado.baseTexto}
+        recargoTexto={resultado.recargoBps > 0 ? resultado.recargoTexto : null}
+        recargoPorcentajeTexto={resultado.recargoPorcentajeTexto}
         totalTexto={resultado.importeTexto}
         medio={medio}
         acredito={resultado.acredito}
@@ -724,6 +806,9 @@ function Confirmacion({
   cliente,
   telefono,
   items,
+  baseTexto,
+  recargoTexto,
+  recargoPorcentajeTexto,
   totalTexto,
   medio,
   acredita,
@@ -734,6 +819,10 @@ function Confirmacion({
   cliente: string | null;
   telefono: string;
   items: ItemElegido[];
+  baseTexto: string;
+  /** `null` cuando la forma de pago no tiene recargo (D-061). */
+  recargoTexto: string | null;
+  recargoPorcentajeTexto: string;
   totalTexto: string;
   medio: string;
   acredita: boolean;
@@ -783,9 +872,24 @@ function Confirmacion({
         )}
 
         <div className="conf-fila">
-          <span>Medio de pago</span>
+          <span>Forma de pago</span>
           <strong>{medio}</strong>
         </div>
+
+        {/* Con recargo se muestran las tres cifras. Sin recargo, una sola:
+            repetir el mismo número tres veces es ruido. */}
+        {recargoTexto && (
+          <>
+            <div className="conf-fila">
+              <span>Precio de lista</span>
+              <strong>{baseTexto}</strong>
+            </div>
+            <div className="conf-fila">
+              <span>Recargo · {recargoPorcentajeTexto}</span>
+              <strong>+{recargoTexto}</strong>
+            </div>
+          </>
+        )}
 
         <div className="conf-total">
           <span>A cobrar</span>

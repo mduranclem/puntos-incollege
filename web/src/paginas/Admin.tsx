@@ -3,7 +3,7 @@
  * Cambiar la tasa o el tope acá no requiere tocar código ni redeployar (D-009).
  */
 import { useEffect, useState } from 'react';
-import { api, ErrorApi } from '../api';
+import { api, ErrorApi, calcularRecargo, formatearPesos } from '../api';
 import { PanelPersonal } from './admin/Personal';
 import { PanelArticulos } from './admin/Articulos';
 import { PanelRegistroDiario } from './admin/RegistroDiario';
@@ -14,6 +14,17 @@ type Configuracion = {
   topeCanjePorcentaje: number;
   temporada: { id: string; nombre: string };
   tasas: Array<{ lineaDeNegocio: string; texto: string | null }>;
+};
+
+/** Una forma de pago con su recargo, para editarla desde el panel (D-061). */
+type FormaDePagoAdmin = {
+  codigo: string;
+  nombre: string;
+  recargoPorcentaje: number;
+  recargoTexto: string;
+  cuotas: number;
+  activa: boolean;
+  acredita: boolean;
 };
 
 type Totales = {
@@ -119,7 +130,12 @@ export function Admin() {
       {pestania === 'articulos' && <PanelArticulos />}
       {pestania === 'personal' && <PanelPersonal />}
       {pestania === 'locales' && <PanelLocales />}
-      {pestania === 'config' && <PanelConfiguracion />}
+      {pestania === 'config' && (
+        <>
+          <PanelConfiguracion />
+          <PanelRecargos />
+        </>
+      )}
     </div>
   );
 }
@@ -536,6 +552,124 @@ function PanelConfiguracion() {
 
       <button className="boton-principal" disabled={guardando}>
         {guardando ? 'Guardando…' : 'Guardar configuración'}
+      </button>
+    </form>
+  );
+}
+
+/**
+ * Los recargos por forma de pago (D-061).
+ *
+ * Es su propia tarjeta y no un campo más de Configuración porque se toca cuando
+ * cambian los aranceles de la tarjeta, que es otro momento y otra cabeza que
+ * cuando se cambia el valor del punto.
+ *
+ * Se edita en su lugar: lo que hay que poder auditar es con qué recargo se cobró
+ * cada venta, y eso queda guardado en cada pago.
+ */
+function PanelRecargos() {
+  const [formas, setFormas] = useState<FormaDePagoAdmin[] | null>(null);
+  const [valores, setValores] = useState<Record<string, string>>({});
+  const [mensaje, setMensaje] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [guardando, setGuardando] = useState(false);
+
+  async function cargar() {
+    const datos = await api<{ formas: FormaDePagoAdmin[] }>('/admin/formas-de-pago');
+    setFormas(datos.formas);
+    setValores(
+      Object.fromEntries(datos.formas.map((f) => [f.codigo, String(f.recargoPorcentaje)])),
+    );
+  }
+
+  useEffect(() => {
+    cargar().catch((e) =>
+      setError(e instanceof ErrorApi ? e.message : 'No se pudieron cargar las formas de pago.'),
+    );
+  }, []);
+
+  async function guardar(evento: React.FormEvent) {
+    evento.preventDefault();
+    setGuardando(true);
+    setError(null);
+    setMensaje(null);
+    try {
+      await api('/admin/formas-de-pago', {
+        metodo: 'PUT',
+        cuerpo: {
+          formas: Object.entries(valores).map(([codigo, porcentaje]) => ({
+            codigo,
+            recargoPorcentaje: Number(porcentaje.replace(',', '.') || '0'),
+          })),
+        },
+      });
+      await cargar();
+      setMensaje('Guardado. Rige desde el próximo cobro; lo cobrado antes no cambia.');
+    } catch (e) {
+      setError(e instanceof ErrorApi ? e.message : 'No se pudo guardar');
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  if (!formas) return null;
+
+  /** La campera, que es la prenda más cara de la lista: el recargo se ve. */
+  const EJEMPLO_CENTAVOS = 4_180_000;
+
+  return (
+    <form className="tarjeta mt-4 space-y-4" onSubmit={guardar}>
+      <div>
+        <h2 className="font-semibold">Recargo por forma de pago</h2>
+        <p className="text-sm text-slate-600">
+          Los precios de lista son de contado. Acá va cuánto se recarga según cómo pague, en
+          porcentaje. El efectivo va en cero: es el único que suma puntos.
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        {formas.map((f) => {
+          const porcentaje = Number((valores[f.codigo] ?? '0').replace(',', '.')) || 0;
+          const conRecargo =
+            EJEMPLO_CENTAVOS + calcularRecargo(EJEMPLO_CENTAVOS, Math.round(porcentaje * 100));
+          return (
+            <div key={f.codigo} className="fila-recargo">
+              <div className="min-w-0">
+                <p className="truncate font-medium">
+                  {f.nombre}
+                  {f.acredita && <span className="conf-nuevo">suma puntos</span>}
+                </p>
+                <p className="text-xs text-slate-500">
+                  Una campera de {formatearPesos(EJEMPLO_CENTAVOS)} sale{' '}
+                  <strong className="tabular">{formatearPesos(conRecargo)}</strong>
+                </p>
+              </div>
+              <div className="flex items-center gap-1">
+                <input
+                  className="campo tabular w-20 text-right"
+                  inputMode="decimal"
+                  aria-label={`Recargo de ${f.nombre} en porcentaje`}
+                  value={valores[f.codigo] ?? ''}
+                  onChange={(e) =>
+                    setValores({ ...valores, [f.codigo]: soloNumero(e.target.value) })
+                  }
+                />
+                <span className="text-sm text-slate-500">%</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {mensaje && (
+        <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-[var(--color-ok)]">{mensaje}</p>
+      )}
+      {error && (
+        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-[var(--color-error)]">{error}</p>
+      )}
+
+      <button className="boton-principal" disabled={guardando}>
+        {guardando ? 'Guardando…' : 'Guardar recargos'}
       </button>
     </form>
   );

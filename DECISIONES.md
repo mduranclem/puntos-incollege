@@ -1951,3 +1951,69 @@ la pantalla las distingue sólo para decirlo mejor.
 cuenta → rechazado `SIN_CUENTA`, y después del rechazo hay **0 clientes con ese teléfono y
 0 pagos**; se registra la persona; cobro en efectivo → acredita 3 puntos; repetido →
 idempotente; con tarjeta → `NO_ACREDITABLE`. El libro mayor queda con un solo movimiento.
+
+---
+
+## D-061 · El recargo por forma de pago es un dato, no un precio aparte
+
+**Contexto.** La lista de precios de InCollege (D-049) es de **contado**. Pagar con
+tarjeta o QR le cuesta plata a la casa —el arancel, el costo de la cuota— y ese costo se
+traslada: 14% con QR, débito o crédito en un pago, 23% en tres cuotas, 35% en seis. Hasta
+acá el sistema no lo sabía: una venta con tarjeta armada con los botones de artículos
+cobraba el precio de contado, unos $5.000 de menos en una campera, en silencio y en cada
+venta.
+
+**Decisión.** Una tabla `FormaDePago` con una fila por forma —efectivo, transferencia,
+débito, QR, billetera, crédito en 1, 3 y 6 cuotas— y su recargo en puntos básicos. El
+mostrador manda el **código de la forma**; el servidor resuelve con qué medio queda
+registrada y cuánto recarga, y cierra el importe. La pantalla no manda importes, por lo
+mismo que no manda precios (D-049).
+
+**Por qué una fila y no una constante.** Los aranceles cambian cada vez que los cambia la
+tarjeta, y no se puede depender de un despliegue para cobrar bien (D-009). La gerencia los
+edita desde el panel —Configuración → *Recargo por forma de pago*— y rige en el cobro
+siguiente.
+
+**Por qué la forma y no el medio.** "Crédito 3 cuotas" y "Crédito 6 cuotas" son el mismo
+`MedioDePago` con dos recargos distintos. El medio decide los **puntos** (sólo efectivo,
+D-001); la forma decide el **recargo**. Un solo botón en el mostrador, que es como se
+habla en el mostrador: nadie dice "crédito" y después "tres cuotas" en otro campo.
+
+**Qué queda guardado.** `Pago.importeCentavos` es lo que se cobró, recargo incluido, y al
+lado quedan `formaDePagoCodigo`, `recargoBps` y `recargoCentavos`. Cambiar el recargo
+mañana no reescribe lo de hoy, igual que con la tasa de puntos (D-009). Los `ItemDeVenta`
+siguen a precio de lista: el recargo es una línea del pago, no de la prenda, como en
+cualquier factura.
+
+**Redondeo al peso entero**, al más cercano y para arriba en el empate. El 23% de $26.950
+es $6.198,50: se cobra $6.199 y el total queda redondo. Los precios de lista son pesos
+enteros (D-049); un total con centavos en el mostrador es una discusión asegurada por
+plata que no existe en monedas.
+
+**Los puntos no se tocan.** El efectivo es el único medio que acredita (D-001) y es el
+único sin recargo, así que el recargo nunca entra en el cálculo de puntos. Hay un test que
+lo sostiene: ninguna forma que acredite puede tener recargo. Si algún día una que acredita
+lo tuviera, los puntos saldrían del total cobrado, que es lo que entra en la caja.
+
+**Lo que se ve.** El mostrador muestra las tres cifras antes de confirmar —lista, recargo,
+total— y el botón dice "Cobrar $47.652", porque es lo que el vendedor va a decir en voz
+alta. El recibo impreso lleva el desglose: sin él, el total no coincide con la suma de los
+artículos y el primer cambio en el local es una discusión. El registro diario informa los
+recargos del día aparte, porque el ranking de artículos va a precio de lista y si no cierra
+contra lo cobrado, alguien se pone a buscar un error que no existe. Y la app del cliente
+dice que los precios son de contado, en la lista y no en el mostrador cuando ya está la
+tarjeta en la mano.
+
+**Las formas iniciales se cargan solas** si la tabla está vacía. La migración crea la
+tabla vacía y el seed completo no se puede correr en producción —pide las contraseñas de
+alta—, así que el primer cobro después de desplegar las sembraría. Si ya hay una fila, no
+se toca nada: manda lo que editó la gerencia.
+
+**El camino viejo se sigue aceptando.** Un cobro que manda `medioDePago` en vez de
+`formaDePago` entra sin recargo, que es exactamente lo que hacía antes. Es para que una
+pantalla ya cargada en un navegador no deje de cobrar en medio de un sábado.
+
+**Verificado contra la base local** con `npm run probar:local`: la misma venta de $30.000
+en efectivo acredita 3 puntos y se cobra $30.000; en crédito 6 cuotas se cobra **$40.500**
+—$30.000 de lista + $10.500 de recargo—, queda guardada con `recargoBps 3500` y
+`formaDePagoCodigo credito-6`, y el saldo de puntos no se mueve.

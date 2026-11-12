@@ -103,8 +103,11 @@ export function Novedades() {
         ))
       )}
 
+      {/* Que los precios sean de contado se dice acá y no en el mostrador
+          cuando ya está la tarjeta en la mano (D-061). */}
       <p className="nov-pie">
-        Los precios son de lista y pueden cambiar. Consultá en el local.
+        Los precios son de contado y pueden cambiar. Con tarjeta o QR se suma el recargo de la
+        tarjeta. Consultá en el local.
       </p>
     </div>
   );

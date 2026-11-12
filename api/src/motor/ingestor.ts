@@ -88,6 +88,11 @@ export class IngestorDePagos {
         importeCentavos: pago.importeCentavos,
         medioDePago: pago.medioDePago,
         lineaDeNegocio: pago.lineaDeNegocio,
+        // El recargo con el que se cobró queda escrito en el pago: cambiar la
+        // tasa mañana no reescribe lo de hoy (D-061).
+        formaDePagoCodigo: pago.recargo?.formaDePagoCodigo ?? null,
+        recargoBps: pago.recargo?.bps ?? 0,
+        recargoCentavos: pago.recargo?.centavos ?? 0n,
         ocurridoEn: pago.ocurridoEn,
         clienteId: cliente.id,
         localId: local.id,

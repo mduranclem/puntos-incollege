@@ -26,7 +26,12 @@ type Props = {
   cliente: string;
   telefono: string;
   items: ItemElegido[];
-  /** Cuando se cobró sin detalle, el importe tipeado. */
+  /** Precio de lista, antes del recargo por forma de pago (D-061). */
+  baseTexto: string;
+  /** `null` cuando la forma de pago no tiene recargo. */
+  recargoTexto: string | null;
+  recargoPorcentajeTexto: string;
+  /** Lo que se cobró, recargo incluido. */
   totalTexto: string;
   medio: string;
   acredito: boolean;
@@ -54,6 +59,9 @@ export function Recibo({
   cliente,
   telefono,
   items,
+  baseTexto,
+  recargoTexto,
+  recargoPorcentajeTexto,
   totalTexto,
   medio,
   acredito,
@@ -112,11 +120,27 @@ export function Recibo({
 
       <hr className="recibo-linea" />
 
+      {/* Con recargo, el papel tiene que explicar por qué el total no es la
+          suma de los artículos. Sin esto, el primer cambio en el local es una
+          discusión. */}
+      {recargoTexto && (
+        <>
+          <p className="recibo-total recibo-total-chico">
+            <span>Subtotal de lista</span>
+            <span>{baseTexto}</span>
+          </p>
+          <p className="recibo-total recibo-total-chico">
+            <span>Recargo {recargoPorcentajeTexto}</span>
+            <span>+{recargoTexto}</span>
+          </p>
+        </>
+      )}
+
       <p className="recibo-total">
         <span>Total</span>
         <span>{totalTexto}</span>
       </p>
-      <p className="recibo-meta">Medio de pago: {medio}</p>
+      <p className="recibo-meta">Forma de pago: {medio}</p>
 
       <hr className="recibo-linea" />
 

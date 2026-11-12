@@ -8,7 +8,9 @@
  *  2. con cuenta, el mismo cobro en efectivo acredita;
  *  3. repetirlo no acredita dos veces (D-006);
  *  4. con tarjeta se registra pero no suma (D-001);
- *  5. el libro mayor queda con un solo movimiento: lo de antes de la cuenta no
+ *  5. el recargo por forma de pago se cobra y queda desglosado en el pago, y no
+ *     cambia los puntos (D-061);
+ *  6. el libro mayor queda con un solo movimiento: lo de antes de la cuenta no
  *     aparece por ningún lado, porque nunca entró.
  *
  * Modifica datos: se niega a correr si DATABASE_URL no apunta a localhost.
@@ -21,6 +23,8 @@ import { MotorDePuntos } from '../motor/motorPuntos.js';
 import { RepositorioPrisma } from '../infra/prisma/repositorioPrisma.js';
 import { IngestorDePagos } from '../motor/ingestor.js';
 import { normalizarTelefono } from '../dominio/telefono.js';
+import { conRecargo, formaDePagoVigente } from '../servicios/formasDePago.js';
+import { formatearPesos } from '../dominio/dinero.js';
 
 const url = process.env.DATABASE_URL ?? '';
 if (!/@(127\.0\.0\.1|localhost)[:/]/.test(url)) {
@@ -32,16 +36,40 @@ const TELEFONO = '3415550001';
 const E164 = normalizarTelefono(TELEFONO, { areaPorDefecto: '341' });
 const ing = new IngestorDePagos(prisma, new MotorDePuntos(new RepositorioPrisma(prisma)));
 
+/** $30.000 de lista: con la tasa del seed son 3 puntos en efectivo. */
+const BASE = 3_000_000n;
+
 const cobrar = (referencia: string, medioDePago: 'EFECTIVO' | 'TARJETA_CREDITO' = 'EFECTIVO') =>
   ing.ingerir({
     referenciaExterna: referencia,
     ocurridoEn: new Date(),
-    importeCentavos: 3_000_000n,
+    importeCentavos: BASE,
     medioDePago,
     lineaDeNegocio: 'UNIFORMES',
     localCodigo: 'ROS-SUR',
     cliente: { telefonoCrudo: TELEFONO, nombre: 'Cuenta de prueba' },
   });
+
+/** Igual que el mostrador: la forma de pago decide el medio y el recargo (D-061). */
+const cobrarCon = async (referencia: string, codigoDeForma: string) => {
+  const forma = await formaDePagoVigente(prisma, codigoDeForma);
+  const importe = conRecargo(forma, BASE);
+  const resultado = await ing.ingerir({
+    referenciaExterna: referencia,
+    ocurridoEn: new Date(),
+    importeCentavos: importe.totalCentavos,
+    medioDePago: forma.medioDePago,
+    lineaDeNegocio: 'UNIFORMES',
+    localCodigo: 'ROS-SUR',
+    recargo: {
+      formaDePagoCodigo: forma.codigo,
+      bps: forma.recargoBps,
+      centavos: importe.recargoCentavos,
+    },
+    cliente: { telefonoCrudo: TELEFONO, nombre: 'Cuenta de prueba' },
+  });
+  return { forma, importe, resultado };
+};
 
 // Se parte de cero para que la prueba diga algo: si la ficha quedó de una
 // corrida anterior, el primer paso no probaría nada.
@@ -96,13 +124,37 @@ console.log('3. el mismo cobro otra vez → yaAplicado:', (await cobrar('manual:
 const tarjeta = await cobrar('manual:con-tarjeta', 'TARJETA_CREDITO');
 console.log(`4. con tarjeta → acredito: ${tarjeta.acredito} · saldo: ${tarjeta.saldoPuntos}`);
 
+// Recargo: la misma venta, pagada en seis cuotas.
+const seis = await cobrarCon('manual:credito-6', 'credito-6');
+console.log(
+  `5. ${seis.forma.nombre} (${seis.forma.recargoBps / 100}%) →`,
+  `lista ${formatearPesos(seis.importe.baseCentavos)} +`,
+  `recargo ${formatearPesos(seis.importe.recargoCentavos)} =`,
+  `${formatearPesos(seis.importe.totalCentavos)}`,
+);
+const guardado = await prisma.pago.findUniqueOrThrow({
+  where: { referenciaExterna: 'manual:credito-6' },
+  select: { importeCentavos: true, recargoCentavos: true, recargoBps: true, formaDePagoCodigo: true },
+});
+console.log(
+  `   guardado: ${formatearPesos(guardado.importeCentavos)} ·`,
+  `recargo ${formatearPesos(guardado.recargoCentavos)} (${guardado.recargoBps / 100}%) ·`,
+  `forma ${guardado.formaDePagoCodigo}`,
+);
+console.log(
+  `   los puntos no cambian: saldo ${seis.resultado.saldoPuntos} ·`,
+  `acredito: ${seis.resultado.acredito}`,
+);
+
 const pagos = await prisma.pago.findMany({
   where: { clienteId: cliente.id },
   orderBy: { creadoEn: 'asc' },
-  select: { referenciaExterna: true, estado: true },
+  select: { referenciaExterna: true, estado: true, importeCentavos: true },
 });
-console.log('5. pagos registrados:');
-for (const p of pagos) console.log(`   ${p.referenciaExterna.padEnd(22)} ${p.estado}`);
+console.log('6. pagos registrados:');
+for (const p of pagos) {
+  console.log(`   ${p.referenciaExterna.padEnd(22)} ${p.estado.padEnd(15)} ${formatearPesos(p.importeCentavos)}`);
+}
 const movs = await prisma.movimiento.findMany({
   where: { cuenta: { clienteId: cliente.id } },
   orderBy: { secuencia: 'asc' },
