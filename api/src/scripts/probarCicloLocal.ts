@@ -3,13 +3,13 @@
  *
  * Lo que verifica, en orden:
  *
- *  1. un cobro en efectivo a alguien **sin cuenta en la app** no suma (D-059);
- *  2. el mismo cobro repetido no duplica nada (D-006);
- *  3. una vez registrado, el cobro siguiente sí acredita;
- *  4. lo de antes no se recupera: el saldo es sólo lo de después de la cuenta.
- *
- * Antes movía el cierre de temporada al pasado para probar el vencimiento. Los
- * puntos no vencen (D-058): no hay ciclo que cerrar.
+ *  1. un cobro a un teléfono **sin cuenta en la app** se rechaza y no deja nada:
+ *     ni ficha de cliente ni pago (D-060);
+ *  2. con cuenta, el mismo cobro en efectivo acredita;
+ *  3. repetirlo no acredita dos veces (D-006);
+ *  4. con tarjeta se registra pero no suma (D-001);
+ *  5. el libro mayor queda con un solo movimiento: lo de antes de la cuenta no
+ *     aparece por ningún lado, porque nunca entró.
  *
  * Modifica datos: se niega a correr si DATABASE_URL no apunta a localhost.
  *
@@ -20,6 +20,7 @@ import { prisma } from '../infra/prisma/cliente.js';
 import { MotorDePuntos } from '../motor/motorPuntos.js';
 import { RepositorioPrisma } from '../infra/prisma/repositorioPrisma.js';
 import { IngestorDePagos } from '../motor/ingestor.js';
+import { normalizarTelefono } from '../dominio/telefono.js';
 
 const url = process.env.DATABASE_URL ?? '';
 if (!/@(127\.0\.0\.1|localhost)[:/]/.test(url)) {
@@ -28,53 +29,82 @@ if (!/@(127\.0\.0\.1|localhost)[:/]/.test(url)) {
 }
 
 const TELEFONO = '3415550001';
+const E164 = normalizarTelefono(TELEFONO, { areaPorDefecto: '341' });
 const ing = new IngestorDePagos(prisma, new MotorDePuntos(new RepositorioPrisma(prisma)));
 
-const cobrar = (referencia: string) =>
+const cobrar = (referencia: string, medioDePago: 'EFECTIVO' | 'TARJETA_CREDITO' = 'EFECTIVO') =>
   ing.ingerir({
     referenciaExterna: referencia,
     ocurridoEn: new Date(),
     importeCentavos: 3_000_000n,
-    medioDePago: 'EFECTIVO',
+    medioDePago,
     lineaDeNegocio: 'UNIFORMES',
     localCodigo: 'ROS-SUR',
     cliente: { telefonoCrudo: TELEFONO, nombre: 'Cuenta de prueba' },
   });
 
-const sinCuenta = await cobrar('manual:antes-de-la-cuenta');
+// Se parte de cero para que la prueba diga algo: si la ficha quedó de una
+// corrida anterior, el primer paso no probaría nada.
+await prisma.$executeRawUnsafe(
+  `DELETE FROM "Movimiento" WHERE "cuentaId" IN (
+     SELECT c.id FROM "CuentaPuntos" c JOIN "Cliente" cl ON cl.id = c."clienteId"
+     WHERE cl."telefonoE164" = $1)`,
+  E164,
+);
+await prisma.$executeRawUnsafe(
+  `DELETE FROM "Pago" WHERE "clienteId" IN (SELECT id FROM "Cliente" WHERE "telefonoE164" = $1)`,
+  E164,
+);
+await prisma.$executeRawUnsafe(
+  `DELETE FROM "CuentaPuntos" WHERE "clienteId" IN (SELECT id FROM "Cliente" WHERE "telefonoE164" = $1)`,
+  E164,
+);
+await prisma.$executeRawUnsafe(`DELETE FROM "Cliente" WHERE "telefonoE164" = $1`, E164);
+
+try {
+  await cobrar('manual:sin-cuenta');
+  console.log('1. sin cuenta → NO SE RECHAZÓ (mal)');
+} catch (error) {
+  const codigo = (error as { codigo?: string }).codigo ?? '(sin código)';
+  console.log(`1. sin cuenta → rechazado: ${codigo}`);
+}
 console.log(
-  '1. sin cuenta en la app →',
-  `acredito: ${sinCuenta.acredito} · motivo: ${sinCuenta.motivoSinPuntos} ·`,
-  `puntos: ${sinCuenta.puntosAcreditados} · saldo: ${sinCuenta.saldoPuntos}`,
+  '   no quedó nada:',
+  `clientes con ese teléfono: ${await prisma.cliente.count({ where: { telefonoE164: E164 } })} ·`,
+  `pagos: ${await prisma.pago.count({ where: { referenciaExterna: 'manual:sin-cuenta' } })}`,
 );
 
-const repetido = await cobrar('manual:antes-de-la-cuenta');
-console.log('2. el mismo cobro otra vez → yaAplicado:', repetido.yaAplicado);
-
-await prisma.cliente.update({
-  where: { id: sinCuenta.clienteId },
-  data: { registradoEn: new Date(), email: `prueba-${Date.now()}@ejemplo.com` },
+const cliente = await prisma.cliente.create({
+  data: {
+    telefonoE164: E164,
+    telefonoCrudo: TELEFONO,
+    nombre: 'Cuenta de prueba',
+    email: `prueba-${Date.now()}@ejemplo.com`,
+    contrasenaHash: 'x',
+    registradoEn: new Date(),
+  },
 });
-console.log('   (se registra en la app)');
+console.log('   (la persona se registra en la app)');
 
-const conCuenta = await cobrar('manual:ya-con-cuenta');
+const efectivo = await cobrar('manual:con-cuenta');
 console.log(
-  '3. con cuenta →',
-  `acredito: ${conCuenta.acredito} · motivo: ${conCuenta.motivoSinPuntos} ·`,
-  `puntos: ${conCuenta.puntosAcreditados} · saldo: ${conCuenta.saldoPuntos}`,
+  `2. en efectivo → acredito: ${efectivo.acredito} ·`,
+  `puntos: ${efectivo.puntosAcreditados} · saldo: ${efectivo.saldoPuntos}`,
 );
+console.log('3. el mismo cobro otra vez → yaAplicado:', (await cobrar('manual:con-cuenta')).yaAplicado);
+
+const tarjeta = await cobrar('manual:con-tarjeta', 'TARJETA_CREDITO');
+console.log(`4. con tarjeta → acredito: ${tarjeta.acredito} · saldo: ${tarjeta.saldoPuntos}`);
 
 const pagos = await prisma.pago.findMany({
-  where: { clienteId: sinCuenta.clienteId },
+  where: { clienteId: cliente.id },
   orderBy: { creadoEn: 'asc' },
-  select: { referenciaExterna: true, estado: true, importeCentavos: true },
+  select: { referenciaExterna: true, estado: true },
 });
-console.log('4. los dos cobros quedaron registrados:');
-for (const p of pagos) {
-  console.log(`   ${p.referenciaExterna.padEnd(28)} ${p.estado}`);
-}
+console.log('5. pagos registrados:');
+for (const p of pagos) console.log(`   ${p.referenciaExterna.padEnd(22)} ${p.estado}`);
 const movs = await prisma.movimiento.findMany({
-  where: { cuenta: { clienteId: sinCuenta.clienteId } },
+  where: { cuenta: { clienteId: cliente.id } },
   orderBy: { secuencia: 'asc' },
   select: { tipo: true, puntos: true },
 });

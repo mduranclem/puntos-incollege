@@ -106,10 +106,8 @@ export function rutasDeCobros() {
         pagoId: resultado.pagoId,
         fecha: pago.creadoEn,
         acredito: resultado.acredito,
-        motivoSinPuntos: resultado.motivoSinPuntos,
         yaAplicado: resultado.yaAplicado,
         puntosAcreditados: resultado.puntosAcreditados,
-        clienteNuevo: resultado.clienteNuevo,
         importeTexto: formatearPesos(importeCentavos),
         vendido: resumirItems(items),
         link: linkDeSaldo(

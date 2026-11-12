@@ -7,17 +7,10 @@ import {
   buscarCoincidencias,
   buscarDuplicados,
   fusionarClientes,
-  resolverCliente,
 } from '../../servicios/clientes.js';
 import { resumenDeCuenta } from '../../servicios/saldos.js';
 import { linkDeSaldo } from '../../servicios/tokenCliente.js';
 import { normalizarTelefono } from '../../dominio/telefono.js';
-
-const Alta = z.object({
-  telefono: z.string().min(3),
-  nombre: z.string().trim().min(1).max(120).optional(),
-  documento: z.string().trim().max(20).optional(),
-});
 
 export function rutasDeClientes() {
   const router = Router();
@@ -53,23 +46,10 @@ export function rutasDeClientes() {
     }
   });
 
-  /** Alta desde el mostrador. Idempotente: si el teléfono ya existe, lo devuelve. */
-  router.post('/', async (req, res, next) => {
-    try {
-      const datos = Alta.parse(req.body);
-      const cliente = await resolverCliente(prisma, {
-        telefonoCrudo: datos.telefono,
-        nombre: datos.nombre,
-        documento: datos.documento,
-        localId: req.sesion!.localId,
-        areaPorDefecto: req.sesion!.codigoAreaPorDefecto,
-      });
-      const resumen = await resumenDeCuenta(prisma, cliente.id, 5);
-      return res.status(cliente.creado ? 201 : 200).json({ creado: cliente.creado, ...resumen });
-    } catch (error) {
-      return next(error);
-    }
-  });
+  /**
+   * El alta de clientes desde el mostrador se quitó (D-060). La ficha la crea la
+   * persona al registrarse en la app; el mostrador busca, no da de alta.
+   */
 
   router.get('/:id', async (req, res, next) => {
     try {

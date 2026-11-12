@@ -1,23 +1,25 @@
 /**
- * Etapa 2: el mismo número cargado de cualquier forma tiene que dar una sola
- * cuenta. Se prueba el servicio contra un doble mínimo de Prisma, sin base.
+ * El mostrador cobra a quien tiene cuenta en la app, y a nadie más (D-060).
+ *
+ * Lo que se prueba acá es la puerta: que el mismo número escrito de cualquier
+ * forma encuentre la misma cuenta (D-010), y que no la encuentre cuando no hay
+ * cuenta que encontrar. Se prueba contra un doble mínimo de Prisma, sin base.
  */
 import { describe, expect, it, beforeEach } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import type { PrismaClient } from '@prisma/client';
-import { resolverCliente } from '../src/servicios/clientes.js';
+import { clienteConCuenta } from '../src/servicios/clientes.js';
 
 type FilaCliente = {
   id: string;
   telefonoE164: string;
   telefonoCrudo: string;
   nombre: string;
-  documento: string | null;
-  localOrigenId: string | null;
+  registradoEn: Date | null;
   fusionadoEnId: string | null;
 };
 
-/** Doble de Prisma: sólo lo que usa `resolverCliente`, con la unicidad del teléfono. */
+/** Doble de Prisma: sólo lo que usa la búsqueda, con la unicidad del teléfono. */
 function prismaFalso() {
   const filas: FilaCliente[] = [];
   const buscar = (where: { id?: string; telefonoE164?: string }) =>
@@ -34,31 +36,23 @@ function prismaFalso() {
       if (!fila) throw new Error('no existe');
       return fila;
     },
-    create: async ({ data }: never) => {
-      if (filas.some((f) => f.telefonoE164 === data.telefonoE164)) {
-        const error = new Error('unique') as Error & { code: string };
-        error.code = 'P2002';
-        throw error;
-      }
-      const fila: FilaCliente = {
-        id: randomUUID(),
-        documento: null,
-        localOrigenId: null,
-        fusionadoEnId: null,
-        ...data,
-      };
-      filas.push(fila);
-      return fila;
-    },
-    update: async ({ where, data }: never) => {
-      const fila = buscar(where);
-      if (!fila) throw new Error('no existe');
-      Object.assign(fila, data);
-      return fila;
-    },
   };
 
-  return { prisma: { cliente } as unknown as PrismaClient, filas };
+  /** Alta directa, como la que hace el registro en la app. */
+  const alta = (datos: Partial<FilaCliente> & { telefonoE164: string }) => {
+    const fila: FilaCliente = {
+      id: randomUUID(),
+      telefonoCrudo: datos.telefonoE164,
+      nombre: 'Cliente',
+      registradoEn: new Date(),
+      fusionadoEnId: null,
+      ...datos,
+    };
+    filas.push(fila);
+    return fila;
+  };
+
+  return { prisma: { cliente } as unknown as PrismaClient, filas, alta };
 }
 
 let doble: ReturnType<typeof prismaFalso>;
@@ -75,58 +69,60 @@ const FORMATOS = [
   '(0341) 15-5551234',
 ];
 
-describe('alta de clientes por teléfono', () => {
-  it('cinco formatos del mismo número dan una sola cuenta', async () => {
+describe('a quién se le puede cobrar', () => {
+  it('cinco formatos del mismo número encuentran la misma cuenta', async () => {
+    const registrado = doble.alta({ telefonoE164: '+5493415551234' });
     const ids = new Set<string>();
     for (const formato of FORMATOS) {
-      const cliente = await resolverCliente(doble.prisma, {
+      const encontrado = await clienteConCuenta(doble.prisma, {
         telefonoCrudo: formato,
-        nombre: 'Cliente de mostrador',
         areaPorDefecto: '341',
       });
-      ids.add(cliente.id);
+      ids.add(encontrado!.id);
     }
-    expect(ids.size).toBe(1);
-    expect(doble.filas).toHaveLength(1);
-    expect(doble.filas[0]!.telefonoE164).toBe('+5493415551234');
+    expect(ids).toEqual(new Set([registrado.id]));
   });
 
-  it('la primera carga crea y las siguientes reusan', async () => {
-    const primero = await resolverCliente(doble.prisma, {
+  it('un teléfono que no está no se da de alta: devuelve null', async () => {
+    const encontrado = await clienteConCuenta(doble.prisma, {
       telefonoCrudo: FORMATOS[0]!,
       areaPorDefecto: '341',
     });
-    const segundo = await resolverCliente(doble.prisma, {
-      telefonoCrudo: FORMATOS[3]!,
-      areaPorDefecto: '341',
-    });
-    expect(primero.creado).toBe(true);
-    expect(segundo.creado).toBe(false);
-    expect(segundo.id).toBe(primero.id);
+    expect(encontrado).toBeNull();
+    // Lo importante no es el null, es que no se creó nada (D-060).
+    expect(doble.filas).toHaveLength(0);
   });
 
-  it('completa el nombre si la cuenta se había creado sin él', async () => {
-    await resolverCliente(doble.prisma, { telefonoCrudo: FORMATOS[0]!, areaPorDefecto: '341' });
-    expect(doble.filas[0]!.nombre).toBe('Sin nombre');
-    const conNombre = await resolverCliente(doble.prisma, {
-      telefonoCrudo: FORMATOS[1]!,
-      nombre: 'Nombre cargado después',
+  it('una ficha vieja sin cuenta tampoco sirve', async () => {
+    doble.alta({ telefonoE164: '+5493415551234', registradoEn: null });
+    const encontrado = await clienteConCuenta(doble.prisma, {
+      telefonoCrudo: FORMATOS[0]!,
       areaPorDefecto: '341',
     });
-    expect(conNombre.nombre).toBe('Nombre cargado después');
-    expect(doble.filas).toHaveLength(1);
+    expect(encontrado).toBeNull();
+  });
+
+  it('sigue la fusión hasta la cuenta sobreviviente', async () => {
+    const sobreviviente = doble.alta({ telefonoE164: '+5493415559999' });
+    doble.alta({ telefonoE164: '+5493415551234', fusionadoEnId: sobreviviente.id });
+    const encontrado = await clienteConCuenta(doble.prisma, {
+      telefonoCrudo: FORMATOS[0]!,
+      areaPorDefecto: '341',
+    });
+    expect(encontrado!.id).toBe(sobreviviente.id);
   });
 
   it('números de locales distintos no se confunden', async () => {
-    const rosario = await resolverCliente(doble.prisma, {
+    doble.alta({ telefonoE164: '+5493415551234' });
+    const rosario = await clienteConCuenta(doble.prisma, {
       telefonoCrudo: '555-1234',
       areaPorDefecto: '341',
     });
-    const santaFe = await resolverCliente(doble.prisma, {
+    const santaFe = await clienteConCuenta(doble.prisma, {
       telefonoCrudo: '555-1234',
       areaPorDefecto: '342',
     });
-    expect(rosario.id).not.toBe(santaFe.id);
-    expect(doble.filas).toHaveLength(2);
+    expect(rosario).not.toBeNull();
+    expect(santaFe).toBeNull();
   });
 });

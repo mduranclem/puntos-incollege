@@ -14,7 +14,7 @@
  * lo levanta cualquiera. Acá va la dirección pelada de la app, que no da acceso
  * a nada por sí sola.
  */
-import { formatearPesos, type ItemElegido, type MotivoSinPuntos } from '../api';
+import { formatearPesos, type ItemElegido } from '../api';
 
 type Props = {
   /** Identificador del pago. Se muestra abreviado: es para ubicar el recibo. */
@@ -30,7 +30,6 @@ type Props = {
   totalTexto: string;
   medio: string;
   acredito: boolean;
-  motivoSinPuntos: MotivoSinPuntos | null;
   puntosAcreditados: number;
   saldoPuntos: number;
   equivalenteTexto: string;
@@ -58,7 +57,6 @@ export function Recibo({
   totalTexto,
   medio,
   acredito,
-  motivoSinPuntos,
   puntosAcreditados,
   saldoPuntos,
   equivalenteTexto,
@@ -135,9 +133,7 @@ export function Recibo({
         </>
       ) : (
         <p className="recibo-meta">
-          {motivoSinPuntos === 'SIN_CUENTA'
-            ? 'Esta compra no suma puntos: todavía no tenés cuenta. Creala y desde la próxima compra en efectivo empezás a sumar.'
-            : 'Esta compra no suma puntos: los puntos son sólo por pago en efectivo.'}
+          Esta compra no suma puntos: los puntos son sólo por pago en efectivo.
         </p>
       )}
 

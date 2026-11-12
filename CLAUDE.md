@@ -52,10 +52,11 @@ acá va el resumen para que no se rompan por descuido:
 - **Los límites por IP van todos juntos en `app.ts`** (D-044), no repartidos por las rutas:
   así se puede auditar de un vistazo qué está protegido. Todo endpoint público nuevo que
   mande WhatsApp o pruebe credenciales necesita el suyo.
-- **Sin cuenta en la app no se suma** (D-059). El mostrador le cobra igual a quien no
-  tiene cuenta y la venta queda registrada, pero el pago va a `NO_ACREDITABLE` y no se
-  acredita un punto. Lo que compró antes de registrarse no se recupera después: no hay
-  acreditación retroactiva en ninguna parte, y no la agregues.
+- **Sin cuenta en la app el cobro no entra** (D-059, D-060). El ingestor rechaza con
+  `SIN_CUENTA` y no queda nada: ni ficha de cliente ni pago. Este sistema guarda las
+  compras de quien está en el programa; el resto de las ventas vive en la caja del local.
+  El mostrador **no da de alta clientes**: busca. Y no hay acreditación retroactiva en
+  ninguna parte —lo que compró antes de registrarse no suma— así que no la agregues.
 - **La cuenta del cliente es su teléfono** (D-010, D-036). Desde D-036 entra con mail y
   contraseña, pero el mail es sólo un nombre de usuario: el teléfono es lo que ata los
   puntos a una persona. Por eso registrarse pide una vez el código por WhatsApp, y por eso

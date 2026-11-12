@@ -5,14 +5,14 @@
  * mostrador, mañana el sistema de egresados— resuelve cliente y cuenta, registra
  * el pago y lo acredita si corresponde. El motor nunca sabe de la fuente.
  *
- * Para acreditar hacen falta dos cosas, y las dos se deciden acá:
+ * **Sin cuenta en la app el pago no entra** (D-060). No es que entre y no
+ * acredite: se rechaza con `SIN_CUENTA` y no queda ni la ficha del cliente ni el
+ * pago. Este sistema guarda las compras de quien está en el programa; el resto
+ * de las ventas vive en la caja del local, no acá.
  *
- *  1. que el pago sea en **efectivo** (D-001), y
- *  2. que el cliente **tenga cuenta en la app** (D-059).
- *
- * Lo que no acredita se registra igual, con estado `NO_ACREDITABLE` y el motivo
- * en la respuesta: la venta tiene que quedar en el registro diario aunque no
- * sume un punto.
+ * De los que entran, acreditan los que son en **efectivo** (D-001). Un pago con
+ * tarjeta de alguien con cuenta se registra como `NO_ACREDITABLE`: es parte de
+ * su historia y del registro diario, pero no suma un punto.
  */
 import type { PrismaClient } from '@prisma/client';
 import {
@@ -20,27 +20,22 @@ import {
   LINEAS_HABILITADAS,
   MEDIO_QUE_ACREDITA,
 } from '../dominio/tipos.js';
-import { resolverCliente, cuentaVigente } from '../servicios/clientes.js';
+import { clienteConCuenta, cuentaVigente } from '../servicios/clientes.js';
 import { configuracionVigente, tasaDeLinea } from '../servicios/configuracion.js';
 import type { MotorDePuntos } from './motorPuntos.js';
 import type { Cursor, FuenteDePagos, PagoNormalizado } from './puertos.js';
-
-/** Por qué un cobro no sumó puntos. `null` cuando sí sumó. */
-export type MotivoSinPuntos = 'NO_ES_EFECTIVO' | 'SIN_CUENTA';
 
 export type ResultadoIngesta = {
   pagoId: string;
   clienteId: string;
   cuentaId: string;
   acredito: boolean;
-  motivoSinPuntos: MotivoSinPuntos | null;
   puntosAcreditados: number;
   saldoPuntos: number;
   remanenteCentavos: bigint;
   yaAplicado: boolean;
   nombreCliente: string;
   telefonoE164: string;
-  clienteNuevo: boolean;
 };
 
 export class IngestorDePagos {
@@ -63,13 +58,23 @@ export class IngestorDePagos {
       throw new ErrorDeNegocio('LOCAL_INEXISTENTE', `No existe el local ${pago.localCodigo}`);
     }
 
-    const cliente = await resolverCliente(this.prisma, {
+    /**
+     * Acá se corta lo que no es del programa (D-060). Antes esta línea daba de
+     * alta al cliente; ahora, si no tiene cuenta, el cobro no se registra. El
+     * mensaje es el que el vendedor va a leer en voz alta, así que dice qué
+     * hacer y no sólo qué pasó.
+     */
+    const cliente = await clienteConCuenta(this.prisma, {
       telefonoCrudo: pago.cliente.telefonoCrudo,
-      nombre: pago.cliente.nombre,
-      documento: pago.cliente.documento,
-      localId: local.id,
       areaPorDefecto: local.codigoAreaPorDefecto,
     });
+    if (!cliente) {
+      throw new ErrorDeNegocio(
+        'SIN_CUENTA',
+        'Ese teléfono no tiene cuenta en Puntos InCollege. Que la cree desde la app y volvés a cobrar.',
+        { telefonoCrudo: pago.cliente.telefonoCrudo },
+      );
+    }
     const cuenta = await cuentaVigente(this.prisma, cliente.id);
 
     // Idempotencia a nivel pago: la referencia externa es única (D-006).
@@ -97,25 +102,10 @@ export class IngestorDePagos {
       cuentaId: cuenta.id,
       nombreCliente: cliente.nombre,
       telefonoE164: cliente.telefonoE164,
-      clienteNuevo: cliente.creado,
     };
 
-    /**
-     * Las dos razones por las que un cobro no suma. Se registra igual, para
-     * tener el dato: lo que no acredita también es una venta.
-     *
-     * El orden importa en el mensaje, no en la regla: si pagó con tarjeta y
-     * además no tiene cuenta, lo que hay que decirle es lo del efectivo, que es
-     * lo que puede cambiar en esa misma compra.
-     */
-    const motivoSinPuntos: MotivoSinPuntos | null =
-      pago.medioDePago !== MEDIO_QUE_ACREDITA
-        ? 'NO_ES_EFECTIVO'
-        : cliente.registradoEn === null
-          ? 'SIN_CUENTA'
-          : null;
-
-    if (motivoSinPuntos) {
+    // Sólo el efectivo acredita. El resto se registra igual, para tener el dato.
+    if (pago.medioDePago !== MEDIO_QUE_ACREDITA) {
       await this.prisma.pago.update({
         where: { id: registrado.id },
         data: { estado: 'NO_ACREDITABLE', procesadoEn: new Date() },
@@ -124,7 +114,6 @@ export class IngestorDePagos {
       return {
         ...base,
         acredito: false,
-        motivoSinPuntos,
         puntosAcreditados: 0,
         yaAplicado: registrado.estado === 'NO_ACREDITABLE',
         ...estado,
@@ -159,7 +148,6 @@ export class IngestorDePagos {
     return {
       ...base,
       acredito: true,
-      motivoSinPuntos: null,
       puntosAcreditados: resultado.movimiento?.puntos ?? 0,
       saldoPuntos: resultado.estado.saldoPuntos,
       remanenteCentavos: resultado.estado.remanenteCentavos,

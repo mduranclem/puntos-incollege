@@ -29,7 +29,8 @@ tests. Sin interfaz.
 
 ## Etapa 2 — Clientes y normalización de teléfonos
 - [x] Normalización a E.164 (`+549341...`) tolerante a formatos de carga manual
-- [x] Alta de cliente por teléfono
+- [x] ~~Alta de cliente por teléfono desde el mostrador~~ · sacada: la cuenta la crea
+      la persona en la app y sin cuenta el cobro no se registra (D-060)
 - [x] Detección de duplicados
 - [x] Fusión de cuentas repetidas (conserva el libro mayor de ambas)
 

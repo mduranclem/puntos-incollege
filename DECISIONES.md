@@ -1899,3 +1899,55 @@ libro mayor es append-only (D-004).
 cuenta → `NO_ACREDITABLE`, saldo 0; el mismo cobro repetido → idempotente; se registra;
 cobro siguiente → acredita 3 puntos. El libro mayor queda con un solo movimiento: lo de
 antes no apareció por ningún lado.
+
+---
+
+## D-060 · Sin cuenta, el cobro no se registra
+
+**Contexto.** D-059 dejó que el cobro a alguien sin cuenta entrara igual, como
+`NO_ACREDITABLE`, para no perder el dato de la venta. El dueño lo corrigió: **la app es
+sólo para quien tiene cuenta.** Si no tiene cuenta, la compra no se carga acá. Se carga la
+de quien tiene cuenta, o la de quien se la crea en el momento para sumar.
+
+**Decisión.** El ingestor busca al cliente **con cuenta en la app** y, si no lo encuentra,
+corta con `ErrorDeNegocio('SIN_CUENTA')`. No se crea la ficha, no se registra el pago, no
+queda rastro: no es un cobro que no acredita, es un cobro que no pasó por este sistema.
+Las ventas de quien no está en el programa viven en la caja del local, que es donde
+siempre vivieron.
+
+Esto vale para cualquier fuente de pagos, no sólo el mostrador: el que corta es el
+ingestor, que es el único camino al motor (D-003). El día que entre egresados, los pagos
+de quien no tenga cuenta van a salir como error de esa corrida, no como puntos.
+
+**Qué se fue, además:**
+
+- **El alta de clientes desde el mostrador.** El endpoint `POST /clientes` y
+  `resolverCliente()`, que buscaba por teléfono y daba de alta si no estaba. Era el único
+  lugar donde nacía un cliente que no había pedido estar. Ahora la ficha la crea la
+  persona al registrarse (D-036) y el mostrador sólo busca: `clienteConCuenta()`.
+- **El campo "Nombre (opcional)"** de la pantalla de cobro, que existía para esa alta.
+- **El motivo `SIN_CUENTA`** que D-059 devolvía en la respuesta del cobro: ya no hay cobro
+  que devolverlo. Queda un solo motivo para no sumar —no fue en efectivo— y vuelve a
+  alcanzar el booleano.
+
+**Lo que el vendedor ve.** Al buscar un teléfono que no está, o una ficha vieja sin
+cuenta, la pantalla no ofrece cobrar: dice cuál de los dos casos es, que la compra suma
+sólo con cuenta, y que la cree ahora con ese mismo teléfono desde la dirección de la app
+—dos minutos— y busque de nuevo. El botón de cobrar queda deshabilitado. Es lo que el
+vendedor va a leer en voz alta, así que dice **qué hacer** y no sólo qué pasó.
+
+**Consecuencia, y es la parte que cuesta.** El mostrador pierde el camino rápido: antes
+cobraba a cualquiera en diez segundos. Ahora, con alguien que no está en el programa, hay
+que explicarle y esperar a que se registre, o cobrar sin cargar nada acá. Es fricción en la
+caja, con gente esperando. A cambio, todo lo que está en el sistema es de alguien que
+eligió estar, y no hay fichas fantasma de clientes que nunca pidieron nada.
+
+**Las fichas viejas no se borran** (D-004). Las que abrió el mostrador antes de esta
+decisión siguen ahí, con su historia y sus puntos; lo que no se puede es cobrarles hasta
+que se registren. `clienteConCuenta()` las trata igual que a un teléfono que no existe, y
+la pantalla las distingue sólo para decirlo mejor.
+
+**Verificado contra la base local** con `npm run probar:local`: cobro a un teléfono sin
+cuenta → rechazado `SIN_CUENTA`, y después del rechazo hay **0 clientes con ese teléfono y
+0 pagos**; se registra la persona; cobro en efectivo → acredita 3 puntos; repetido →
+idempotente; con tarjeta → `NO_ACREDITABLE`. El libro mayor queda con un solo movimiento.

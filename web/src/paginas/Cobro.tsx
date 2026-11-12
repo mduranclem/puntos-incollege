@@ -12,10 +12,8 @@ import {
   formatearPesos,
   itemsParaLaApi,
   leerSesion,
-  TEXTO_SIN_PUNTOS,
   totalDeItems,
   type ItemElegido,
-  type MotivoSinPuntos,
   type ResumenDeCuenta,
 } from '../api';
 import { Escaner, useHayCamara } from '../componentes/Escaner';
@@ -44,10 +42,8 @@ type Resultado = ResumenDeCuenta & {
   pagoId: string;
   fecha: string;
   acredito: boolean;
-  motivoSinPuntos: MotivoSinPuntos | null;
   yaAplicado: boolean;
   puntosAcreditados: number;
-  clienteNuevo: boolean;
   importeTexto: string;
   link: string;
 };
@@ -74,7 +70,6 @@ const nuevaReferencia = () =>
 export function Cobro() {
   const sesion = leerSesion();
   const [telefono, setTelefono] = useState('');
-  const [nombre, setNombre] = useState('');
   const [importe, setImporte] = useState('');
   const [medio, setMedio] = useState<Medio>('EFECTIVO');
   /** `null` = deducida de los artículos. Con valor, la eligió la vendedora. */
@@ -82,7 +77,12 @@ export function Cobro() {
   const [referencia, setReferencia] = useState(nuevaReferencia);
 
   const [cliente, setCliente] = useState<ResumenDeCuenta | null>(null);
-  const [esNuevo, setEsNuevo] = useState(false);
+  /**
+   * Por qué no se puede cobrar: el teléfono no está en el programa, o está pero
+   * es una ficha vieja sin cuenta en la app (D-060). Las dos terminan igual —no
+   * se cobra— pero no se dicen igual.
+   */
+  const [bloqueo, setBloqueo] = useState<'NO_EXISTE' | 'SIN_CUENTA' | null>(null);
   const [buscando, setBuscando] = useState(false);
   const [coincidencias, setCoincidencias] = useState<Coincidencia[]>([]);
   const [marcada, setMarcada] = useState(0);
@@ -95,16 +95,9 @@ export function Cobro() {
   const [resultado, setResultado] = useState<Resultado | null>(null);
 
   const campoTelefono = useRef<HTMLInputElement>(null);
-  const campoNombre = useRef<HTMLInputElement>(null);
   const campoImporte = useRef<HTMLInputElement>(null);
 
   useEffect(() => campoTelefono.current?.focus(), []);
-
-  // El foco tiene que saltar al campo siguiente DESPUÉS de que React lo dibuje:
-  // el campo de nombre recién existe cuando el cliente es nuevo.
-  useEffect(() => {
-    if (esNuevo) campoNombre.current?.focus();
-  }, [esNuevo]);
 
   useEffect(() => {
     if (cliente) campoImporte.current?.focus();
@@ -121,7 +114,7 @@ export function Cobro() {
     const tieneLetras = /[a-záéíóúñü]/i.test(texto);
     const buscable = tieneLetras ? texto.length >= 2 : digitos.length >= 3 && digitos.length <= 9;
 
-    if (cliente || esNuevo || !buscable) {
+    if (cliente || bloqueo || !buscable) {
       setCoincidencias([]);
       return;
     }
@@ -138,7 +131,7 @@ export function Cobro() {
       }
     }, 200);
     return () => clearTimeout(reloj);
-  }, [telefono, cliente, esNuevo]);
+  }, [telefono, cliente, bloqueo]);
 
   // Atajos: Alt+número para el medio de pago, Alt+U / Alt+R para la línea.
   useEffect(() => {
@@ -176,11 +169,11 @@ export function Cobro() {
       } else {
         setCliente(null);
         setCoincidencias([]);
-        setEsNuevo(true);
+        setBloqueo('NO_EXISTE');
       }
     } catch (e) {
       setCliente(null);
-      setEsNuevo(false);
+      setBloqueo(null);
       setError(e instanceof ErrorApi ? e.message : 'No se pudo buscar el teléfono');
     } finally {
       setBuscando(false);
@@ -198,8 +191,9 @@ export function Cobro() {
   function elegir(datos: ResumenDeCuenta) {
     setCliente(datos);
     setCoincidencias([]);
-    setEsNuevo(false);
-    setNombre('');
+    // Una ficha vieja sin cuenta se muestra igual —el vendedor tiene que ver de
+    // quién habla— pero no se le puede cobrar (D-060).
+    setBloqueo(datos.tieneCuenta ? null : 'SIN_CUENTA');
     setTelefono(datos.cliente.telefonoE164);
   }
 
@@ -243,14 +237,13 @@ export function Cobro() {
   const linea: Linea = lineaElegida ?? lineaDeducida ?? 'UNIFORMES';
 
   async function registrar() {
-    if (!telefono.trim() || !hayMonto || guardando) return;
+    if (!telefono.trim() || !hayMonto || guardando || bloqueo) return;
     setGuardando(true);
     setError(null);
     try {
       const datos = await api<Resultado>('/cobros', {
         cuerpo: {
           telefono,
-          nombre: nombre.trim() || undefined,
           ...(items.length > 0 ? { items: itemsParaLaApi(items) } : { importe }),
           medioDePago: medio,
           lineaDeNegocio: linea,
@@ -266,24 +259,15 @@ export function Cobro() {
     }
   }
 
-  /**
-   * Lo que va a decidir el servidor, calculado acá sólo para avisarlo antes de
-   * cobrar (D-059). El importe y los puntos los sigue decidiendo el servidor:
-   * esto es un cartel, no una regla.
-   */
-  const motivoPrevisto: MotivoSinPuntos | null =
-    medio !== 'EFECTIVO' ? 'NO_ES_EFECTIVO' : cliente?.tieneCuenta ? null : 'SIN_CUENTA';
-
   function nuevoCobro() {
     setTelefono('');
-    setNombre('');
     setImporte('');
     setItems([]);
     setConfirmando(false);
     setMedio('EFECTIVO');
     setLineaElegida(null);
     setCliente(null);
-    setEsNuevo(false);
+    setBloqueo(null);
     setCoincidencias([]);
     setResultado(null);
     setError(null);
@@ -307,13 +291,12 @@ export function Cobro() {
   if (confirmando) {
     return (
       <Confirmacion
-        cliente={cliente?.cliente.nombre ?? nombre.trim() ?? null}
+        cliente={cliente?.cliente.nombre ?? null}
         telefono={cliente?.cliente.telefono ?? telefono}
-        clienteNuevo={esNuevo}
         items={items}
         totalTexto={items.length > 0 ? formatearPesos(totalCentavos) : `$${importe}`}
         medio={MEDIOS.find((m) => m.valor === medio)?.texto ?? medio}
-        motivoSinPuntos={motivoPrevisto}
+        acredita={medio === 'EFECTIVO'}
         guardando={guardando}
         alConfirmar={() => void registrar()}
         alVolver={() => setConfirmando(false)}
@@ -335,7 +318,7 @@ export function Cobro() {
         onSubmit={(e) => {
           e.preventDefault();
           // Nunca se cobra de un saque: primero se confirma (D-028).
-          if (telefono.trim() && hayMonto) setConfirmando(true);
+          if (telefono.trim() && hayMonto && !bloqueo) setConfirmando(true);
         }}
       >
         <div>
@@ -354,7 +337,7 @@ export function Cobro() {
             onChange={(e) => {
               setTelefono(e.target.value);
               setCliente(null);
-              setEsNuevo(false);
+              setBloqueo(null);
             }}
             onKeyDown={(e) => {
               if (coincidencias.length > 0) {
@@ -386,7 +369,7 @@ export function Cobro() {
             }}
             onBlur={() => {
               // Con la lista abierta, el vendedor elige; no forzamos la búsqueda exacta.
-              if (coincidencias.length === 0 && telefono.trim() && !cliente && !esNuevo) {
+              if (coincidencias.length === 0 && telefono.trim() && !cliente && !bloqueo) {
                 void buscar();
               }
             }}
@@ -453,28 +436,21 @@ export function Cobro() {
           </div>
         )}
 
-        {esNuevo && (
-          <div className="rounded-xl border border-dashed border-[var(--color-borde)] p-4">
-            <p className="mb-2 text-sm font-medium text-slate-700">
-              Cliente nuevo. Se da de alta con este cobro.
+        {/* Acá se daba de alta al cliente con el cobro. Ya no: la cuenta la crea
+            la persona en la app, y sin cuenta este cobro no se registra (D-060).
+            El cartel dice qué hacer, porque lo va a leer en voz alta. */}
+        {bloqueo && (
+          <div className="aviso-sin-cuenta">
+            <p className="aviso-sin-cuenta-titulo">
+              {bloqueo === 'NO_EXISTE'
+                ? 'Este teléfono no está en Puntos InCollege'
+                : 'Esta persona todavía no tiene cuenta en la app'}
             </p>
-            <label className="etiqueta" htmlFor="nombre">
-              Nombre (opcional)
-            </label>
-            <input
-              id="nombre"
-              ref={campoNombre}
-              className="campo"
-              autoComplete="off"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  campoImporte.current?.focus();
-                }
-              }}
-            />
+            <p>
+              La compra se suma a los puntos sólo si tiene cuenta. Que la cree ahora desde{' '}
+              <strong>{window.location.host}</strong> con este mismo teléfono —son dos minutos— y
+              buscás de nuevo.
+            </p>
           </div>
         )}
 
@@ -576,11 +552,16 @@ export function Cobro() {
           <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-[var(--color-error)]">{error}</p>
         )}
 
-        <button className="boton-principal w-full py-4 text-lg" disabled={guardando || !hayMonto}>
+        <button
+          className="boton-principal w-full py-4 text-lg"
+          disabled={guardando || !hayMonto || bloqueo !== null}
+        >
           Registrar cobro
         </button>
         <p className="text-center text-xs text-slate-500">
-          Enter sigue al paso de confirmación.
+          {bloqueo
+            ? 'Sin cuenta en la app no se registra el cobro.'
+            : 'Enter sigue al paso de confirmación.'}
         </p>
       </form>
     </div>
@@ -645,7 +626,7 @@ function Comprobante({
           </p>
         ) : (
           <p className="mt-3 inline-flex rounded-full bg-slate-100 px-4 py-1.5 text-sm font-semibold text-slate-600">
-            Sin puntos: {resultado.motivoSinPuntos ? TEXTO_SIN_PUNTOS[resultado.motivoSinPuntos] : '—'}
+            Sin puntos: no fue en efectivo
           </p>
         )}
 
@@ -677,14 +658,8 @@ function Comprobante({
               ? `Hola ${resultado.cliente.nombre}! Sumaste puntos en InCollege. ` +
                 `Tenés ${resultado.saldoPuntos} punto(s) (${resultado.equivalenteTexto}). ` +
                 `Mirá tu saldo acá: ${resultado.link}`
-              : resultado.motivoSinPuntos === 'SIN_CUENTA'
-                ? `Hola ${resultado.cliente.nombre}! Creá tu cuenta de Puntos InCollege acá: ` +
-                  `${resultado.link}
-
-Desde tu próxima compra en efectivo empezás a sumar puntos ` +
-                  `para descuento.`
-                : `Hola ${resultado.cliente.nombre}! Esta compra no suma puntos: los puntos son ` +
-                  `sólo por pago en efectivo. Mirá tu cuenta acá: ${resultado.link}`;
+              : `Hola ${resultado.cliente.nombre}! Esta compra no suma puntos: los puntos son ` +
+                `sólo por pago en efectivo. Mirá tu cuenta acá: ${resultado.link}`;
             try {
               await navigator.clipboard.writeText(texto);
               setCopiado(true);
@@ -733,7 +708,6 @@ Desde tu próxima compra en efectivo empezás a sumar puntos ` +
         totalTexto={resultado.importeTexto}
         medio={medio}
         acredito={resultado.acredito}
-        motivoSinPuntos={resultado.motivoSinPuntos}
         puntosAcreditados={resultado.puntosAcreditados}
         saldoPuntos={resultado.saldoPuntos}
         equivalenteTexto={resultado.equivalenteTexto}
@@ -749,22 +723,20 @@ Desde tu próxima compra en efectivo empezás a sumar puntos ` +
 function Confirmacion({
   cliente,
   telefono,
-  clienteNuevo,
   items,
   totalTexto,
   medio,
-  motivoSinPuntos,
+  acredita,
   guardando,
   alConfirmar,
   alVolver,
 }: {
   cliente: string | null;
   telefono: string;
-  clienteNuevo: boolean;
   items: ItemElegido[];
   totalTexto: string;
   medio: string;
-  motivoSinPuntos: MotivoSinPuntos | null;
+  acredita: boolean;
   guardando: boolean;
   alConfirmar: () => void;
   alVolver: () => void;
@@ -789,7 +761,6 @@ function Confirmacion({
           <span>Cliente</span>
           <strong>
             {cliente || 'Sin nombre'}
-            {clienteNuevo && <em className="conf-nuevo">nuevo</em>}
             <small>{telefono}</small>
           </strong>
         </div>
@@ -821,19 +792,10 @@ function Confirmacion({
           <strong>{totalTexto}</strong>
         </div>
 
-        {/* Decirlo antes y no después: prometer puntos que no van a llegar es
-            peor que cobrar sin puntos (D-059). */}
-        <p className={motivoSinPuntos ? 'conf-nota conf-nota-gris' : 'conf-nota'}>
-          {!motivoSinPuntos
+        <p className={acredita ? 'conf-nota' : 'conf-nota conf-nota-gris'}>
+          {acredita
             ? 'Al confirmar se acreditan los puntos.'
-            : `Este cobro se registra pero no suma puntos: ${TEXTO_SIN_PUNTOS[motivoSinPuntos]}.`}
-          {motivoSinPuntos === 'SIN_CUENTA' && (
-            <>
-              {' '}
-              Si la crea en <strong>{window.location.host}</strong>, empieza a sumar desde la
-              próxima compra en efectivo.
-            </>
-          )}
+            : 'Este cobro se registra pero no suma puntos: no es efectivo.'}
         </p>
       </div>
 

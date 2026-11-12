@@ -10,25 +10,12 @@ import { formatearTelefono, normalizarTelefono } from '../dominio/telefono.js';
 import { ErrorDeNegocio } from '../dominio/tipos.js';
 import { temporadaVigente } from './configuracion.js';
 
-export type DatosDeCliente = {
-  telefonoCrudo: string;
-  nombre?: string;
-  documento?: string;
-  localId?: string | null;
-  /** Área que se asume si la persona tipeó sólo el abonado. La del local. */
-  areaPorDefecto?: string;
-};
-
-export type ClienteResuelto = {
+/** Quien puede recibir un cobro: existe y tiene cuenta en la app (D-060). */
+export type ClienteConCuenta = {
   id: string;
   nombre: string;
   telefonoE164: string;
-  /**
-   * Cuándo se registró en la app, o `null` si la ficha la abrió el mostrador al
-   * cobrarle. Lo mira el ingestor: sin cuenta no se acreditan puntos (D-059).
-   */
-  registradoEn: Date | null;
-  creado: boolean;
+  registradoEn: Date;
 };
 
 /** Sigue la cadena de fusiones hasta la cuenta sobreviviente. */
@@ -59,41 +46,34 @@ export async function buscarClientePorTelefono(
     : await prisma.cliente.findUnique({ where: { id } });
 }
 
-/** Busca por teléfono; si no existe, lo da de alta. Idempotente por teléfono. */
-export async function resolverCliente(
+/**
+ * El cliente de ese teléfono, **sólo si tiene cuenta en la app** (D-060).
+ *
+ * No crea nada. Antes el mostrador abría la ficha al cobrar, y de ahí salían
+ * clientes que nunca habían pedido estar en el programa; ahora la ficha la crea
+ * la persona al registrarse y acá solamente se busca.
+ *
+ * Devuelve `null` en los tres casos que para el mostrador son el mismo —no se
+ * puede cobrar—: el teléfono no existe, existe pero sin cuenta (una ficha vieja
+ * de las que abría el mostrador), o está fusionado en otra que tampoco se
+ * registró.
+ */
+export async function clienteConCuenta(
   prisma: PrismaClient,
-  datos: DatosDeCliente,
-): Promise<ClienteResuelto> {
-  const telefonoE164 = normalizarTelefono(datos.telefonoCrudo, {
-    areaPorDefecto: datos.areaPorDefecto,
-  });
-
-  const existente = await prisma.cliente.findUnique({ where: { telefonoE164 } });
-  if (existente) {
-    const id = await resolverFusion(prisma, existente.id);
-    const vigente =
-      id === existente.id ? existente : await prisma.cliente.findUniqueOrThrow({ where: { id } });
-    // Si el cliente estaba sin nombre y ahora lo dan, se completa.
-    if (datos.nombre && (!vigente.nombre || vigente.nombre === 'Sin nombre')) {
-      const actualizado = await prisma.cliente.update({
-        where: { id: vigente.id },
-        data: { nombre: datos.nombre },
-      });
-      return { ...actualizado, creado: false };
-    }
-    return { ...vigente, creado: false };
-  }
-
-  const creado = await prisma.cliente.create({
-    data: {
-      telefonoE164,
-      telefonoCrudo: datos.telefonoCrudo,
-      nombre: datos.nombre?.trim() || 'Sin nombre',
-      documento: datos.documento?.trim() || null,
-      localOrigenId: datos.localId ?? null,
-    },
-  });
-  return { ...creado, creado: true };
+  datos: { telefonoCrudo: string; areaPorDefecto?: string },
+): Promise<ClienteConCuenta | null> {
+  const cliente = await buscarClientePorTelefono(
+    prisma,
+    datos.telefonoCrudo,
+    datos.areaPorDefecto,
+  );
+  if (!cliente?.registradoEn) return null;
+  return {
+    id: cliente.id,
+    nombre: cliente.nombre,
+    telefonoE164: cliente.telefonoE164,
+    registradoEn: cliente.registradoEn,
+  };
 }
 
 /** Cuenta de la temporada abierta. La crea si es la primera operación del cliente. */

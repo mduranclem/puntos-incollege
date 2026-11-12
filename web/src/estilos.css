@@ -131,6 +131,15 @@
   /* Un campo adentro de una tabla no puede ser `w-full`: con cinco columnas la
      celda queda angosta y el texto del desplegable se corta a la mitad
      ("Rosario F", "Gere"). Se achica el relleno y se deja crecer al contenido. */
+  /* Sin cuenta en la app no se registra el cobro (D-060). */
+  .aviso-sin-cuenta {
+    @apply rounded-xl border border-dashed p-4 text-sm;
+    border-color: color-mix(in oklab, var(--color-error) 45%, white);
+    background: color-mix(in oklab, var(--color-error) 6%, white);
+    color: var(--color-tinta);
+  }
+  .aviso-sin-cuenta-titulo { @apply mb-1 font-semibold; color: var(--color-error); }
+
   .campo-tabla {
     @apply w-auto min-w-fit px-2 py-1.5 text-sm;
   }
